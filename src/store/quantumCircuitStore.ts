@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { QuantumGate, CircuitState, SimulationResult } from '@/types/quantum';
+import { QuantumGate, SimulationResult } from '@/types/quantum';
+import { simulateCircuit } from '@/lib/quantum/simulator';
 
 interface QuantumCircuitStore {
   // Circuit state
@@ -57,72 +58,21 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   simulate: () => {
     set({ isSimulating: true });
     
-    // Simulate quantum circuit (simplified mock simulation)
+    // Use setTimeout to allow UI to update before running simulation
     setTimeout(() => {
       const { gates, qubitCount } = get();
-      const numStates = Math.pow(2, qubitCount);
       
-      // Generate mock probabilities based on gates
-      const probabilities: { state: string; probability: number }[] = [];
-      let totalProb = 0;
-      
-      for (let i = 0; i < numStates; i++) {
-        const state = i.toString(2).padStart(qubitCount, '0');
-        // Create interesting distribution based on gates
-        let prob = Math.random();
-        
-        // Hadamard gates create more uniform distribution
-        const hGates = gates.filter(g => g.type === 'H').length;
-        if (hGates > 0) {
-          prob = (prob + 1 / numStates * hGates) / (1 + hGates);
-        }
-        
-        probabilities.push({ state: `|${state}⟩`, probability: prob });
-        totalProb += prob;
-      }
-      
-      // Normalize
-      probabilities.forEach(p => {
-        p.probability = p.probability / totalProb;
-      });
-      
-      // Sort by probability descending
-      probabilities.sort((a, b) => b.probability - a.probability);
-      
-      // Generate mock Bloch vectors
-      const blochVectors = Array.from({ length: qubitCount }, (_, i) => {
-        const qubitGates = gates.filter(g => g.qubit === i);
-        let x = 0, y = 0, z = 1;
-        
-        qubitGates.forEach(gate => {
-          switch (gate.type) {
-            case 'H':
-              x = 1 / Math.sqrt(2);
-              z = 1 / Math.sqrt(2);
-              break;
-            case 'X':
-              z = -z;
-              break;
-            case 'Y':
-              const tempY = z;
-              z = -x;
-              x = tempY;
-              break;
-            case 'Z':
-              x = -x;
-              y = -y;
-              break;
-          }
-        });
-        
-        return { x, y, z };
-      });
+      // Run the real quantum simulation
+      const result = simulateCircuit(gates, qubitCount);
       
       set({
         isSimulating: false,
-        simulationResult: { probabilities, blochVectors }
+        simulationResult: {
+          probabilities: result.probabilities,
+          blochVectors: result.blochVectors
+        }
       });
-    }, 1500);
+    }, 500); // Small delay for visual feedback
   },
 
   getCircuitDepth: () => {
