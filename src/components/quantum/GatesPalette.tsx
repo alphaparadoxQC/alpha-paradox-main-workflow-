@@ -5,7 +5,7 @@ import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 const gateOrder: GateType[] = ['H', 'X', 'Y', 'Z', 'CNOT', 'SWAP', 'S', 'M'];
 
 export const GatesPalette = () => {
-  const { setDraggedGate, draggedGate } = useQuantumCircuitStore();
+  const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
 
   const handleDragStart = (gateType: GateType) => {
     setDraggedGate(gateType);
@@ -15,6 +15,28 @@ export const GatesPalette = () => {
     setDraggedGate(null);
   };
 
+  // Click to add gate to the next available position on qubit 0
+  const handleClick = (gateType: GateType) => {
+    // Find the next available position on the circuit
+    const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
+    
+    // For multi-qubit gates, find appropriate qubits
+    let targetQubit = 0;
+    if (gateType === 'CNOT' || gateType === 'SWAP') {
+      targetQubit = 1; // Default target for multi-qubit gates
+    }
+    
+    const newGate = {
+      id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: gateType,
+      qubit: 0, // Default to qubit 0 for control
+      position: maxPosition,
+      ...(gateType === 'CNOT' || gateType === 'SWAP' ? { targetQubit } : {}),
+    };
+    
+    addGate(newGate);
+  };
+
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
       <div className="p-4 border-b border-sidebar-border">
@@ -22,7 +44,7 @@ export const GatesPalette = () => {
           <span className="text-primary">⚛</span> Quantum Gates
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Drag gates to the circuit
+          Click or drag gates to add
         </p>
       </div>
       
@@ -41,6 +63,7 @@ export const GatesPalette = () => {
                 draggable
                 onDragStart={() => handleDragStart(gateType)}
                 onDragEnd={handleDragEnd}
+                onClick={() => handleClick(gateType)}
                 className={`
                   relative p-3 rounded-lg cursor-grab active:cursor-grabbing
                   bg-card border border-border hover:border-primary/50

@@ -69,7 +69,9 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
         isSimulating: false,
         simulationResult: {
           probabilities: result.probabilities,
-          blochVectors: result.blochVectors
+          blochVectors: result.blochVectors,
+          isEntangled: result.isEntangled,
+          entangledPairs: result.entangledPairs
         }
       });
     }, 500); // Small delay for visual feedback
