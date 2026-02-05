@@ -4,3 +4,6 @@ export { QuantumCanvas } from './QuantumCanvas';
 export { SimulationResults } from './SimulationResults';
 export { Toolbar } from './Toolbar';
 export { StatusBar } from './StatusBar';
+ export { GateContextMenu } from './GateContextMenu';
+ export { InteractiveBlochSphere } from './InteractiveBlochSphere';
+ export { PhaseWheel } from './PhaseWheel';

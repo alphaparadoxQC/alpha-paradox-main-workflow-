@@ -44,11 +44,20 @@ export const initializeState = (qubitCount: number): StateVector => {
 export const applySingleQubitGate = (
   state: StateVector,
   gateType: string,
-  targetQubit: number
+   targetQubit: number,
+   angle?: number  // For rotation gates (Rx, Ry, Rz)
 ): StateVector => {
   const { amplitudes, qubitCount } = state;
   const numStates = amplitudes.length;
-  const gate = getGateMatrix(gateType);
+   /**
+    * ============================================================
+    * GET GATE MATRIX
+    * ============================================================
+    * For fixed gates (H, X, Y, Z, S, T), the matrix is constant.
+    * For rotation gates (Rx, Ry, Rz), the angle parameter is used.
+    * ============================================================
+    */
+   const gate = getGateMatrix(gateType, angle);
   
   const newAmplitudes: Complex[] = new Array(numStates).fill(null).map(() => ({ ...ZERO }));
   
@@ -436,6 +445,21 @@ export const simulateCircuit = (
       case 'T':
         state = applySingleQubitGate(state, gate.type, gate.qubit);
         break;
+       
+       /**
+        * ============================================================
+        * ROTATION GATES (Rx, Ry, Rz)
+        * ============================================================
+        * These gates take an angle parameter stored in gate.angle.
+        * If not specified, defaults to π/2 (quarter turn).
+        * The angle is in radians.
+        * ============================================================
+        */
+       case 'Rx':
+       case 'Ry':
+       case 'Rz':
+         state = applySingleQubitGate(state, gate.type, gate.qubit, gate.angle);
+         break;
         
       case 'CNOT':
         // CNOT: gate.qubit is control, gate.targetQubit specifies target

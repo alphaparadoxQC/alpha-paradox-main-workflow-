@@ -1,8 +1,29 @@
-import { useCallback, useRef, DragEvent } from 'react';
+ /**
+  * ============================================================
+  * QUANTUM CANVAS COMPONENT
+  * ============================================================
+  * 
+  * This is the main circuit building area where users:
+  * - Drag gates from the palette onto qubit lines
+  * - Select gates by clicking (shows highlight)
+  * - Delete gates with Delete/Backspace keys
+  * - Drag existing gates to reposition them
+  * - Right-click for context menu
+  * 
+  * Key Implementation Notes:
+  * - Uses SVG for rendering gates and qubit lines
+  * - Framer Motion for gate animations
+  * - Keyboard events require focus (tabIndex on container)
+  * - Two drag modes: NEW gates from palette, MOVE existing gates
+  * ============================================================
+  */
+ 
+ import { useCallback, useRef, DragEvent, KeyboardEvent, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { GateType, GATE_INFO } from '@/types/quantum';
 import { X } from 'lucide-react';
+ import { GateContextMenu } from './GateContextMenu';
 
 const QUBIT_SPACING = 80;
 const GATE_WIDTH = 60;
@@ -11,30 +32,118 @@ const CANVAS_PADDING = 60;
 
 export const QuantumCanvas = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const { gates, qubitCount, addGate, removeGate, draggedGate } = useQuantumCircuitStore();
+   const { 
+     gates, 
+     qubitCount, 
+     addGate, 
+     removeGate, 
+     draggedGate,
+     selectedGateId,
+     selectGate,
+     moveGate,
+     undo,
+     redo,
+   } = useQuantumCircuitStore();
+   
+   /**
+    * ============================================================
+    * DRAG STATE FOR REPOSITIONING EXISTING GATES
+    * ============================================================
+    * When dragging an existing gate (not from palette), we track:
+    * - draggingGateId: The ID of the gate being moved
+    * 
+    * This is different from `draggedGate` in the store which is
+    * for NEW gates being added from the palette.
+    * ============================================================
+    */
+   const [draggingGateId, setDraggingGateId] = useState<string | null>(null);
+   
+   /**
+    * ============================================================
+    * KEYBOARD EVENT HANDLER
+    * ============================================================
+    * Handles keyboard shortcuts when canvas is focused:
+    * - Delete/Backspace: Remove selected gate
+    * - Escape: Deselect current gate
+    * - Ctrl+Z: Undo
+    * - Ctrl+Shift+Z or Ctrl+Y: Redo
+    * 
+    * NOTE: Container needs tabIndex for keyboard focus
+    * ============================================================
+    */
+   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+     // Delete selected gate with Delete or Backspace
+     if ((e.key === 'Delete' || e.key === 'Backspace') && selectedGateId) {
+       e.preventDefault();
+       removeGate(selectedGateId);
+     }
+     
+     // Escape to deselect
+     if (e.key === 'Escape') {
+       selectGate(null);
+     }
+     
+     // Undo: Ctrl+Z (or Cmd+Z on Mac)
+     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+       e.preventDefault();
+       undo();
+     }
+     
+     // Redo: Ctrl+Shift+Z or Ctrl+Y
+     if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+       e.preventDefault();
+       redo();
+     }
+   }, [selectedGateId, removeGate, selectGate, undo, redo]);
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
   }, []);
 
-  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+   /**
+    * ============================================================
+    * DROP HANDLER
+    * ============================================================
+    * Handles two types of drops:
+    * 1. NEW gate from palette (draggedGate in store)
+    * 2. MOVE existing gate (draggingGateId in local state)
+    * 
+    * Calculates target qubit and position from mouse coordinates.
+    * Validates that the position isn't already occupied.
+    * ============================================================
+    */
+   const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     
-    if (!draggedGate || !canvasRef.current) return;
+     if (!canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const y = e.clientY - rect.top;
     const x = e.clientX - rect.left;
 
-    // Calculate which qubit line was targeted
+     // Calculate target qubit from Y position
     const qubitIndex = Math.round((y - CANVAS_PADDING) / QUBIT_SPACING);
     if (qubitIndex < 0 || qubitIndex >= qubitCount) return;
 
-    // Calculate position along the circuit
+     // Calculate target position from X position
     const position = Math.max(0, Math.floor((x - CANVAS_PADDING - 40) / GATE_SPACING));
+     
+     // ============================================================
+     // CASE 1: Moving an existing gate
+     // ============================================================
+     if (draggingGateId) {
+       moveGate(draggingGateId, qubitIndex, position);
+       setDraggingGateId(null);
+       return;
+     }
+     
+     // ============================================================
+     // CASE 2: Adding a new gate from palette
+     // ============================================================
+     if (!draggedGate) return;
 
-    // Check if position is already occupied on this qubit
+     // Check if position is already occupied
     const existingGate = gates.find(g => g.qubit === qubitIndex && g.position === position);
     if (existingGate) return;
 
@@ -43,10 +152,54 @@ export const QuantumCanvas = () => {
       type: draggedGate as GateType,
       qubit: qubitIndex,
       position,
+       // For rotation gates, set default angle
+       ...((['Rx', 'Ry', 'Rz'].includes(draggedGate)) && { angle: Math.PI / 2 }),
     };
 
     addGate(newGate);
-  }, [draggedGate, qubitCount, gates, addGate]);
+   }, [draggedGate, draggingGateId, qubitCount, gates, addGate, moveGate]);
+   
+   /**
+    * ============================================================
+    * CANVAS CLICK HANDLER
+    * ============================================================
+    * Clicking on the canvas background deselects the current gate.
+    * We check if the click target is the canvas itself (not a gate).
+    * ============================================================
+    */
+   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+     // Only deselect if clicking directly on the canvas, not on a gate
+     const target = e.target as SVGElement;
+     if (target.tagName === 'svg' || target.tagName === 'line') {
+       selectGate(null);
+     }
+   }, [selectGate]);
+   
+   /**
+    * ============================================================
+    * GATE DRAG START HANDLER
+    * ============================================================
+    * Initiates dragging of an existing gate for repositioning.
+    * Sets local state to track which gate is being moved.
+    * ============================================================
+    */
+   const handleGateDragStart = useCallback((gateId: string) => {
+     setDraggingGateId(gateId);
+     selectGate(gateId);
+   }, [selectGate]);
+   
+   /**
+    * ============================================================
+    * GATE CLICK HANDLER
+    * ============================================================
+    * Selects a gate when clicked.
+    * Stops propagation to prevent canvas click from deselecting.
+    * ============================================================
+    */
+   const handleGateClick = useCallback((gateId: string, e: React.MouseEvent) => {
+     e.stopPropagation();
+     selectGate(gateId);
+   }, [selectGate]);
 
   // Calculate canvas dimensions
   const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 2 : 8;
@@ -55,9 +208,12 @@ export const QuantumCanvas = () => {
 
   return (
     <div 
-      className="flex-1 overflow-auto bg-background quantum-grid relative"
+       className="flex-1 overflow-auto bg-background quantum-grid relative outline-none"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+       onKeyDown={handleKeyDown}
+       onClick={handleCanvasClick}
+       tabIndex={0}
       ref={canvasRef}
     >
       <svg
@@ -144,16 +300,52 @@ export const QuantumCanvas = () => {
           const gateInfo = GATE_INFO[gate.type];
           const x = CANVAS_PADDING + 40 + gate.position * GATE_SPACING;
           const y = CANVAS_PADDING + gate.qubit * QUBIT_SPACING;
+           const isSelected = selectedGateId === gate.id;
+           const isDragging = draggingGateId === gate.id;
 
           return (
-            <motion.g
-              key={gate.id}
+             <GateContextMenu key={gate.id} gate={gate}>
+             <motion.g
               initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+               animate={{ 
+                 scale: isDragging ? 1.1 : 1, 
+                 opacity: isDragging ? 0.7 : 1 
+               }}
               exit={{ scale: 0, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                style={{ cursor: 'grab' }}
+               onClick={(e) => handleGateClick(gate.id, e)}
+                onMouseDown={(e) => {
+                  // Start drag tracking on mouse down
+                  if (e.button === 0) { // Left click only
+                    handleGateDragStart(gate.id);
+                  }
+                }}
+                onMouseUp={() => setDraggingGateId(null)}
             >
-              {/* Gate background glow */}
+               {/* ============================================================
+                   SELECTION HIGHLIGHT
+                   ============================================================
+                   Shows a pulsing border when the gate is selected.
+                   Uses the gate's color with reduced opacity.
+                   ============================================================ */}
+               {isSelected && (
+                 <motion.rect
+                   x={x - GATE_WIDTH / 2 - 6}
+                   y={y - GATE_WIDTH / 2 - 6}
+                   width={GATE_WIDTH + 12}
+                   height={GATE_WIDTH + 12}
+                   rx="10"
+                   fill="none"
+                   stroke={gateInfo.color}
+                   strokeWidth="2"
+                   strokeDasharray="4,2"
+                   animate={{ opacity: [0.5, 1, 0.5] }}
+                   transition={{ duration: 1.5, repeat: Infinity }}
+                 />
+               )}
+               
+               {/* Gate background glow */}
               <rect
                 x={x - GATE_WIDTH / 2 - 2}
                 y={y - GATE_WIDTH / 2 - 2}
@@ -165,7 +357,12 @@ export const QuantumCanvas = () => {
                 filter="url(#glow-cyan)"
               />
               
-              {/* Gate box */}
+               {/* ============================================================
+                   GATE BOX
+                   ============================================================
+                   The main gate rectangle.
+                   Stroke width increases when selected for visual feedback.
+                   ============================================================ */}
               <rect
                 x={x - GATE_WIDTH / 2}
                 y={y - GATE_WIDTH / 2}
@@ -174,8 +371,8 @@ export const QuantumCanvas = () => {
                 rx="6"
                 fill="hsl(var(--card))"
                 stroke={gateInfo.color}
-                strokeWidth="2"
-                className="cursor-pointer hover:stroke-[3]"
+                 strokeWidth={isSelected ? 3 : 2}
+                 className="hover:stroke-[3]"
                 style={{ transition: 'stroke-width 0.2s' }}
               />
               
@@ -191,12 +388,40 @@ export const QuantumCanvas = () => {
               >
                 {gateInfo.symbol}
               </text>
+               
+               {/* ============================================================
+                   ANGLE DISPLAY FOR ROTATION GATES
+                   ============================================================
+                   Shows the current angle below the gate symbol.
+                   Only displayed for Rx, Ry, Rz gates.
+                   ============================================================ */}
+               {gate.angle !== undefined && (
+                 <text
+                   x={x}
+                   y={y + 20}
+                   fill={gateInfo.color}
+                   fontSize="9"
+                   fontFamily="monospace"
+                   textAnchor="middle"
+                   opacity="0.8"
+                 >
+                   {(gate.angle / Math.PI).toFixed(1)}π
+                 </text>
+               )}
 
-              {/* Delete button */}
+               {/* ============================================================
+                   QUICK DELETE BUTTON
+                   ============================================================
+                   Small X button that appears on hover.
+                   Alternative to Delete key or context menu.
+                   ============================================================ */}
               <g
                 className="cursor-pointer opacity-0 hover:opacity-100"
                 style={{ transition: 'opacity 0.2s' }}
-                onClick={() => removeGate(gate.id)}
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   removeGate(gate.id);
+                 }}
               >
                 <circle
                   cx={x + GATE_WIDTH / 2 - 5}
@@ -214,6 +439,7 @@ export const QuantumCanvas = () => {
                 </foreignObject>
               </g>
             </motion.g>
+             </GateContextMenu>
           );
         })}
 
