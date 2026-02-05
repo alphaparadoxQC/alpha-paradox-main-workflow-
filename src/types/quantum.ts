@@ -25,6 +25,10 @@ export interface CircuitState {
 export interface SimulationResult {
   probabilities: { state: string; probability: number }[];
   blochVectors: { x: number; y: number; z: number }[];
+  amplitudes: { state: string; re: number; im: number; magnitude: number; phase: number }[];
+  circuitDepth: number;
+  fidelity: number;
+  measurementOutcomes?: { qubit: number; prob0: number; prob1: number }[];
 }
 
 export interface GateInfo {
