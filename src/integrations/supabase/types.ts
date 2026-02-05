@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      quantum_circuits: {
+        Row: {
+          circuit_data: Json
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          qubit_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          circuit_data?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          qubit_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          circuit_data?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          qubit_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
