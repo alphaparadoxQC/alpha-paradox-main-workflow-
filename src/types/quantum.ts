@@ -6,6 +6,9 @@ export type GateType =
   | 'CNOT'   // Controlled NOT
   | 'SWAP'   // Swap
   | 'S'      // Phase
+  | 'T'      // T gate (π/8)
+  | 'CZ'     // Controlled-Z
+  | 'CCX'    // Toffoli (CCX)
   | 'M';     // Measure
 
 export interface QuantumGate {
@@ -15,6 +18,7 @@ export interface QuantumGate {
   position: number;
   controlQubit?: number; // For CNOT
   targetQubit?: number;  // For SWAP
+  controlQubit2?: number; // For Toffoli (second control)
 }
 
 export interface CircuitState {
@@ -93,5 +97,26 @@ export const GATE_INFO: Record<GateType, GateInfo> = {
     description: 'Measurement',
     color: 'hsl(0, 0%, 70%)',
     symbol: 'M',
+  },
+  T: {
+    type: 'T',
+    name: 'T Gate',
+    description: 'π/8 phase rotation',
+    color: 'hsl(280, 80%, 60%)',
+    symbol: 'T',
+  },
+  CZ: {
+    type: 'CZ',
+    name: 'Controlled-Z',
+    description: 'Controlled phase flip',
+    color: 'hsl(120, 70%, 45%)',
+    symbol: 'CZ',
+  },
+  CCX: {
+    type: 'CCX',
+    name: 'Toffoli',
+    description: 'CCX (double control)',
+    color: 'hsl(350, 80%, 55%)',
+    symbol: 'CCX',
   },
 };

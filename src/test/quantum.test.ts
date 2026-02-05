@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { complex, add, multiply, magnitudeSquared, scale, conjugate } from '@/lib/quantum/complex';
 import { H_GATE, X_GATE, Z_GATE, applyGateToQubit, stateToBlochVector } from '@/lib/quantum/gates';
-import { initializeState, applySingleQubitGate, applyCNOT, simulateCircuit, calculateProbabilities, detectEntanglement } from '@/lib/quantum/simulator';
+import { initializeState, applySingleQubitGate, applyCNOT, applySWAP, applyCZ, applyToffoli, simulateCircuit, calculateProbabilities, detectEntanglement } from '@/lib/quantum/simulator';
+import { T_GATE } from '@/lib/quantum/gates';
 
 describe('Complex number operations', () => {
   it('should add complex numbers correctly', () => {
@@ -152,5 +153,107 @@ describe('CNOT and Entanglement', () => {
     // Superposition but no entanglement
     expect(result.isEntangled).toBe(false);
     expect(result.entangledPairs).toHaveLength(0);
+  });
+});
+
+describe('Additional gates', () => {
+  it('should apply T gate correctly (π/4 phase)', () => {
+    // T|1⟩ = e^(iπ/4)|1⟩
+    let state = initializeState(1);
+    state = applySingleQubitGate(state, 'X', 0); // |1⟩
+    state = applySingleQubitGate(state, 'T', 0); // T|1⟩
+    
+    // Probability should still be 1 for |1⟩
+    const probs = calculateProbabilities(state);
+    expect(probs.length).toBe(1);
+    expect(probs[0].state).toBe('|1⟩');
+    expect(probs[0].probability).toBeCloseTo(1);
+    
+    // Check phase: amplitude is e^(iπ/4) = cos(π/4) + i*sin(π/4)
+    // After X, amplitude was 1 (real), T multiplies |1⟩ by e^(iπ/4)
+    const amp = state.amplitudes[1];
+    const mag = Math.sqrt(amp.re * amp.re + amp.im * amp.im);
+    expect(mag).toBeCloseTo(1); // Magnitude preserved
+    // Phase angle should be π/4
+    const phase = Math.atan2(amp.im, amp.re);
+    expect(phase).toBeCloseTo(Math.PI / 4);
+  });
+
+  it('should apply S gate correctly (π/2 phase)', () => {
+    let state = initializeState(1);
+    state = applySingleQubitGate(state, 'X', 0); // |1⟩
+    state = applySingleQubitGate(state, 'S', 0); // S|1⟩ = i|1⟩
+    
+    // Check phase: should be i = e^(iπ/2)
+    const amp = state.amplitudes[1];
+    expect(amp.re).toBeCloseTo(0);
+    expect(amp.im).toBeCloseTo(1);
+  });
+
+  it('should apply SWAP gate correctly', () => {
+    let state = initializeState(2);
+    state = applySingleQubitGate(state, 'X', 0); // |10⟩
+    state = applySWAP(state, 0, 1); // |01⟩
+    
+    const probs = calculateProbabilities(state);
+    expect(probs.length).toBe(1);
+    expect(probs[0].state).toBe('|01⟩');
+  });
+
+  it('should apply CZ gate correctly', () => {
+    // CZ applies -1 phase when both qubits are |1⟩
+    let state = initializeState(2);
+    state = applySingleQubitGate(state, 'X', 0); // |10⟩
+    state = applySingleQubitGate(state, 'X', 1); // |11⟩
+    state = applyCZ(state, 0, 1); // -|11⟩
+    
+    // Amplitude should be -1
+    const amp = state.amplitudes[3]; // |11⟩ = index 3
+    expect(amp.re).toBeCloseTo(-1);
+    expect(amp.im).toBeCloseTo(0);
+  });
+
+  it('should NOT apply CZ phase when control is |0⟩', () => {
+    let state = initializeState(2);
+    state = applySingleQubitGate(state, 'X', 1); // |01⟩
+    state = applyCZ(state, 0, 1);
+    
+    // Amplitude should still be +1
+    const amp = state.amplitudes[1]; // |01⟩ = index 1
+    expect(amp.re).toBeCloseTo(1);
+    expect(amp.im).toBeCloseTo(0);
+  });
+
+  it('should apply Toffoli (CCX) gate correctly', () => {
+    // CCX flips target only when both controls are |1⟩
+    let state = initializeState(3);
+    state = applySingleQubitGate(state, 'X', 0); // |100⟩
+    state = applySingleQubitGate(state, 'X', 1); // |110⟩
+    state = applyToffoli(state, 0, 1, 2); // |111⟩
+    
+    const probs = calculateProbabilities(state);
+    expect(probs.length).toBe(1);
+    expect(probs[0].state).toBe('|111⟩');
+  });
+
+  it('should NOT flip target when only one control is |1⟩', () => {
+    let state = initializeState(3);
+    state = applySingleQubitGate(state, 'X', 0); // |100⟩
+    state = applyToffoli(state, 0, 1, 2); // Should stay |100⟩
+    
+    const probs = calculateProbabilities(state);
+    expect(probs.length).toBe(1);
+    expect(probs[0].state).toBe('|100⟩');
+  });
+
+  it('should simulate circuit with new gates', () => {
+    const gates = [
+      { id: '1', type: 'T' as const, qubit: 0, position: 0 },
+      { id: '2', type: 'CZ' as const, qubit: 0, position: 1, targetQubit: 1 },
+    ];
+    
+    // Should not throw
+    const result = simulateCircuit(gates, 2);
+    expect(result.probabilities.length).toBeGreaterThan(0);
   });
 });

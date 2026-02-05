@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { GATE_INFO, GateType } from '@/types/quantum';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 
-const gateOrder: GateType[] = ['H', 'X', 'Y', 'Z', 'CNOT', 'SWAP', 'S', 'M'];
+const gateOrder: GateType[] = ['H', 'X', 'Y', 'Z', 'S', 'T', 'CNOT', 'SWAP', 'CZ', 'CCX', 'M'];
 
 export const GatesPalette = () => {
   const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
@@ -20,18 +20,19 @@ export const GatesPalette = () => {
     // Find the next available position on the circuit
     const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
     
-    // For multi-qubit gates, find appropriate qubits
-    let targetQubit = 0;
-    if (gateType === 'CNOT' || gateType === 'SWAP') {
-      targetQubit = 1; // Default target for multi-qubit gates
-    }
-    
     const newGate = {
       id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: gateType,
       qubit: 0, // Default to qubit 0 for control
       position: maxPosition,
-      ...(gateType === 'CNOT' || gateType === 'SWAP' ? { targetQubit } : {}),
+      // Set targets for multi-qubit gates
+      ...(gateType === 'CNOT' || gateType === 'SWAP' || gateType === 'CZ' 
+        ? { targetQubit: 1 } 
+        : {}),
+      // For Toffoli, set both controls and target
+      ...(gateType === 'CCX' 
+        ? { controlQubit2: 1, targetQubit: 2 } 
+        : {}),
     };
     
     addGate(newGate);
