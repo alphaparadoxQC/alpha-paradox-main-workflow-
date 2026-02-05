@@ -1,29 +1,35 @@
- import { useState } from 'react';
- import { useNavigate, useSearchParams } from 'react-router-dom';
- import { motion } from 'framer-motion';
- import { Cpu, Mail, Lock, Loader2, Eye, EyeOff, Atom } from 'lucide-react';
- import { Button } from '@/components/ui/button';
- import { Input } from '@/components/ui/input';
- import { Label } from '@/components/ui/label';
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
- import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
- import { useAuth } from '@/hooks/useAuth';
- import { lovable } from '@/integrations/lovable';
- import { toast } from 'sonner';
- import { z } from 'zod';
- 
- const emailSchema = z.string().email('Please enter a valid email address');
- const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Cpu, Mail, Lock, Loader2, Eye, EyeOff, Atom } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/hooks/useAuth';
+import { lovable } from '@/integrations/lovable';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
+import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
+import { BRANDING } from '@/config/branding';
+
+const emailSchema = z.string().email('Please enter a valid email address');
+const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
  
  export default function Auth() {
    const navigate = useNavigate();
    const { signIn, signUp, user } = useAuth();
    const [isLoading, setIsLoading] = useState(false);
    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-   const [showPassword, setShowPassword] = useState(false);
-   const [email, setEmail] = useState('');
-   const [password, setPassword] = useState('');
-   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const isPasswordReset = searchParams.get('reset') === 'true';
  
    // Redirect if already logged in
    if (user) {
@@ -161,18 +167,28 @@
          >
            <Cpu className="w-6 h-6 text-background" />
          </motion.div>
-         <div>
-           <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-             Quantum Workload
-           </h1>
-           <p className="text-sm text-muted-foreground">
-             Circuit Builder
-           </p>
-         </div>
-       </motion.div>
- 
-       {/* Auth Card */}
-       <motion.div
+        <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              {BRANDING.platformName}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {BRANDING.platformTagline}
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Password Reset Form */}
+        {isPasswordReset ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <ResetPasswordForm onComplete={() => navigate('/')} />
+          </motion.div>
+        ) : (
+        /* Auth Card */
+        <motion.div
          initial={{ opacity: 0, scale: 0.95 }}
          animate={{ opacity: 1, scale: 1 }}
          transition={{ delay: 0.1 }}
@@ -234,21 +250,31 @@
                      {errors.password && (
                        <p className="text-sm text-destructive">{errors.password}</p>
                      )}
-                   </div>
-                   
-                   <Button type="submit" className="w-full" disabled={isLoading}>
-                     {isLoading ? (
-                       <>
-                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                         Signing in...
-                       </>
-                     ) : (
-                       'Sign In'
-                     )}
-                   </Button>
-                 </form>
-               </TabsContent>
-               
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setForgotPasswordOpen(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        'Sign In'
+                      )}
+                    </Button>
+                  </form>
+                </TabsContent>
+                
                <TabsContent value="signup">
                  <form onSubmit={handleSignUp} className="space-y-4">
                    <div className="space-y-2">
@@ -362,17 +388,23 @@
              </div>
            </CardContent>
          </Card>
-       </motion.div>
-       
-       {/* Footer note */}
-       <motion.p 
-         initial={{ opacity: 0 }}
-         animate={{ opacity: 1 }}
-         transition={{ delay: 0.3 }}
-         className="mt-6 text-sm text-muted-foreground text-center"
-       >
-         Build and simulate quantum circuits in your browser
-       </motion.p>
-     </div>
-   );
- }
+        </motion.div>
+        )}
+        
+        <motion.p 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="mt-6 text-sm text-muted-foreground text-center"
+        >
+          Build and simulate quantum circuits in your browser
+        </motion.p>
+        
+        {/* Forgot Password Dialog */}
+        <ForgotPasswordDialog 
+          open={forgotPasswordOpen} 
+          onOpenChange={setForgotPasswordOpen} 
+        />
+      </div>
+    );
+  }

@@ -10,7 +10,6 @@ import {
   Zap,
   RefreshCw,
   AlertTriangle,
-  ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,9 +29,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
-import { useIBMQuantum, IBMBackend, QuantumJob } from '@/hooks/useIBMQuantum';
+import { useQuantumCloud, QuantumCloudBackend, QuantumJob } from '@/hooks/useQuantumCloud';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { BRANDING } from '@/config/branding';
 
 export const HardwarePanel = () => {
   const { gates, qubitCount, simulationResult, simulate } = useQuantumCircuitStore();
@@ -46,7 +46,7 @@ export const HardwarePanel = () => {
     submitJob,
     startPolling,
     stopPolling,
-  } = useIBMQuantum();
+  } = useQuantumCloud();
 
   const [selectedBackend, setSelectedBackend] = useState<string>('auto');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -69,7 +69,7 @@ export const HardwarePanel = () => {
 
   const handleRunClick = () => {
     if (!user) {
-      toast.error('Please sign in to run on IBM Quantum');
+      toast.error(`Please sign in to run on ${BRANDING.hardwareServiceName}`);
       return;
     }
     if (gates.length === 0) {
@@ -96,7 +96,7 @@ export const HardwarePanel = () => {
     }
   };
 
-  const getSelectedBackendInfo = (): IBMBackend | null => {
+  const getSelectedBackendInfo = (): QuantumCloudBackend | null => {
     if (selectedBackend === 'auto') {
       const online = backends.filter(b => b.status === 'online');
       return online.sort((a, b) => a.pendingJobs - b.pendingJobs)[0] || null;
@@ -125,7 +125,7 @@ export const HardwarePanel = () => {
         return <CheckCircle2 className="w-4 h-4 text-green-500" />;
       case 'failed':
       case 'cancelled':
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-4 h-4 text-destructive" />;
     }
   };
 
@@ -176,7 +176,7 @@ export const HardwarePanel = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="text-xs flex items-center justify-between">
-              <span>IBM Quantum Backends</span>
+              <span>{BRANDING.hardwareServiceName} Backends</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -220,9 +220,9 @@ export const HardwarePanel = () => {
                   <span className="font-medium text-xs">{backend.name}</span>
                   <div className="flex items-center gap-2">
                     {backend.status === 'online' ? (
-                      <span className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="w-2 h-2 rounded-full bg-accent" />
                     ) : (
-                      <span className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="w-2 h-2 rounded-full bg-destructive" />
                     )}
                     {selectedBackend === backend.name && (
                       <CheckCircle2 className="w-4 h-4 text-primary" />
@@ -236,7 +236,7 @@ export const HardwarePanel = () => {
                   {backend.isSimulator && (
                     <>
                       <span>•</span>
-                      <span className="text-yellow-500">Simulator</span>
+                      <span className="text-secondary">Simulator</span>
                     </>
                   )}
                 </div>
@@ -260,7 +260,7 @@ export const HardwarePanel = () => {
             ) : (
               <>
                 <Cpu className="w-4 h-4 mr-2" />
-                Run on IBM
+                Run on Cloud
               </>
             )}
             
@@ -281,10 +281,10 @@ export const HardwarePanel = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Cpu className="w-5 h-5 text-accent" />
-              Run on IBM Quantum
+              Run on {BRANDING.hardwareServiceName}
             </DialogTitle>
             <DialogDescription>
-              Submit your circuit to a real quantum computer
+              Submit your circuit to quantum hardware
             </DialogDescription>
           </DialogHeader>
 
@@ -317,13 +317,13 @@ export const HardwarePanel = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Est. Wait Time:</span>
-                <span className="font-medium text-yellow-500">{estimatedWaitTime()}</span>
+                <span className="font-medium text-secondary">{estimatedWaitTime()}</span>
               </div>
             </div>
 
             {/* Warning */}
-            <div className="flex items-start gap-2 text-xs text-muted-foreground bg-yellow-500/10 rounded-lg p-3">
-              <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-2 text-xs text-muted-foreground bg-secondary/10 rounded-lg p-3">
+              <AlertTriangle className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
               <p>
                 Jobs are queued and may take several minutes to complete. 
                 Results will appear automatically when ready.

@@ -51,6 +51,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SimulationResult } from '@/types/quantum';
+import { BRANDING } from '@/config/branding';
 
 interface QuantumJob {
   id: string;
@@ -265,7 +266,7 @@ const Jobs = () => {
             <div className="h-6 w-px bg-border" />
             <div className="flex items-center gap-2">
               <Cpu className="w-5 h-5 text-accent" />
-              <h1 className="text-xl font-bold">IBM Quantum Job History</h1>
+              <h1 className="text-xl font-bold">{BRANDING.hardwareServiceName} Job History</h1>
             </div>
           </div>
           

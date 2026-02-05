@@ -1,32 +1,44 @@
 import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { 
+  ExtendedGateType, 
+  EXTENDED_GATE_INFO, 
+  GATE_CATEGORIES, 
+  getGatesByCategory,
+  GateCategory 
+} from '@/types/quantum-extended';
 import { GATE_INFO, GateType } from '@/types/quantum';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
- /**
-  * ============================================================
-  * GATE ORDER CONFIGURATION
-  * ============================================================
-  * Defines the display order of gates in the palette.
-  * Grouped by type:
-  * - Single qubit basics: H, X, Y, Z
-  * - Phase gates: S, T
-  * - Rotation gates: Rx, Ry, Rz (parametric, have angle slider)
-  * - Multi-qubit: CNOT, SWAP, CZ, CCX
-  * - Measurement: M
-  * ============================================================
-  */
- const gateOrder: GateType[] = [
-   'H', 'X', 'Y', 'Z',      // Single qubit basics
-   'S', 'T',                 // Phase gates
-   'Rx', 'Ry', 'Rz',        // Rotation gates (parametric)
-   'CNOT', 'SWAP', 'CZ', 'CCX', // Multi-qubit gates
-   'M'                       // Measurement
- ];
+// Legacy gate order for backwards compatibility
+const BASIC_GATES: GateType[] = [
+  'H', 'X', 'Y', 'Z', 'S', 'T', 'Rx', 'Ry', 'Rz', 'CNOT', 'SWAP', 'CZ', 'CCX', 'M'
+];
 
 export const GatesPalette = () => {
   const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
+  const [expandedCategories, setExpandedCategories] = useState<Set<GateCategory>>(
+    new Set(['standard', 'twoQubit'])
+  );
 
-  const handleDragStart = (gateType: GateType) => {
+  const toggleCategory = (category: GateCategory) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const handleDragStart = (gateType: GateType | ExtendedGateType) => {
     setDraggedGate(gateType);
   };
 
@@ -34,40 +46,95 @@ export const GatesPalette = () => {
     setDraggedGate(null);
   };
 
-  // Click to add gate to the next available position on qubit 0
-  const handleClick = (gateType: GateType) => {
-     /**
-      * ============================================================
-      * CLICK-TO-ADD GATE
-      * ============================================================
-      * Adds a gate at the next available position.
-      * - Single gates: Added to qubit 0
-      * - Multi-qubit gates: Auto-assign targets
-      * - Rotation gates: Set default angle of π/2
-      * ============================================================
-      */
+  const handleClick = (gateType: GateType | ExtendedGateType) => {
     const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
+    const gateInfo = GATE_INFO[gateType as GateType] || EXTENDED_GATE_INFO[gateType as ExtendedGateType];
+    const extendedInfo = EXTENDED_GATE_INFO[gateType as ExtendedGateType];
     
     const newGate = {
       id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type: gateType,
-      qubit: 0, // Default to qubit 0 for control
+      type: gateType as GateType,
+      qubit: 0,
       position: maxPosition,
-       // Multi-qubit gate targets
-      ...(gateType === 'CNOT' || gateType === 'SWAP' || gateType === 'CZ' 
-        ? { targetQubit: 1 } 
+      // Multi-qubit gate targets
+      ...(gateType === 'CNOT' || gateType === 'SWAP' || gateType === 'CZ' || 
+          gateType === 'CY' || gateType === 'CH' || gateType === 'iSWAP'
+        ? { targetQubit: Math.min(1, qubitCount - 1) } 
         : {}),
-       // Toffoli gate targets
-      ...(gateType === 'CCX' 
-        ? { controlQubit2: 1, targetQubit: 2 } 
+      // Toffoli gate targets
+      ...(gateType === 'CCX' || gateType === 'CCZ' || gateType === 'CSWAP'
+        ? { controlQubit2: Math.min(1, qubitCount - 1), targetQubit: Math.min(2, qubitCount - 1) } 
         : {}),
-       // Rotation gates default angle (π/2)
-       ...(['Rx', 'Ry', 'Rz'].includes(gateType) 
-         ? { angle: Math.PI / 2 } 
-         : {}),
+      // Rotation gates default angle (π/2)
+      ...(['Rx', 'Ry', 'Rz', 'P', 'U1', 'RXX', 'RYY', 'RZZ', 'CP', 'CRx', 'CRy', 'CRz'].includes(gateType) 
+        ? { angle: extendedInfo?.defaultParams?.angle ?? Math.PI / 2 } 
+        : {}),
     };
     
     addGate(newGate);
+  };
+
+  const renderGateButton = (gateType: GateType | ExtendedGateType, index: number) => {
+    const gate = GATE_INFO[gateType as GateType] || EXTENDED_GATE_INFO[gateType as ExtendedGateType];
+    const isBeingDragged = draggedGate === gateType;
+    
+    return (
+      <motion.div
+        key={gateType}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: index * 0.02 }}
+        draggable
+        onDragStart={() => handleDragStart(gateType)}
+        onDragEnd={handleDragEnd}
+        onClick={() => handleClick(gateType)}
+        className={`
+          relative p-2 rounded-lg cursor-grab active:cursor-grabbing
+          bg-card border border-border hover:border-primary/50
+          transition-all duration-200 group
+          ${isBeingDragged ? 'opacity-50 scale-95' : ''}
+        `}
+        style={{
+          boxShadow: isBeingDragged 
+            ? `0 0 20px ${gate.color}40` 
+            : undefined
+        }}
+        whileHover={{ 
+          scale: 1.02,
+          boxShadow: `0 0 10px ${gate.color}30`
+        }}
+        whileTap={{ scale: 0.98 }}
+      >
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ 
+              backgroundColor: `${gate.color}20`,
+              color: gate.color,
+              border: `1px solid ${gate.color}50`
+            }}
+          >
+            {gate.symbol}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-foreground text-xs truncate">
+              {gate.name}
+            </div>
+            <div className="text-[10px] text-muted-foreground truncate">
+              {gate.description}
+            </div>
+          </div>
+        </div>
+        
+        {/* Glow effect on hover */}
+        <div 
+          className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{
+            boxShadow: `inset 0 0 15px ${gate.color}10`
+          }}
+        />
+      </motion.div>
+    );
   };
 
   return (
@@ -81,74 +148,52 @@ export const GatesPalette = () => {
         </p>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-3">
-          {gateOrder.map((gateType, index) => {
-            const gate = GATE_INFO[gateType];
-            const isBeingDragged = draggedGate === gateType;
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-2">
+          {GATE_CATEGORIES.map((category) => {
+            const categoryGates = getGatesByCategory(category.id);
+            // Filter to only show gates that exist in our current GATE_INFO or EXTENDED_GATE_INFO
+            const availableGates = categoryGates.filter(g => 
+              GATE_INFO[g as GateType] || EXTENDED_GATE_INFO[g as ExtendedGateType]
+            );
+            
+            if (availableGates.length === 0) return null;
+            
+            const isExpanded = expandedCategories.has(category.id);
             
             return (
-              <motion.div
-                key={gateType}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                draggable
-                onDragStart={() => handleDragStart(gateType)}
-                onDragEnd={handleDragEnd}
-                onClick={() => handleClick(gateType)}
-                className={`
-                  relative p-3 rounded-lg cursor-grab active:cursor-grabbing
-                  bg-card border border-border hover:border-primary/50
-                  transition-all duration-200 group
-                  ${isBeingDragged ? 'opacity-50 scale-95' : ''}
-                `}
-                style={{
-                  boxShadow: isBeingDragged 
-                    ? `0 0 20px ${gate.color}40` 
-                    : undefined
-                }}
-                whileHover={{ 
-                  scale: 1.02,
-                  boxShadow: `0 0 15px ${gate.color}30`
-                }}
-                whileTap={{ scale: 0.98 }}
+              <Collapsible
+                key={category.id}
+                open={isExpanded}
+                onOpenChange={() => toggleCategory(category.id)}
               >
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-10 h-10 rounded-md flex items-center justify-center text-lg font-bold"
-                    style={{ 
-                      backgroundColor: `${gate.color}20`,
-                      color: gate.color,
-                      border: `1px solid ${gate.color}50`
-                    }}
-                  >
-                    {gate.symbol}
+                <CollapsibleTrigger className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <span className="text-sm font-medium">{category.name}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      ({availableGates.length})
+                    </span>
                   </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-foreground text-sm">
-                      {gate.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {gate.description}
-                    </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-1.5 pt-1 pb-2">
+                    {availableGates.map((gateType, index) => 
+                      renderGateButton(gateType, index)
+                    )}
                   </div>
-                </div>
-                
-                {/* Glow effect on hover */}
-                <div 
-                  className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                  style={{
-                    boxShadow: `inset 0 0 20px ${gate.color}10`
-                  }}
-                />
-              </motion.div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </div>
-      </div>
+      </ScrollArea>
       
-      <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/30">
+      <div className="p-3 border-t border-sidebar-border bg-sidebar-accent/30">
         <div className="text-xs text-muted-foreground text-center">
           <span className="text-primary">Tip:</span> Drag gates onto qubit lines
         </div>

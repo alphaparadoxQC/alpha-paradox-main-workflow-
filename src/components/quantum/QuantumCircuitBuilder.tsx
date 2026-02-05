@@ -5,6 +5,7 @@ import { SimulationResults } from './SimulationResults';
 import { Toolbar } from './Toolbar';
 import { StatusBar } from './StatusBar';
 import { AnonymousUserBanner } from './AnonymousUserBanner';
+import { QuantumAssistant } from './QuantumAssistant';
 
 export const QuantumCircuitBuilder = () => {
   return (
@@ -33,6 +34,9 @@ export const QuantumCircuitBuilder = () => {
 
       {/* Bottom Status Bar */}
       <StatusBar />
+      
+      {/* AI Assistant */}
+      <QuantumAssistant />
     </motion.div>
   );
 };
