@@ -4,3 +4,6 @@ export { MolecularOrbitalDiagram } from './MolecularOrbitalDiagram';
 export { VQEControls } from './VQEControls';
 export { VQEProgressChart } from './VQEProgressChart';
 export { VQEResults } from './VQEResults';
+export { ChemistryResults } from './ChemistryResults';
+export { PotentialEnergySurface } from './PotentialEnergySurface';
+export { ElectronConfiguration } from './ElectronConfiguration';

@@ -17,6 +17,7 @@ import { MolecularOrbitalDiagram } from './MolecularOrbitalDiagram';
 import { VQEControls } from './VQEControls';
 import { VQEProgressChart } from './VQEProgressChart';
 import { VQEResults } from './VQEResults';
+import { ChemistryResults } from './ChemistryResults';
 import { MOLECULES, getMoleculeById } from '@/lib/chemistry/moleculeData';
 import { useVQE } from '@/hooks/useVQE';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
@@ -217,6 +218,13 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
       />
       
       <Separator />
+      
+      {/* Comprehensive Chemistry Results */}
+      <ChemistryResults
+        molecule={molecule}
+        vqeResult={vqe.result}
+        currentEnergy={vqe.currentEnergy}
+      />
       
       {/* Molecular Orbital Diagram */}
       <MolecularOrbitalDiagram 
