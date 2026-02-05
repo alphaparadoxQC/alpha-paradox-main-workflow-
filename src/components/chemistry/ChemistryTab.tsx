@@ -18,6 +18,7 @@ import { VQEControls } from './VQEControls';
 import { VQEProgressChart } from './VQEProgressChart';
 import { VQEResults } from './VQEResults';
 import { ChemistryResults } from './ChemistryResults';
+import { ChemistryTemplates } from './ChemistryTemplates';
 import { MOLECULES, getMoleculeById } from '@/lib/chemistry/moleculeData';
 import { useVQE } from '@/hooks/useVQE';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
@@ -94,7 +95,13 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
         </div>
       </div>
       
-      {/* Molecule Selector */}
+      {/* Chemistry Templates */}
+      <ChemistryTemplates onTemplateLoad={(template) => {
+        setSelectedMoleculeId(template.molecule.id);
+        onGenerateCircuit?.();
+      }} />
+      
+      <Separator />
       <Card className="bg-card/50 backdrop-blur-sm border-border">
         <CardHeader className="py-3">
           <CardTitle className="text-sm flex items-center gap-2">
