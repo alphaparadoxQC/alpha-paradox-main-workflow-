@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.quantum-assistant]
 verify_jwt = false
+
+[functions.amazon-braket]
+verify_jwt = false
