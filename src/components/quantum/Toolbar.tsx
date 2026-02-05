@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork } from 'lucide-react';
+import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -337,11 +337,26 @@ export const Toolbar = () => {
                className="border-accent/30 hover:border-accent/50"
              >
                <Globe className="w-4 h-4 mr-2 text-accent" />
-               Gallery
-             </Button>
-           </motion.div>
-         </Link>
- 
+              Gallery
+            </Button>
+          </motion.div>
+        </Link>
+
+        {/* Job History Link */}
+        {user && (
+          <Link to="/jobs">
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                variant="outline"
+                className="border-accent/30 hover:border-accent/50"
+              >
+                <History className="w-4 h-4 mr-2 text-accent" />
+                Jobs
+              </Button>
+            </motion.div>
+          </Link>
+        )}
+
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={simulate}
