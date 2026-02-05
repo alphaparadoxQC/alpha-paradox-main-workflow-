@@ -7,3 +7,4 @@ export { VQEResults } from './VQEResults';
 export { ChemistryResults } from './ChemistryResults';
 export { PotentialEnergySurface } from './PotentialEnergySurface';
 export { ElectronConfiguration } from './ElectronConfiguration';
+export { ChemistryTemplates } from './ChemistryTemplates';
