@@ -1,10 +1,28 @@
 import { motion } from 'framer-motion';
-import { Play, Trash2, Cpu, Zap } from 'lucide-react';
+import { Play, Trash2, Cpu, Zap, ChevronDown, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useQuantumCircuitStore, CIRCUIT_TEMPLATES } from '@/store/quantumCircuitStore';
+import { toast } from 'sonner';
 
 export const Toolbar = () => {
-  const { simulate, clearCircuit, isSimulating, gates } = useQuantumCircuitStore();
+  const { simulate, clearCircuit, isSimulating, gates, loadTemplate } = useQuantumCircuitStore();
+
+  const handleTemplateSelect = (templateId: string) => {
+    const template = CIRCUIT_TEMPLATES.find(t => t.id === templateId);
+    if (template) {
+      loadTemplate(templateId);
+      toast.success(template.name, {
+        description: template.description,
+        duration: 4000,
+      });
+    }
+  };
 
   return (
     <motion.div 
@@ -33,6 +51,35 @@ export const Toolbar = () => {
 
       {/* Center - Actions */}
       <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                variant="outline"
+                className="border-primary/50 hover:bg-primary/10"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Templates
+                <ChevronDown className="w-4 h-4 ml-1" />
+              </Button>
+            </motion.div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-64 bg-popover border-border">
+            {CIRCUIT_TEMPLATES.map((template) => (
+              <DropdownMenuItem
+                key={template.id}
+                onClick={() => handleTemplateSelect(template.id)}
+                className="flex flex-col items-start py-3 cursor-pointer"
+              >
+                <span className="font-medium text-foreground">{template.name}</span>
+                <span className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                  {template.description}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={simulate}
