@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
-import { BarChart3, Circle, Loader2 } from 'lucide-react';
+import { BarChart3, Circle, Loader2, Link2, Unlink } from 'lucide-react';
 
 export const SimulationResults = () => {
   const { simulationResult, isSimulating, qubitCount, gates } = useQuantumCircuitStore();
@@ -120,11 +120,66 @@ export const SimulationResults = () => {
               </div>
             </motion.div>
 
+            {/* Entanglement Indicator */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className={`rounded-lg p-3 border ${
+                simulationResult.isEntangled 
+                  ? 'bg-quantum-purple/10 border-quantum-purple/30' 
+                  : 'bg-card border-border'
+              }`}
+            >
+              <h3 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-2">
+                {simulationResult.isEntangled ? (
+                  <Link2 className="w-4 h-4 text-quantum-purple" />
+                ) : (
+                  <Unlink className="w-4 h-4 text-muted-foreground" />
+                )}
+                ENTANGLEMENT
+              </h3>
+              {simulationResult.isEntangled ? (
+                <div className="space-y-2">
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="flex items-center gap-2"
+                  >
+                    <span className="text-quantum-purple font-bold text-sm">
+                      ⚛ Entangled State Detected
+                    </span>
+                  </motion.div>
+                  <div className="flex flex-wrap gap-1">
+                    {simulationResult.entangledPairs?.map(([q1, q2], idx) => (
+                      <motion.span
+                        key={idx}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.1 * idx }}
+                        className="px-2 py-0.5 rounded-full text-xs font-mono 
+                                   bg-quantum-purple/20 text-quantum-purple border border-quantum-purple/30"
+                      >
+                        q{q1} ↔ q{q2}
+                      </motion.span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Qubits are quantum correlated
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No entanglement detected. Qubits are separable.
+                </p>
+              )}
+            </motion.div>
+
             {/* Summary */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.6 }}
               className="bg-card rounded-lg p-3 border border-border"
             >
               <h3 className="text-xs font-semibold text-muted-foreground mb-2">

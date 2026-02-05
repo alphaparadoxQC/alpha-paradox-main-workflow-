@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { complex, add, multiply, magnitudeSquared, scale, conjugate } from '@/lib/quantum/complex';
 import { H_GATE, X_GATE, Z_GATE, applyGateToQubit, stateToBlochVector } from '@/lib/quantum/gates';
-import { initializeState, applySingleQubitGate, simulateCircuit, calculateProbabilities } from '@/lib/quantum/simulator';
+import { initializeState, applySingleQubitGate, applyCNOT, simulateCircuit, calculateProbabilities, detectEntanglement } from '@/lib/quantum/simulator';
 
 describe('Complex number operations', () => {
   it('should add complex numbers correctly', () => {
@@ -88,5 +88,69 @@ describe('Quantum circuit simulation', () => {
     const states = result.probabilities.map(p => p.state);
     expect(states).toContain('|01⟩');
     expect(states).toContain('|11⟩');
+  });
+});
+
+describe('CNOT and Entanglement', () => {
+  it('should apply CNOT gate correctly', () => {
+    let state = initializeState(2);
+    // Set to |10⟩ first
+    state = applySingleQubitGate(state, 'X', 0);
+    // Apply CNOT with q0 as control, q1 as target
+    state = applyCNOT(state, 0, 1);
+    
+    // |10⟩ with CNOT(0,1) should give |11⟩
+    const probs = calculateProbabilities(state);
+    expect(probs.length).toBe(1);
+    expect(probs[0].state).toBe('|11⟩');
+    expect(probs[0].probability).toBeCloseTo(1);
+  });
+
+  it('should not flip target when control is |0⟩', () => {
+    let state = initializeState(2); // |00⟩
+    state = applyCNOT(state, 0, 1); // CNOT with control=0
+    
+    // Should still be |00⟩ since control is |0⟩
+    const probs = calculateProbabilities(state);
+    expect(probs.length).toBe(1);
+    expect(probs[0].state).toBe('|00⟩');
+  });
+
+  it('should create Bell state |00⟩ + |11⟩', () => {
+    // H on q0, then CNOT(q0, q1)
+    const gates = [
+      { id: '1', type: 'H' as const, qubit: 0, position: 0 },
+      { id: '2', type: 'CNOT' as const, qubit: 0, position: 1, targetQubit: 1 },
+    ];
+    
+    const result = simulateCircuit(gates, 2);
+    
+    // Should be 50% |00⟩ and 50% |11⟩
+    expect(result.probabilities.length).toBe(2);
+    
+    const prob00 = result.probabilities.find(p => p.state === '|00⟩');
+    const prob11 = result.probabilities.find(p => p.state === '|11⟩');
+    
+    expect(prob00).toBeDefined();
+    expect(prob11).toBeDefined();
+    expect(prob00!.probability).toBeCloseTo(0.5);
+    expect(prob11!.probability).toBeCloseTo(0.5);
+    
+    // Should detect entanglement
+    expect(result.isEntangled).toBe(true);
+    expect(result.entangledPairs).toContainEqual([0, 1]);
+  });
+
+  it('should not detect entanglement in separable states', () => {
+    // Just H on q0 - no entanglement
+    const gates = [
+      { id: '1', type: 'H' as const, qubit: 0, position: 0 },
+    ];
+    
+    const result = simulateCircuit(gates, 2);
+    
+    // Superposition but no entanglement
+    expect(result.isEntangled).toBe(false);
+    expect(result.entangledPairs).toHaveLength(0);
   });
 });

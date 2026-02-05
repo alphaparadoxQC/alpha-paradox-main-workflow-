@@ -25,6 +25,8 @@ export interface CircuitState {
 export interface SimulationResult {
   probabilities: { state: string; probability: number }[];
   blochVectors: { x: number; y: number; z: number }[];
+  isEntangled?: boolean;
+  entangledPairs?: [number, number][];
 }
 
 export interface GateInfo {
