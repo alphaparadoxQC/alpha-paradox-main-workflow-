@@ -3,7 +3,7 @@
  * Simulates quantum circuits with complex number amplitudes
  */
 
-import { Complex, complex, ZERO, ONE, multiply, add, magnitudeSquared, phase as getPhase } from './complex';
+import { Complex, complex, ZERO, ONE, multiply, add, magnitudeSquared } from './complex';
 import { getGateMatrix, applyGateToQubit, stateToBlochVector } from './gates';
 import { QuantumGate } from '@/types/quantum';
 
@@ -16,9 +16,6 @@ export interface SimulationOutput {
   probabilities: { state: string; probability: number }[];
   blochVectors: { x: number; y: number; z: number }[];
   stateVector: StateVector;
-  amplitudes: { state: string; re: number; im: number; magnitude: number; phase: number }[];
-  circuitDepth: number;
-  measurementOutcomes?: { qubit: number; prob0: number; prob1: number }[];
 }
 
 /**
@@ -241,69 +238,6 @@ export const extractQubitStates = (state: StateVector): { x: number; y: number; 
 };
 
 /**
- * Calculate complex amplitudes with phase for all basis states
- */
-export const calculateAmplitudes = (state: StateVector): { state: string; re: number; im: number; magnitude: number; phase: number }[] => {
-  const { amplitudes, qubitCount } = state;
-  
-  return amplitudes
-    .map((amplitude, index) => {
-      const binaryStr = index.toString(2).padStart(qubitCount, '0');
-      const magnitude = Math.sqrt(magnitudeSquared(amplitude));
-      const phase = getPhase(amplitude);
-      return {
-        state: `|${binaryStr}⟩`,
-        re: amplitude.re,
-        im: amplitude.im,
-        magnitude,
-        phase
-      };
-    })
-    .filter(a => a.magnitude > 1e-10);
-};
-
-/**
- * Calculate measurement outcomes for qubits with Measure gates
- */
-export const calculateMeasurementOutcomes = (
-  state: StateVector,
-  measureGates: QuantumGate[]
-): { qubit: number; prob0: number; prob1: number }[] => {
-  const { amplitudes, qubitCount } = state;
-  const outcomes: { qubit: number; prob0: number; prob1: number }[] = [];
-  
-  const measuredQubits = [...new Set(measureGates.map(g => g.qubit))];
-  
-  for (const qubit of measuredQubits) {
-    const bitPos = qubitCount - 1 - qubit;
-    let prob0 = 0;
-    let prob1 = 0;
-    
-    for (let i = 0; i < amplitudes.length; i++) {
-      const bit = (i >> bitPos) & 1;
-      const prob = magnitudeSquared(amplitudes[i]);
-      if (bit === 0) {
-        prob0 += prob;
-      } else {
-        prob1 += prob;
-      }
-    }
-    
-    outcomes.push({ qubit, prob0, prob1 });
-  }
-  
-  return outcomes.sort((a, b) => a.qubit - b.qubit);
-};
-
-/**
- * Calculate circuit depth (maximum position + 1)
- */
-export const calculateCircuitDepth = (gates: QuantumGate[]): number => {
-  if (gates.length === 0) return 0;
-  return Math.max(...gates.map(g => g.position)) + 1;
-};
-
-/**
  * Run the complete quantum circuit simulation
  */
 export const simulateCircuit = (
@@ -315,9 +249,6 @@ export const simulateCircuit = (
   
   // Sort gates by position (left to right order)
   const sortedGates = [...gates].sort((a, b) => a.position - b.position);
-  
-  // Collect measurement gates
-  const measureGates = gates.filter(g => g.type === 'M');
   
   // Apply each gate in order
   for (const gate of sortedGates) {
@@ -332,8 +263,8 @@ export const simulateCircuit = (
         
       case 'CNOT':
         // For now, CNOT targets the next qubit
-        const cnotTarget = gate.targetQubit ?? (gate.qubit + 1) % qubitCount;
-        state = applyCNOT(state, gate.controlQubit ?? gate.qubit, cnotTarget);
+        const targetQubit = gate.controlQubit ?? (gate.qubit + 1) % qubitCount;
+        state = applyCNOT(state, gate.qubit, targetQubit);
         break;
         
       case 'SWAP':
@@ -351,18 +282,10 @@ export const simulateCircuit = (
   // Calculate results
   const probabilities = calculateProbabilities(state);
   const blochVectors = extractQubitStates(state);
-  const amplitudes = calculateAmplitudes(state);
-  const circuitDepth = calculateCircuitDepth(gates);
-  const measurementOutcomes = measureGates.length > 0 
-    ? calculateMeasurementOutcomes(state, measureGates)
-    : undefined;
   
   return {
     probabilities,
     blochVectors,
-    stateVector: state,
-    amplitudes,
-    circuitDepth,
-    measurementOutcomes
+    stateVector: state
   };
 };
