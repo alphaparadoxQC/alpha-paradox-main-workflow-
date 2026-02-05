@@ -1,10 +1,31 @@
 import { motion } from 'framer-motion';
-import { Play, Trash2, Cpu, Zap } from 'lucide-react';
+import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
+import { CIRCUIT_TEMPLATES } from '@/lib/quantum/templates';
+import { toast } from 'sonner';
 
 export const Toolbar = () => {
-  const { simulate, clearCircuit, isSimulating, gates } = useQuantumCircuitStore();
+  const { simulate, clearCircuit, isSimulating, gates, loadTemplate, activeTemplate } = useQuantumCircuitStore();
+
+  const handleLoadTemplate = (templateId: string) => {
+    const template = CIRCUIT_TEMPLATES.find(t => t.id === templateId);
+    if (template) {
+      loadTemplate(template);
+      toast.success(`Loaded: ${template.name}`, {
+        description: template.description,
+        duration: 4000,
+      });
+    }
+  };
 
   return (
     <motion.div 
@@ -33,6 +54,44 @@ export const Toolbar = () => {
 
       {/* Center - Actions */}
       <div className="flex items-center gap-2">
+        {/* Templates Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button variant="outline" className="border-primary/30 hover:border-primary/50">
+                <FileCode className="w-4 h-4 mr-2 text-primary" />
+                Templates
+                <ChevronDown className="w-3 h-3 ml-2 opacity-60" />
+              </Button>
+            </motion.div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-72">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Pre-built Quantum Circuits
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {CIRCUIT_TEMPLATES.map((template) => (
+              <DropdownMenuItem
+                key={template.id}
+                onClick={() => handleLoadTemplate(template.id)}
+                className="flex flex-col items-start py-2 cursor-pointer"
+              >
+                <div className="flex items-center gap-2 w-full">
+                  <span className="font-medium text-foreground">{template.name}</span>
+                  {activeTemplate?.id === template.id && (
+                    <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                  {template.description}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={simulate}
