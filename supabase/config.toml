@@ -2,3 +2,9 @@ project_id = "vjuockcsfartpcvjapos"
 
 [functions.ibm-quantum]
 verify_jwt = false
+
+[functions.ibm-quantum-status]
+verify_jwt = false
+
+[functions.ibm-quantum-backends]
+verify_jwt = false
