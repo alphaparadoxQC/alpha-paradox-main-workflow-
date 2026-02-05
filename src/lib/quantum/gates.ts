@@ -85,6 +85,7 @@ export const getGateMatrix = (gateType: string): GateMatrix => {
     case 'Y': return Y_GATE;
     case 'Z': return Z_GATE;
     case 'S': return S_GATE;
+    case 'T': return T_GATE;
     default: return I_GATE;
   }
 };

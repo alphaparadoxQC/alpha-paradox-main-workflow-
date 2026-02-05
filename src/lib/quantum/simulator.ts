@@ -226,6 +226,73 @@ export const measureQubit = (state: StateVector, qubit: number): StateVector => 
 };
 
 /**
+ * Apply Controlled-Z gate to the state vector
+ * Applies a phase flip when both qubits are |1⟩
+ */
+export const applyCZ = (
+  state: StateVector,
+  controlQubit: number,
+  targetQubit: number
+): StateVector => {
+  const { amplitudes, qubitCount } = state;
+  const numStates = amplitudes.length;
+  
+  const newAmplitudes: Complex[] = amplitudes.map(a => ({ ...a }));
+  
+  const controlBitPos = qubitCount - 1 - controlQubit;
+  const targetBitPos = qubitCount - 1 - targetQubit;
+  
+  for (let i = 0; i < numStates; i++) {
+    const controlBit = (i >> controlBitPos) & 1;
+    const targetBit = (i >> targetBitPos) & 1;
+    
+    // If both qubits are |1⟩, apply phase flip (multiply by -1)
+    if (controlBit === 1 && targetBit === 1) {
+      newAmplitudes[i] = { re: -amplitudes[i].re, im: -amplitudes[i].im };
+    }
+  }
+  
+  return { amplitudes: newAmplitudes, qubitCount };
+};
+
+/**
+ * Apply Toffoli (CCX) gate to the state vector
+ * Flips target qubit only when both control qubits are |1⟩
+ */
+export const applyToffoli = (
+  state: StateVector,
+  control1: number,
+  control2: number,
+  target: number
+): StateVector => {
+  const { amplitudes, qubitCount } = state;
+  const numStates = amplitudes.length;
+  
+  const newAmplitudes: Complex[] = amplitudes.map(a => ({ ...a }));
+  
+  const c1BitPos = qubitCount - 1 - control1;
+  const c2BitPos = qubitCount - 1 - control2;
+  const targetBitPos = qubitCount - 1 - target;
+  
+  for (let i = 0; i < numStates; i++) {
+    const c1Bit = (i >> c1BitPos) & 1;
+    const c2Bit = (i >> c2BitPos) & 1;
+    
+    // If both controls are 1, swap with flipped target state
+    if (c1Bit === 1 && c2Bit === 1) {
+      const flippedIndex = i ^ (1 << targetBitPos);
+      if (i < flippedIndex) {
+        const temp = newAmplitudes[i];
+        newAmplitudes[i] = newAmplitudes[flippedIndex];
+        newAmplitudes[flippedIndex] = temp;
+      }
+    }
+  }
+  
+  return { amplitudes: newAmplitudes, qubitCount };
+};
+
+/**
  * Calculate probabilities for all basis states
  */
 export const calculateProbabilities = (state: StateVector): { state: string; probability: number }[] => {
@@ -324,6 +391,7 @@ export const simulateCircuit = (
       case 'Y':
       case 'Z':
       case 'S':
+      case 'T':
         state = applySingleQubitGate(state, gate.type, gate.qubit);
         break;
         
@@ -337,6 +405,19 @@ export const simulateCircuit = (
         // For now, SWAP swaps with the next qubit
         const swapTarget = gate.targetQubit ?? (gate.qubit + 1) % qubitCount;
         state = applySWAP(state, gate.qubit, swapTarget);
+        break;
+        
+      case 'CZ':
+        // Controlled-Z: gate.qubit is control, targetQubit is target
+        const czTarget = gate.targetQubit ?? (gate.qubit + 1) % qubitCount;
+        state = applyCZ(state, gate.qubit, czTarget);
+        break;
+        
+      case 'CCX':
+        // Toffoli: gate.qubit is first control, controlQubit2 is second, targetQubit is target
+        const toffoliC2 = gate.controlQubit2 ?? (gate.qubit + 1) % qubitCount;
+        const toffoliTarget = gate.targetQubit ?? (gate.qubit + 2) % qubitCount;
+        state = applyToffoli(state, gate.qubit, toffoliC2, toffoliTarget);
         break;
         
       case 'M':
