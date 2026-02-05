@@ -2,7 +2,26 @@ import { motion } from 'framer-motion';
 import { GATE_INFO, GateType } from '@/types/quantum';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 
-const gateOrder: GateType[] = ['H', 'X', 'Y', 'Z', 'S', 'T', 'CNOT', 'SWAP', 'CZ', 'CCX', 'M'];
+ /**
+  * ============================================================
+  * GATE ORDER CONFIGURATION
+  * ============================================================
+  * Defines the display order of gates in the palette.
+  * Grouped by type:
+  * - Single qubit basics: H, X, Y, Z
+  * - Phase gates: S, T
+  * - Rotation gates: Rx, Ry, Rz (parametric, have angle slider)
+  * - Multi-qubit: CNOT, SWAP, CZ, CCX
+  * - Measurement: M
+  * ============================================================
+  */
+ const gateOrder: GateType[] = [
+   'H', 'X', 'Y', 'Z',      // Single qubit basics
+   'S', 'T',                 // Phase gates
+   'Rx', 'Ry', 'Rz',        // Rotation gates (parametric)
+   'CNOT', 'SWAP', 'CZ', 'CCX', // Multi-qubit gates
+   'M'                       // Measurement
+ ];
 
 export const GatesPalette = () => {
   const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
@@ -17,7 +36,16 @@ export const GatesPalette = () => {
 
   // Click to add gate to the next available position on qubit 0
   const handleClick = (gateType: GateType) => {
-    // Find the next available position on the circuit
+     /**
+      * ============================================================
+      * CLICK-TO-ADD GATE
+      * ============================================================
+      * Adds a gate at the next available position.
+      * - Single gates: Added to qubit 0
+      * - Multi-qubit gates: Auto-assign targets
+      * - Rotation gates: Set default angle of π/2
+      * ============================================================
+      */
     const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
     
     const newGate = {
@@ -25,14 +53,18 @@ export const GatesPalette = () => {
       type: gateType,
       qubit: 0, // Default to qubit 0 for control
       position: maxPosition,
-      // Set targets for multi-qubit gates
+       // Multi-qubit gate targets
       ...(gateType === 'CNOT' || gateType === 'SWAP' || gateType === 'CZ' 
         ? { targetQubit: 1 } 
         : {}),
-      // For Toffoli, set both controls and target
+       // Toffoli gate targets
       ...(gateType === 'CCX' 
         ? { controlQubit2: 1, targetQubit: 2 } 
         : {}),
+       // Rotation gates default angle (π/2)
+       ...(['Rx', 'Ry', 'Rz'].includes(gateType) 
+         ? { angle: Math.PI / 2 } 
+         : {}),
     };
     
     addGate(newGate);

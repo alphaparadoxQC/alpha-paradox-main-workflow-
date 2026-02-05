@@ -9,7 +9,10 @@ export type GateType =
   | 'T'      // T gate (π/8)
   | 'CZ'     // Controlled-Z
   | 'CCX'    // Toffoli (CCX)
-  | 'M';     // Measure
+   | 'M'     // Measure
+   | 'Rx'    // Rotation around X-axis (parametric)
+   | 'Ry'    // Rotation around Y-axis (parametric)
+   | 'Rz';   // Rotation around Z-axis (parametric)
 
 export interface QuantumGate {
   id: string;
@@ -19,6 +22,7 @@ export interface QuantumGate {
   controlQubit?: number; // For CNOT
   targetQubit?: number;  // For SWAP
   controlQubit2?: number; // For Toffoli (second control)
+   angle?: number; // For rotation gates (Rx, Ry, Rz) - angle in radians
 }
 
 export interface CircuitState {
@@ -122,4 +126,31 @@ export const GATE_INFO: Record<GateType, GateInfo> = {
     color: 'hsl(350, 80%, 55%)',
     symbol: 'CCX',
   },
+   // ============================================================
+   // ROTATION GATES (Parametric)
+   // These gates rotate the qubit state around the specified axis
+   // by a user-configurable angle (in radians).
+   // Default angle is π/2 but can be adjusted via the Properties dialog.
+   // ============================================================
+   Rx: {
+     type: 'Rx',
+     name: 'Rx Rotation',
+     description: 'Rotation around X-axis',
+     color: 'hsl(0, 85%, 60%)',
+     symbol: 'Rx',
+   },
+   Ry: {
+     type: 'Ry',
+     name: 'Ry Rotation',
+     description: 'Rotation around Y-axis',
+     color: 'hsl(120, 70%, 50%)',
+     symbol: 'Ry',
+   },
+   Rz: {
+     type: 'Rz',
+     name: 'Rz Rotation',
+     description: 'Rotation around Z-axis',
+     color: 'hsl(240, 80%, 60%)',
+     symbol: 'Rz',
+   },
 };

@@ -75,10 +75,77 @@ export const T_GATE: GateMatrix = [
   [ZERO, complex(Math.cos(PI/4), Math.sin(PI/4))]
 ];
 
+ /**
+  * ============================================================
+  * ROTATION GATE GENERATORS
+  * ============================================================
+  * 
+  * Parametric rotation gates that rotate the qubit state around
+  * a specific axis of the Bloch sphere by an angle θ.
+  * 
+  * Rx(θ): Rotation around X-axis
+  * Matrix: [[cos(θ/2), -i·sin(θ/2)],
+  *          [-i·sin(θ/2), cos(θ/2)]]
+  * 
+  * Ry(θ): Rotation around Y-axis
+  * Matrix: [[cos(θ/2), -sin(θ/2)],
+  *          [sin(θ/2), cos(θ/2)]]
+  * 
+  * Rz(θ): Rotation around Z-axis
+  * Matrix: [[e^(-iθ/2), 0],
+  *          [0, e^(iθ/2)]]
+  * 
+  * These are fundamental gates for quantum algorithms and
+  * can implement arbitrary single-qubit rotations.
+  * ============================================================
+  */
+ 
+ /**
+  * Generate Rx gate matrix for given angle
+  * Rx(θ) rotates the qubit around the X-axis
+  */
+ export const createRxGate = (theta: number): GateMatrix => {
+   const cosHalf = Math.cos(theta / 2);
+   const sinHalf = Math.sin(theta / 2);
+   
+   return [
+     [complex(cosHalf, 0), complex(0, -sinHalf)],
+     [complex(0, -sinHalf), complex(cosHalf, 0)]
+   ];
+ };
+ 
+ /**
+  * Generate Ry gate matrix for given angle
+  * Ry(θ) rotates the qubit around the Y-axis
+  */
+ export const createRyGate = (theta: number): GateMatrix => {
+   const cosHalf = Math.cos(theta / 2);
+   const sinHalf = Math.sin(theta / 2);
+   
+   return [
+     [complex(cosHalf, 0), complex(-sinHalf, 0)],
+     [complex(sinHalf, 0), complex(cosHalf, 0)]
+   ];
+ };
+ 
+ /**
+  * Generate Rz gate matrix for given angle
+  * Rz(θ) rotates the qubit around the Z-axis
+  */
+ export const createRzGate = (theta: number): GateMatrix => {
+   // e^(-iθ/2) = cos(-θ/2) + i·sin(-θ/2)
+   const halfTheta = theta / 2;
+   
+   return [
+     [complex(Math.cos(-halfTheta), Math.sin(-halfTheta)), ZERO],
+     [ZERO, complex(Math.cos(halfTheta), Math.sin(halfTheta))]
+   ];
+ };
+ 
 /**
  * Get gate matrix by type
  */
-export const getGateMatrix = (gateType: string): GateMatrix => {
+ export const getGateMatrix = (gateType: string, angle?: number): GateMatrix => {
   switch (gateType) {
     case 'H': return H_GATE;
     case 'X': return X_GATE;
@@ -86,6 +153,10 @@ export const getGateMatrix = (gateType: string): GateMatrix => {
     case 'Z': return Z_GATE;
     case 'S': return S_GATE;
     case 'T': return T_GATE;
+     // Rotation gates use the provided angle (default π/2)
+     case 'Rx': return createRxGate(angle ?? Math.PI / 2);
+     case 'Ry': return createRyGate(angle ?? Math.PI / 2);
+     case 'Rz': return createRzGate(angle ?? Math.PI / 2);
     default: return I_GATE;
   }
 };

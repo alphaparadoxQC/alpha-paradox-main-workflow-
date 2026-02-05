@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode } from 'lucide-react';
+ import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -14,7 +14,26 @@ import { CIRCUIT_TEMPLATES } from '@/lib/quantum/templates';
 import { toast } from 'sonner';
 
 export const Toolbar = () => {
-  const { simulate, clearCircuit, isSimulating, gates, loadTemplate, activeTemplate } = useQuantumCircuitStore();
+   /**
+    * ============================================================
+    * STORE CONNECTIONS
+    * ============================================================
+    * We pull in additional actions for undo/redo functionality.
+    * canUndo/canRedo are functions that check history availability.
+    * ============================================================
+    */
+   const { 
+     simulate, 
+     clearCircuit, 
+     isSimulating, 
+     gates, 
+     loadTemplate, 
+     activeTemplate,
+     undo,
+     redo,
+     canUndo,
+     canRedo,
+   } = useQuantumCircuitStore();
 
   const handleLoadTemplate = (templateId: string) => {
     const template = CIRCUIT_TEMPLATES.find(t => t.id === templateId);
@@ -54,6 +73,44 @@ export const Toolbar = () => {
 
       {/* Center - Actions */}
       <div className="flex items-center gap-2">
+         {/* ============================================================
+             UNDO/REDO BUTTONS
+             ============================================================
+             These buttons navigate through the circuit history.
+             - Undo: Reverts to the previous circuit state
+             - Redo: Re-applies a previously undone change
+             
+             Buttons are disabled when there's no history in that direction.
+             Keyboard shortcuts: Ctrl+Z (Undo), Ctrl+Shift+Z (Redo)
+             ============================================================ */}
+         <div className="flex items-center gap-1 mr-2">
+           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+             <Button
+               variant="ghost"
+               size="icon"
+               onClick={undo}
+               disabled={!canUndo()}
+               className="h-8 w-8"
+               title="Undo (Ctrl+Z)"
+             >
+               <Undo2 className="w-4 h-4" />
+             </Button>
+           </motion.div>
+           
+           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+             <Button
+               variant="ghost"
+               size="icon"
+               onClick={redo}
+               disabled={!canRedo()}
+               className="h-8 w-8"
+               title="Redo (Ctrl+Shift+Z)"
+             >
+               <Redo2 className="w-4 h-4" />
+             </Button>
+           </motion.div>
+         </div>
+ 
         {/* Templates Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

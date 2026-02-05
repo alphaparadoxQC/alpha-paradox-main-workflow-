@@ -257,3 +257,30 @@ describe('Additional gates', () => {
     expect(result.probabilities.length).toBeGreaterThan(0);
   });
 });
+ 
+ describe('Rotation Gates', () => {
+   it('Rx(π) acts like X gate', () => {
+     let state = initializeState(1);
+     state = applySingleQubitGate(state, 'Rx', 0, Math.PI);
+     const probs = calculateProbabilities(state);
+     const state1 = probs.find(p => p.state === '|1⟩');
+     expect(state1?.probability).toBeCloseTo(1.0, 5);
+   });
+   
+   it('Ry(π/2) creates equal superposition', () => {
+     let state = initializeState(1);
+     state = applySingleQubitGate(state, 'Ry', 0, Math.PI / 2);
+     const probs = calculateProbabilities(state);
+     expect(probs.length).toBe(2);
+     expect(probs[0].probability).toBeCloseTo(0.5, 5);
+     expect(probs[1].probability).toBeCloseTo(0.5, 5);
+   });
+   
+   it('Rz(π) on |0⟩ stays |0⟩', () => {
+     let state = initializeState(1);
+     state = applySingleQubitGate(state, 'Rz', 0, Math.PI);
+     const probs = calculateProbabilities(state);
+     const state0 = probs.find(p => p.state === '|0⟩');
+     expect(state0?.probability).toBeCloseTo(1.0, 5);
+   });
+ });
