@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, FlaskConical, Atom } from 'lucide-react';
 import { 
   ExtendedGateType, 
   EXTENDED_GATE_INFO, 
@@ -11,11 +11,13 @@ import {
 import { GATE_INFO, GateType } from '@/types/quantum';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { ChemistryTab } from '@/components/chemistry/ChemistryTab';
 
 // Legacy gate order for backwards compatibility
 const BASIC_GATES: GateType[] = [
@@ -138,66 +140,83 @@ export const GatesPalette = () => {
   };
 
   return (
-    <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
-      <div className="p-4 border-b border-sidebar-border">
-        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-          <span className="text-primary">⚛</span> Quantum Gates
-        </h2>
-        <p className="text-xs text-muted-foreground mt-1">
-          Click or drag gates to add
-        </p>
-      </div>
-      
-      <ScrollArea className="flex-1">
-        <div className="p-3 space-y-2">
-          {GATE_CATEGORIES.map((category) => {
-            const categoryGates = getGatesByCategory(category.id);
-            // Filter to only show gates that exist in our current GATE_INFO or EXTENDED_GATE_INFO
-            const availableGates = categoryGates.filter(g => 
-              GATE_INFO[g as GateType] || EXTENDED_GATE_INFO[g as ExtendedGateType]
-            );
-            
-            if (availableGates.length === 0) return null;
-            
-            const isExpanded = expandedCategories.has(category.id);
-            
-            return (
-              <Collapsible
-                key={category.id}
-                open={isExpanded}
-                onOpenChange={() => toggleCategory(category.id)}
-              >
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-2">
-                    {isExpanded ? (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                    )}
-                    <span className="text-sm font-medium">{category.name}</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      ({availableGates.length})
-                    </span>
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="space-y-1.5 pt-1 pb-2">
-                    {availableGates.map((gateType, index) => 
-                      renderGateButton(gateType, index)
-                    )}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
+    <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
+      <Tabs defaultValue="gates" className="flex flex-col h-full">
+        <div className="p-3 border-b border-sidebar-border">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="gates" className="text-xs gap-1.5">
+              <Atom className="w-3.5 h-3.5" />
+              Gates
+            </TabsTrigger>
+            <TabsTrigger value="chemistry" className="text-xs gap-1.5">
+              <FlaskConical className="w-3.5 h-3.5" />
+              Chemistry
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </ScrollArea>
-      
-      <div className="p-3 border-t border-sidebar-border bg-sidebar-accent/30">
-        <div className="text-xs text-muted-foreground text-center">
-          <span className="text-primary">Tip:</span> Drag gates onto qubit lines
-        </div>
-      </div>
+        
+        <TabsContent value="gates" className="flex-1 flex flex-col m-0 overflow-hidden">
+          <div className="px-4 py-2 border-b border-sidebar-border/50">
+            <p className="text-xs text-muted-foreground">
+              Click or drag gates to add
+            </p>
+          </div>
+          
+          <ScrollArea className="flex-1">
+            <div className="p-3 space-y-2">
+              {GATE_CATEGORIES.map((category) => {
+                const categoryGates = getGatesByCategory(category.id);
+                const availableGates = categoryGates.filter(g => 
+                  GATE_INFO[g as GateType] || EXTENDED_GATE_INFO[g as ExtendedGateType]
+                );
+                
+                if (availableGates.length === 0) return null;
+                
+                const isExpanded = expandedCategories.has(category.id);
+                
+                return (
+                  <Collapsible
+                    key={category.id}
+                    open={isExpanded}
+                    onOpenChange={() => toggleCategory(category.id)}
+                  >
+                    <CollapsibleTrigger className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-2">
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <span className="text-sm font-medium">{category.name}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          ({availableGates.length})
+                        </span>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-1.5 pt-1 pb-2">
+                        {availableGates.map((gateType, index) => 
+                          renderGateButton(gateType, index)
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
+          </ScrollArea>
+          
+          <div className="p-3 border-t border-sidebar-border bg-sidebar-accent/30">
+            <div className="text-xs text-muted-foreground text-center">
+              <span className="text-primary">Tip:</span> Drag gates onto qubit lines
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="chemistry" className="flex-1 m-0 overflow-hidden">
+          <ChemistryTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
