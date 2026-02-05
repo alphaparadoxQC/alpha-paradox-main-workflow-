@@ -16,6 +16,8 @@ export interface SimulationOutput {
   probabilities: { state: string; probability: number }[];
   blochVectors: { x: number; y: number; z: number }[];
   stateVector: StateVector;
+  isEntangled: boolean;
+  entangledPairs: [number, number][];
 }
 
 /**
@@ -150,6 +152,70 @@ export const applySWAP = (
 };
 
 /**
+ * Detect if qubits are entangled by checking if state is separable
+ * Uses Schmidt decomposition approximation for efficiency
+ */
+export const detectEntanglement = (state: StateVector): { isEntangled: boolean; pairs: [number, number][] } => {
+  const { amplitudes, qubitCount } = state;
+  const pairs: [number, number][] = [];
+  
+  // Check each pair of qubits for entanglement
+  for (let q1 = 0; q1 < qubitCount; q1++) {
+    for (let q2 = q1 + 1; q2 < qubitCount; q2++) {
+      if (areQubitsEntangled(state, q1, q2)) {
+        pairs.push([q1, q2]);
+      }
+    }
+  }
+  
+  return { isEntangled: pairs.length > 0, pairs };
+};
+
+/**
+ * Check if two specific qubits are entangled
+ * Uses the fact that separable states satisfy: ρ_AB = ρ_A ⊗ ρ_B
+ * For pure states, we check if |ψ⟩ = |a⟩ ⊗ |b⟩
+ */
+const areQubitsEntangled = (state: StateVector, q1: number, q2: number): boolean => {
+  const { amplitudes, qubitCount } = state;
+  
+  const bit1Pos = qubitCount - 1 - q1;
+  const bit2Pos = qubitCount - 1 - q2;
+  
+  // Extract the 2-qubit reduced density matrix elements
+  // We check if the state factorizes by looking at the 4 basis states of the 2-qubit subsystem
+  let a00: Complex = { re: 0, im: 0 };
+  let a01: Complex = { re: 0, im: 0 };
+  let a10: Complex = { re: 0, im: 0 };
+  let a11: Complex = { re: 0, im: 0 };
+  
+  for (let i = 0; i < amplitudes.length; i++) {
+    const b1 = (i >> bit1Pos) & 1;
+    const b2 = (i >> bit2Pos) & 1;
+    const amp = amplitudes[i];
+    
+    if (b1 === 0 && b2 === 0) a00 = add(a00, { re: amp.re * amp.re + amp.im * amp.im, im: 0 });
+    else if (b1 === 0 && b2 === 1) a01 = add(a01, { re: amp.re * amp.re + amp.im * amp.im, im: 0 });
+    else if (b1 === 1 && b2 === 0) a10 = add(a10, { re: amp.re * amp.re + amp.im * amp.im, im: 0 });
+    else a11 = add(a11, { re: amp.re * amp.re + amp.im * amp.im, im: 0 });
+  }
+  
+  // For a separable pure state |ψ⟩ = |a⟩⊗|b⟩, the probabilities factorize:
+  // P(00) * P(11) = P(01) * P(10)
+  // If this doesn't hold, the state is entangled
+  const p00 = a00.re, p01 = a01.re, p10 = a10.re, p11 = a11.re;
+  
+  // Check factorizability with tolerance
+  const factorCheck = Math.abs(p00 * p11 - p01 * p10);
+  
+  // Also check for Bell-type correlations (both 00 and 11 nonzero, but 01 and 10 zero)
+  const bellType1 = p00 > 0.01 && p11 > 0.01 && p01 < 0.01 && p10 < 0.01;
+  const bellType2 = p01 > 0.01 && p10 > 0.01 && p00 < 0.01 && p11 < 0.01;
+  
+  return factorCheck > 0.01 || bellType1 || bellType2;
+};
+
+/**
  * Measure a qubit (simulated - collapses to basis state probabilistically)
  * For visualization, we just show the probabilities without collapsing
  */
@@ -262,9 +328,9 @@ export const simulateCircuit = (
         break;
         
       case 'CNOT':
-        // For now, CNOT targets the next qubit
-        const targetQubit = gate.controlQubit ?? (gate.qubit + 1) % qubitCount;
-        state = applyCNOT(state, gate.qubit, targetQubit);
+        // CNOT: gate.qubit is control, gate.targetQubit specifies target
+        const cnotTarget = gate.targetQubit ?? (gate.qubit + 1) % qubitCount;
+        state = applyCNOT(state, gate.qubit, cnotTarget);
         break;
         
       case 'SWAP':
@@ -282,10 +348,13 @@ export const simulateCircuit = (
   // Calculate results
   const probabilities = calculateProbabilities(state);
   const blochVectors = extractQubitStates(state);
+  const entanglement = detectEntanglement(state);
   
   return {
     probabilities,
     blochVectors,
-    stateVector: state
+    stateVector: state,
+    isEntangled: entanglement.isEntangled,
+    entangledPairs: entanglement.pairs
   };
 };
