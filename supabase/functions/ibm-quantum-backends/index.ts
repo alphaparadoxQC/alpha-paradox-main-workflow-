@@ -21,51 +21,109 @@ interface BackendInfo {
   processor?: string;
 }
 
-async function getBackends(token: string): Promise<BackendInfo[]> {
+// Fallback backends when API is unreachable
+const FALLBACK_BACKENDS: BackendInfo[] = [
+  {
+    name: "ibm_brisbane",
+    numQubits: 127,
+    status: "online",
+    isSimulator: false,
+    pendingJobs: 0,
+    maxShots: 100000,
+    basisGates: ["id", "rz", "sx", "x", "cx", "ecr"],
+    description: "IBM Eagle r3 processor",
+    processor: "Eagle",
+  },
+  {
+    name: "ibm_kyiv",
+    numQubits: 127,
+    status: "online",
+    isSimulator: false,
+    pendingJobs: 0,
+    maxShots: 100000,
+    basisGates: ["id", "rz", "sx", "x", "cx", "ecr"],
+    description: "IBM Eagle r3 processor",
+    processor: "Eagle",
+  },
+  {
+    name: "ibm_sherbrooke",
+    numQubits: 127,
+    status: "online",
+    isSimulator: false,
+    pendingJobs: 0,
+    maxShots: 100000,
+    basisGates: ["id", "rz", "sx", "x", "cx", "ecr"],
+    description: "IBM Eagle r3 processor",
+    processor: "Eagle",
+  },
+  {
+    name: "ibmq_qasm_simulator",
+    numQubits: 32,
+    status: "online",
+    isSimulator: true,
+    pendingJobs: 0,
+    maxShots: 100000,
+    basisGates: ["id", "rz", "sx", "x", "cx"],
+    description: "Cloud-based QASM simulator",
+  },
+];
+
+async function getBackends(token: string): Promise<{ backends: BackendInfo[]; fromCache: boolean }> {
   console.log("[IBM Backends] Fetching available backends...");
   
-  const response = await fetch(`${IBM_API_BASE}/backends`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-  });
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    
+    const response = await fetch(`${IBM_API_BASE}/backends`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeout);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("[IBM Backends] Failed to fetch backends:", errorText);
-    throw new Error(`Failed to fetch backends: ${response.status} - ${errorText}`);
-  }
-
-  const rawBackends = await response.json();
-  console.log(`[IBM Backends] Found ${rawBackends.length} backends`);
-
-  // Transform to our format
-  const backends: BackendInfo[] = rawBackends.map((b: any) => {
-    // Determine status
-    let status: BackendInfo["status"] = "offline";
-    if (b.status === "online" || b.operational === true) {
-      status = "online";
-    } else if (b.status === "maintenance" || b.status_msg?.includes("maintenance")) {
-      status = "maintenance";
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[IBM Backends] Failed to fetch backends:", errorText);
+      throw new Error(`Failed to fetch backends: ${response.status} - ${errorText}`);
     }
 
-    return {
-      name: b.name || b.backend_name,
-      numQubits: b.num_qubits || b.n_qubits || 0,
-      status,
-      isSimulator: b.is_simulator || b.simulator || b.name?.includes("simulator") || false,
-      pendingJobs: b.pending_jobs || 0,
-      maxShots: b.max_shots || 100000,
-      basisGates: b.basis_gates || ["id", "rz", "sx", "x", "cx"],
-      description: b.description,
-      version: b.version || b.backend_version,
-      processor: b.processor_type?.family,
-    };
-  });
+    const rawBackends = await response.json();
+    console.log(`[IBM Backends] Found ${rawBackends.length} backends`);
 
-  return backends;
+    // Transform to our format
+    const backends: BackendInfo[] = rawBackends.map((b: any) => {
+      // Determine status
+      let status: BackendInfo["status"] = "offline";
+      if (b.status === "online" || b.operational === true) {
+        status = "online";
+      } else if (b.status === "maintenance" || b.status_msg?.includes("maintenance")) {
+        status = "maintenance";
+      }
+
+      return {
+        name: b.name || b.backend_name,
+        numQubits: b.num_qubits || b.n_qubits || 0,
+        status,
+        isSimulator: b.is_simulator || b.simulator || b.name?.includes("simulator") || false,
+        pendingJobs: b.pending_jobs || 0,
+        maxShots: b.max_shots || 100000,
+        basisGates: b.basis_gates || ["id", "rz", "sx", "x", "cx"],
+        description: b.description,
+        version: b.version || b.backend_version,
+        processor: b.processor_type?.family,
+      };
+    });
+
+    return { backends, fromCache: false };
+  } catch (err) {
+    console.warn("[IBM Backends] API unreachable, using fallback backends:", err);
+    return { backends: FALLBACK_BACKENDS, fromCache: true };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -126,37 +184,39 @@ Deno.serve(async (req) => {
     const excludeSimulators = url.searchParams.get("excludeSimulators") === "true";
 
     // Get backends
-    let backends = await getBackends(ibmToken);
+    const result = await getBackends(ibmToken);
+    let backendsList = result.backends;
 
     // Apply filters
     if (minQubits > 0) {
-      backends = backends.filter(b => b.numQubits >= minQubits);
+      backendsList = backendsList.filter(b => b.numQubits >= minQubits);
     }
     if (onlineOnly) {
-      backends = backends.filter(b => b.status === "online");
+      backendsList = backendsList.filter(b => b.status === "online");
     }
     if (excludeSimulators) {
-      backends = backends.filter(b => !b.isSimulator);
+      backendsList = backendsList.filter(b => !b.isSimulator);
     }
 
     // Sort by pending jobs (least busy first)
-    backends.sort((a, b) => a.pendingJobs - b.pendingJobs);
+    backendsList.sort((a, b) => a.pendingJobs - b.pendingJobs);
 
     // Calculate summary stats
     const summary = {
-      total: backends.length,
-      online: backends.filter(b => b.status === "online").length,
-      simulators: backends.filter(b => b.isSimulator).length,
-      realDevices: backends.filter(b => !b.isSimulator).length,
-      leastBusy: backends[0]?.name || null,
-      maxQubits: Math.max(...backends.map(b => b.numQubits), 0),
+      total: backendsList.length,
+      online: backendsList.filter(b => b.status === "online").length,
+      simulators: backendsList.filter(b => b.isSimulator).length,
+      realDevices: backendsList.filter(b => !b.isSimulator).length,
+      leastBusy: backendsList[0]?.name || null,
+      maxQubits: Math.max(...backendsList.map(b => b.numQubits), 0),
     };
 
     return new Response(
       JSON.stringify({
         success: true,
-        backends,
+        backends: backendsList,
         summary,
+        fromCache: result.fromCache,
         fetchedAt: new Date().toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
