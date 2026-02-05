@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, FlaskConical, Atom } from 'lucide-react';
+import { ChevronDown, ChevronRight, FlaskConical, Atom, Pill } from 'lucide-react';
 import { 
   ExtendedGateType, 
   EXTENDED_GATE_INFO, 
@@ -18,6 +18,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ChemistryTab } from '@/components/chemistry/ChemistryTab';
+import { DrugDiscoveryTab } from '@/components/drugDiscovery/DrugDiscoveryTab';
 
 // Legacy gate order for backwards compatibility
 const BASIC_GATES: GateType[] = [
@@ -143,14 +144,18 @@ export const GatesPalette = () => {
     <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
       <Tabs defaultValue="gates" className="flex flex-col h-full">
         <div className="p-3 border-b border-sidebar-border">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="gates" className="text-xs gap-1.5">
-              <Atom className="w-3.5 h-3.5" />
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="gates" className="text-xs gap-1">
+              <Atom className="w-3 h-3" />
               Gates
             </TabsTrigger>
-            <TabsTrigger value="chemistry" className="text-xs gap-1.5">
-              <FlaskConical className="w-3.5 h-3.5" />
-              Chemistry
+            <TabsTrigger value="chemistry" className="text-xs gap-1">
+              <FlaskConical className="w-3 h-3" />
+              Chem
+            </TabsTrigger>
+            <TabsTrigger value="drugs" className="text-xs gap-1">
+              <Pill className="w-3 h-3" />
+              Drugs
             </TabsTrigger>
           </TabsList>
         </div>
@@ -215,6 +220,10 @@ export const GatesPalette = () => {
         
         <TabsContent value="chemistry" className="flex-1 m-0 overflow-hidden">
           <ChemistryTab />
+        </TabsContent>
+        
+        <TabsContent value="drugs" className="flex-1 m-0 overflow-hidden">
+          <DrugDiscoveryTab />
         </TabsContent>
       </Tabs>
     </div>
