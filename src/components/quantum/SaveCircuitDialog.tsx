@@ -1,11 +1,18 @@
  import { useState, useEffect } from 'react';
  import { motion } from 'framer-motion';
- import { Save, Globe, Lock, Loader2 } from 'lucide-react';
+ import { Save, Globe, Lock, Loader2, Tag } from 'lucide-react';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
  import { Label } from '@/components/ui/label';
  import { Textarea } from '@/components/ui/textarea';
  import { Switch } from '@/components/ui/switch';
+ import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+ } from '@/components/ui/select';
  import {
    Dialog,
    DialogContent,
@@ -18,6 +25,10 @@
  import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
  import { useAuth } from '@/hooks/useAuth';
  import { toast } from 'sonner';
+ 
+ type Category = 'Education' | 'Chemistry' | 'Algorithms' | 'Custom';
+ 
+ const CATEGORIES: Category[] = ['Education', 'Chemistry', 'Algorithms', 'Custom'];
  
  interface SaveCircuitDialogProps {
    open: boolean;
@@ -37,6 +48,7 @@
    const [name, setName] = useState('');
    const [description, setDescription] = useState('');
    const [isPublic, setIsPublic] = useState(false);
+   const [category, setCategory] = useState<Category>('Custom');
    const [error, setError] = useState('');
  
    useEffect(() => {
@@ -44,10 +56,12 @@
        setName(existingCircuit.name);
        setDescription(existingCircuit.description || '');
        setIsPublic(existingCircuit.is_public);
+       setCategory((existingCircuit as any).category || 'Custom');
      } else {
        setName('');
        setDescription('');
        setIsPublic(false);
+       setCategory('Custom');
      }
      setError('');
    }, [existingCircuit, open]);
@@ -69,7 +83,8 @@
        gates,
        qubitCount,
        isPublic,
-       existingCircuit?.id
+       existingCircuit?.id,
+       category
      );
  
      if (result) {
@@ -120,6 +135,25 @@
                onChange={(e) => setDescription(e.target.value)}
                rows={3}
              />
+           </div>
+ 
+           <div className="space-y-2">
+             <Label htmlFor="circuit-category" className="flex items-center gap-2">
+               <Tag className="w-4 h-4" />
+               Category
+             </Label>
+             <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+               <SelectTrigger id="circuit-category">
+                 <SelectValue placeholder="Select a category" />
+               </SelectTrigger>
+               <SelectContent>
+                 {CATEGORIES.map((cat) => (
+                   <SelectItem key={cat} value={cat}>
+                     {cat}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
            </div>
  
            <div className="flex items-center justify-between rounded-lg border p-4">
