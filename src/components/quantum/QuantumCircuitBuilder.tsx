@@ -4,6 +4,7 @@ import { QuantumCanvas } from './QuantumCanvas';
 import { SimulationResults } from './SimulationResults';
 import { Toolbar } from './Toolbar';
 import { StatusBar } from './StatusBar';
+import { AnonymousUserBanner } from './AnonymousUserBanner';
 
 export const QuantumCircuitBuilder = () => {
   return (
@@ -14,6 +15,9 @@ export const QuantumCircuitBuilder = () => {
     >
       {/* Top Toolbar */}
       <Toolbar />
+      
+      {/* Anonymous user banner */}
+      <AnonymousUserBanner />
 
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">

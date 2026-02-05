@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CIRCUIT_TEMPLATES } from '@/lib/quantum/templates';
 import { toast } from 'sonner';
+import { UserMenu } from './UserMenu';
 
 export const Toolbar = () => {
    /**
@@ -198,6 +199,8 @@ export const Toolbar = () => {
 
       {/* Right side - Status indicator */}
       <div className="flex items-center gap-2">
+        <UserMenu />
+        <div className="h-6 w-px bg-border mx-1" />
         <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-quantum-orange animate-pulse' : 'bg-quantum-green'}`} />
         <span className="text-xs text-muted-foreground">
           {isSimulating ? 'Processing' : 'Ready'}
