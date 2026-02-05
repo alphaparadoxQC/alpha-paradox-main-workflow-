@@ -41,17 +41,33 @@
    Vh: Complex[][]; // Right singular vectors (conjugate transpose)
  }
  
- /**
-  * Configuration for MPS simulation
-  */
- export interface MPSConfig {
-   maxBondDimension: number;  // Truncation limit for bonds
-   truncationThreshold: number; // SVD truncation threshold
-   useApproximation: boolean; // Whether to use approximate methods
- }
- 
- export const DEFAULT_MPS_CONFIG: MPSConfig = {
-   maxBondDimension: 64,
-   truncationThreshold: 1e-10,
-   useApproximation: true,
- };
+/**
+ * Configuration for MPS simulation
+ */
+export interface MPSConfig {
+  maxBondDimension: number;  // Truncation limit for bonds
+  truncationThreshold: number; // SVD truncation threshold
+  useApproximation: boolean; // Whether to use approximate methods
+  enableLargeScale: boolean; // Enable 50+ qubit simulations
+  compressionLevel: 'none' | 'light' | 'aggressive'; // Memory/accuracy tradeoff
+}
+
+export const DEFAULT_MPS_CONFIG: MPSConfig = {
+  maxBondDimension: 64,
+  truncationThreshold: 1e-10,
+  useApproximation: true,
+  enableLargeScale: false,
+  compressionLevel: 'light',
+};
+
+/**
+ * Large-scale configuration for 50-120 qubits
+ * Uses more aggressive truncation to maintain tractability
+ */
+export const LARGE_SCALE_MPS_CONFIG: MPSConfig = {
+  maxBondDimension: 128,
+  truncationThreshold: 1e-8,
+  useApproximation: true,
+  enableLargeScale: true,
+  compressionLevel: 'aggressive',
+};

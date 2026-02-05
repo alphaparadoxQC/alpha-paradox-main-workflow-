@@ -17,6 +17,7 @@ export const QUBIT_LIMITS = {
   DEFAULT: 5,
   STATE_VECTOR_MAX: 15,
   MPS_MAX: 25,
+  TENSOR_NETWORK_MAX: 120, // Extended limit with tensor network
 };
 
  /**
@@ -276,13 +277,15 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
    setSimulationMethod: (simulationMethod) => set({ simulationMethod }),
    
    incrementQubits: () => set((state) => {
-     const maxQubits = state.simulationMethod === 'mps' 
-       ? QUBIT_LIMITS.MPS_MAX 
-       : QUBIT_LIMITS.STATE_VECTOR_MAX;
-     return {
-       qubitCount: Math.min(state.qubitCount + 1, maxQubits),
-     };
-   }),
+      const maxQubits = state.simulationMethod === 'mps' 
+        ? QUBIT_LIMITS.TENSOR_NETWORK_MAX 
+        : state.simulationMethod === 'auto'
+        ? QUBIT_LIMITS.MPS_MAX
+        : QUBIT_LIMITS.STATE_VECTOR_MAX;
+      return {
+        qubitCount: Math.min(state.qubitCount + 1, maxQubits),
+      };
+    }),
    
    decrementQubits: () => set((state) => ({
      qubitCount: Math.max(state.qubitCount - 1, QUBIT_LIMITS.MIN),

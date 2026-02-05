@@ -18,8 +18,11 @@ import { UserMenu } from './UserMenu';
 import { SaveCircuitDialog } from './SaveCircuitDialog';
 import { MyCircuitsSidebar } from './MyCircuitsSidebar';
 import { HardwarePanel } from './HardwarePanel';
+import { NaturalLanguageBuilder } from './NaturalLanguageBuilder';
+import { VisualFlowBuilder } from './VisualFlowBuilder';
 import { useAuth } from '@/hooks/useAuth';
 import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
+import { BRANDING } from '@/config/branding';
  
  interface ForkedFromInfo {
    id: string;
@@ -209,7 +212,7 @@ export const Toolbar = () => {
         </motion.div>
         <div>
           <h1 className="text-lg font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            Quantum Workload
+            {BRANDING.platformName}
           </h1>
           <p className="text-[10px] text-muted-foreground -mt-0.5">
             {forkedFrom ? (
@@ -302,6 +305,9 @@ export const Toolbar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* No-Code/Low-Code Builders */}
+        <NaturalLanguageBuilder />
+        <VisualFlowBuilder />
         {/* Save Button */}
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
