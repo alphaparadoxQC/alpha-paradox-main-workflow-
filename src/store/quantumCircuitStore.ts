@@ -3,6 +3,22 @@ import { QuantumGate, SimulationResult } from '@/types/quantum';
 import { simulateCircuit } from '@/lib/quantum/simulator';
 import { CircuitTemplate, createGatesFromTemplate } from '@/lib/quantum/templates';
 
+/**
+ * ============================================================
+ * QUBIT LIMITS
+ * ============================================================
+ * Define constraints for qubit count based on simulation method:
+ * - State vector: up to 15 qubits (2^15 = 32K states)
+ * - MPS tensor network: up to 25 qubits (with truncation)
+ * ============================================================
+ */
+export const QUBIT_LIMITS = {
+  MIN: 2,
+  DEFAULT: 5,
+  STATE_VECTOR_MAX: 15,
+  MPS_MAX: 25,
+};
+
  /**
   * ============================================================
   * UNDO/REDO HISTORY SYSTEM
@@ -47,6 +63,8 @@ interface QuantumCircuitStore {
   // Circuit state
   gates: QuantumGate[];
   qubitCount: number;
+  simulationMethod: 'stateVector' | 'mps' | 'auto';
+  executionTimeMs: number | null;
   
   // Simulation
   isSimulating: boolean;
@@ -98,6 +116,9 @@ interface QuantumCircuitStore {
    // Direct setters (for loading from gallery/storage)
    setGates: (gates: QuantumGate[]) => void;
    setQubitCount: (count: number) => void;
+   setSimulationMethod: (method: 'stateVector' | 'mps' | 'auto') => void;
+   incrementQubits: () => void;
+   decrementQubits: () => void;
   
   // Computed
   getCircuitDepth: () => number;
@@ -106,7 +127,9 @@ interface QuantumCircuitStore {
 
 export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => ({
   gates: [],
-  qubitCount: 5,
+  qubitCount: QUBIT_LIMITS.DEFAULT,
+  simulationMethod: 'auto',
+  executionTimeMs: null,
   isSimulating: false,
   simulationResult: null,
   draggedGate: null,
@@ -250,18 +273,37 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
  
    setQubitCount: (qubitCount) => set({ qubitCount }),
 
+   setSimulationMethod: (simulationMethod) => set({ simulationMethod }),
+   
+   incrementQubits: () => set((state) => {
+     const maxQubits = state.simulationMethod === 'mps' 
+       ? QUBIT_LIMITS.MPS_MAX 
+       : QUBIT_LIMITS.STATE_VECTOR_MAX;
+     return {
+       qubitCount: Math.min(state.qubitCount + 1, maxQubits),
+     };
+   }),
+   
+   decrementQubits: () => set((state) => ({
+     qubitCount: Math.max(state.qubitCount - 1, QUBIT_LIMITS.MIN),
+   })),
+
   simulate: () => {
     set({ isSimulating: true });
     
     // Use setTimeout to allow UI to update before running simulation
     setTimeout(() => {
       const { gates, qubitCount } = get();
+      const startTime = performance.now();
       
       // Run the real quantum simulation
       const result = simulateCircuit(gates, qubitCount);
       
+      const endTime = performance.now();
+      
       set({
         isSimulating: false,
+        executionTimeMs: endTime - startTime,
         simulationResult: {
           probabilities: result.probabilities,
           blochVectors: result.blochVectors,

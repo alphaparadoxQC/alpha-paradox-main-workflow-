@@ -1,12 +1,34 @@
 import { motion } from 'framer-motion';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
-import { Layers, Hash, Activity } from 'lucide-react';
+import { Layers, Hash, Activity, Plus, Minus, Clock, Cpu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { QUBIT_LIMITS } from '@/store/quantumCircuitStore';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export const StatusBar = () => {
-  const { qubitCount, getGateCount, getCircuitDepth, isSimulating } = useQuantumCircuitStore();
+  const { 
+    qubitCount, 
+    getGateCount, 
+    getCircuitDepth, 
+    isSimulating,
+    simulationMethod,
+    executionTimeMs,
+    incrementQubits,
+    decrementQubits,
+    setSimulationMethod,
+  } = useQuantumCircuitStore();
   
   const gateCount = getGateCount();
   const depth = getCircuitDepth();
+  
+  const maxQubits = simulationMethod === 'mps' 
+    ? QUBIT_LIMITS.MPS_MAX 
+    : QUBIT_LIMITS.STATE_VECTOR_MAX;
 
   const stats = [
     { 
@@ -33,11 +55,63 @@ export const StatusBar = () => {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="h-10 bg-card border-t border-border flex items-center justify-between px-4"
+      className="h-12 bg-card border-t border-border flex items-center justify-between px-4"
     >
       {/* Stats */}
       <div className="flex items-center gap-6">
-        {stats.map((stat, index) => (
+        {/* Qubit controls */}
+        <div className="flex items-center gap-1">
+          <Layers className="w-3.5 h-3.5 text-quantum-cyan" />
+          <span className="text-xs text-muted-foreground">Qubits:</span>
+          <div className="flex items-center gap-0.5 ml-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={decrementQubits}
+                    disabled={qubitCount <= QUBIT_LIMITS.MIN}
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove qubit</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <motion.span 
+              key={qubitCount}
+              initial={{ scale: 1.3 }}
+              animate={{ scale: 1 }}
+              className="text-sm font-mono font-bold text-quantum-cyan min-w-[1.5rem] text-center"
+            >
+              {qubitCount}
+            </motion.span>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={incrementQubits}
+                    disabled={qubitCount >= maxQubits}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add qubit (max {maxQubits})</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+        
+        <div className="w-px h-5 bg-border" />
+        
+        {stats.slice(1).map((stat, index) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, x: -10 }}
@@ -59,8 +133,21 @@ export const StatusBar = () => {
         ))}
       </div>
 
-      {/* Center info */}
-      <div className="flex items-center gap-2">
+      {/* Center info - simulation status and timing */}
+      <div className="flex items-center gap-4">
+        {executionTimeMs !== null && !isSimulating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center gap-1.5"
+          >
+            <Clock className="w-3 h-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {executionTimeMs < 1 ? '<1' : Math.round(executionTimeMs)}ms
+            </span>
+          </motion.div>
+        )}
+        
         {isSimulating && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -81,6 +168,44 @@ export const StatusBar = () => {
 
       {/* Right side info */}
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        {/* Simulation method indicator */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setSimulationMethod(
+                  simulationMethod === 'stateVector' ? 'mps' : 
+                  simulationMethod === 'mps' ? 'auto' : 'stateVector'
+                )}
+                className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+              >
+                <Cpu className="w-3 h-3" />
+                <span className="font-mono uppercase text-[10px]">
+                  {simulationMethod === 'auto' 
+                    ? (qubitCount > 10 ? 'MPS' : 'SV') 
+                    : simulationMethod === 'mps' ? 'MPS' : 'SV'}
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="font-medium">Simulation Method: {
+                simulationMethod === 'auto' ? 'Auto' : 
+                simulationMethod === 'mps' ? 'Tensor Network (MPS)' : 'State Vector'
+              }</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {simulationMethod === 'mps' 
+                  ? 'Efficient for 10+ qubits, approximate' 
+                  : simulationMethod === 'stateVector'
+                  ? 'Exact simulation, up to ~15 qubits'
+                  : 'Auto-selects based on qubit count'}
+              </p>
+              <p className="text-xs text-muted-foreground">Click to cycle</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <div className="w-px h-4 bg-border" />
+        
         <span>2^{qubitCount} = {Math.pow(2, qubitCount)} states</span>
         <div className="w-px h-4 bg-border" />
         <span className="font-mono">v1.0.0</span>
