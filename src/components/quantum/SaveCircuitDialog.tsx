@@ -34,12 +34,14 @@
    open: boolean;
    onOpenChange: (open: boolean) => void;
    existingCircuit?: SavedCircuit | null;
+   forkedFromId?: string | null;
  }
  
  export const SaveCircuitDialog = ({
    open,
    onOpenChange,
    existingCircuit,
+   forkedFromId,
  }: SaveCircuitDialogProps) => {
    const { user } = useAuth();
    const { gates, qubitCount } = useQuantumCircuitStore();
@@ -84,7 +86,8 @@
        qubitCount,
        isPublic,
        existingCircuit?.id,
-       category
+       category,
+       forkedFromId || undefined
      );
  
      if (result) {

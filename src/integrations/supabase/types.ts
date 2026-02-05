@@ -49,6 +49,8 @@ export type Database = {
           circuit_data: Json
           created_at: string
           description: string | null
+          fork_count: number
+          forked_from: string | null
           id: string
           is_public: boolean
           name: string
@@ -61,6 +63,8 @@ export type Database = {
           circuit_data?: Json
           created_at?: string
           description?: string | null
+          fork_count?: number
+          forked_from?: string | null
           id?: string
           is_public?: boolean
           name: string
@@ -73,6 +77,8 @@ export type Database = {
           circuit_data?: Json
           created_at?: string
           description?: string | null
+          fork_count?: number
+          forked_from?: string | null
           id?: string
           is_public?: boolean
           name?: string
@@ -80,7 +86,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "quantum_circuits_forked_from_fkey"
+            columns: ["forked_from"]
+            isOneToOne: false
+            referencedRelation: "quantum_circuits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

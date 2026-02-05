@@ -1,10 +1,17 @@
  import { useState, useEffect, useMemo } from 'react';
  import { motion } from 'framer-motion';
- import { Search, Filter, Star, Clock, Cpu, ArrowLeft, Loader2, User } from 'lucide-react';
+ import { Search, Filter, Star, Clock, Cpu, ArrowLeft, Loader2, User, ArrowUpDown, GitFork } from 'lucide-react';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
  import { Badge } from '@/components/ui/badge';
  import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+ import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+ } from '@/components/ui/select';
  import { supabase } from '@/integrations/supabase/client';
  import { useAuth } from '@/hooks/useAuth';
  import { useNavigate, Link } from 'react-router-dom';
@@ -27,9 +34,20 @@
    user_id: string;
    like_count: number;
    user_has_liked: boolean;
+   fork_count: number;
  }
  
  const CATEGORIES: Category[] = ['Education', 'Chemistry', 'Algorithms', 'Custom'];
+ 
+ type SortOption = 'newest' | 'oldest' | 'most_liked' | 'most_qubits' | 'most_forked';
+ 
+ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+   { value: 'newest', label: 'Newest first' },
+   { value: 'oldest', label: 'Oldest first' },
+   { value: 'most_liked', label: 'Most liked' },
+   { value: 'most_qubits', label: 'Most qubits' },
+   { value: 'most_forked', label: 'Most forked' },
+ ];
  
  const categoryColors: Record<Category, string> = {
    Education: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -54,6 +72,7 @@
    const [searchQuery, setSearchQuery] = useState('');
    const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
    const [likingCircuits, setLikingCircuits] = useState<Set<string>>(new Set());
+   const [sortBy, setSortBy] = useState<SortOption>('newest');
  
    useEffect(() => {
      fetchPublicCircuits();
@@ -100,6 +119,7 @@
          category: (circuit.category as Category) || 'Custom',
          like_count: likeCountMap.get(circuit.id) || 0,
          user_has_liked: userLikes.has(circuit.id),
+         fork_count: (circuit as any).fork_count || 0,
        }));
  
        setCircuits(enrichedCircuits);
@@ -169,18 +189,41 @@
        qubitCount: circuit.qubit_count,
        name: circuit.name,
        isCopy: true,
+       forkedFrom: circuit.id,
+       forkedFromName: circuit.name,
      }));
      navigate('/');
    };
  
    const filteredCircuits = useMemo(() => {
-     return circuits.filter(circuit => {
+     let result = circuits.filter(circuit => {
        const matchesSearch = circuit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
          (circuit.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
        const matchesCategory = selectedCategory === 'All' || circuit.category === selectedCategory;
        return matchesSearch && matchesCategory;
      });
-   }, [circuits, searchQuery, selectedCategory]);
+ 
+     // Sort results
+     switch (sortBy) {
+       case 'oldest':
+         result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+         break;
+       case 'newest':
+         result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+         break;
+       case 'most_liked':
+         result.sort((a, b) => b.like_count - a.like_count);
+         break;
+       case 'most_qubits':
+         result.sort((a, b) => b.qubit_count - a.qubit_count);
+         break;
+       case 'most_forked':
+         result.sort((a, b) => b.fork_count - a.fork_count);
+         break;
+     }
+ 
+     return result;
+   }, [circuits, searchQuery, selectedCategory, sortBy]);
  
    return (
      <div className="min-h-screen bg-background">
@@ -258,6 +301,21 @@
                  </Button>
                ))}
              </div>
+           </div>
+           <div className="flex items-center gap-2">
+             <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+               <SelectTrigger className="w-[150px]">
+                 <SelectValue placeholder="Sort by" />
+               </SelectTrigger>
+               <SelectContent>
+                 {SORT_OPTIONS.map(option => (
+                   <SelectItem key={option.value} value={option.value}>
+                     {option.label}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
            </div>
          </motion.div>
  
@@ -348,6 +406,12 @@
                          <Star className="w-3 h-3" />
                          {circuit.like_count}
                        </span>
+                       {circuit.fork_count > 0 && (
+                         <span className="flex items-center gap-1">
+                           <GitFork className="w-3 h-3" />
+                           {circuit.fork_count}
+                         </span>
+                       )}
                      </div>
                      <span className="flex items-center gap-1">
                        <Clock className="w-3 h-3" />

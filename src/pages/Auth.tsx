@@ -1,5 +1,5 @@
  import { useState } from 'react';
- import { useNavigate } from 'react-router-dom';
+ import { useNavigate, useSearchParams } from 'react-router-dom';
  import { motion } from 'framer-motion';
  import { Cpu, Mail, Lock, Loader2, Eye, EyeOff, Atom } from 'lucide-react';
  import { Button } from '@/components/ui/button';
@@ -27,7 +27,9 @@
  
    // Redirect if already logged in
    if (user) {
-     navigate('/', { replace: true });
+     const returnUrl = sessionStorage.getItem('returnUrl') || '/';
+     sessionStorage.removeItem('returnUrl');
+     navigate(returnUrl, { replace: true });
      return null;
    }
  
@@ -66,7 +68,9 @@
        }
      } else {
        toast.success('Welcome back!');
-       navigate('/');
+       const returnUrl = sessionStorage.getItem('returnUrl') || '/';
+       sessionStorage.removeItem('returnUrl');
+       navigate(returnUrl);
      }
    };
  
