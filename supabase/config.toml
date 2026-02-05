@@ -1,1 +1,4 @@
 project_id = "vjuockcsfartpcvjapos"
+
+[functions.ibm-quantum]
+verify_jwt = false
