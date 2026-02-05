@@ -1,5 +1,6 @@
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
- import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2 } from 'lucide-react';
+import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -13,6 +14,10 @@ import {
 import { CIRCUIT_TEMPLATES } from '@/lib/quantum/templates';
 import { toast } from 'sonner';
 import { UserMenu } from './UserMenu';
+import { SaveCircuitDialog } from './SaveCircuitDialog';
+import { MyCircuitsSidebar } from './MyCircuitsSidebar';
+import { useAuth } from '@/hooks/useAuth';
+import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
 
 export const Toolbar = () => {
    /**
@@ -36,6 +41,54 @@ export const Toolbar = () => {
      canRedo,
    } = useQuantumCircuitStore();
 
+  const { user } = useAuth();
+  const { saveCircuit } = useCircuits();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentCircuit, setCurrentCircuit] = useState<SavedCircuit | null>(null);
+
+  // Auto-save draft every 30 seconds
+  const lastAutoSaveRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!user || gates.length === 0) return;
+
+    const autoSaveInterval = setInterval(async () => {
+      const currentGatesJson = JSON.stringify(gates);
+
+      // Only auto-save if there are changes
+      if (currentGatesJson !== lastAutoSaveRef.current && gates.length > 0) {
+        lastAutoSaveRef.current = currentGatesJson;
+
+        // Save as draft (auto-save)
+        const draftName = currentCircuit?.name || `Draft - ${new Date().toLocaleString()}`;
+        const result = await saveCircuit(
+          draftName,
+          'Auto-saved draft',
+          gates,
+          5,
+          false,
+          currentCircuit?.id
+        );
+
+        if (result) {
+          setCurrentCircuit(result);
+          toast.success('Auto-saved!', {
+            description: 'Your circuit has been saved automatically.',
+            duration: 2000,
+          });
+        }
+      }
+    }, 30000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [user, gates, currentCircuit, saveCircuit]);
+
+  const handleCircuitLoaded = (circuit: SavedCircuit) => {
+    setCurrentCircuit(circuit);
+    lastAutoSaveRef.current = JSON.stringify(circuit.circuit_data);
+  };
+
   const handleLoadTemplate = (templateId: string) => {
     const template = CIRCUIT_TEMPLATES.find(t => t.id === templateId);
     if (template) {
@@ -47,7 +100,16 @@ export const Toolbar = () => {
     }
   };
 
+  const handleSaveClick = () => {
+    if (!user) {
+      toast.error('Please sign in to save circuits');
+      return;
+    }
+    setSaveDialogOpen(true);
+  };
+
   return (
+    <>
     <motion.div 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -150,6 +212,33 @@ export const Toolbar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/* Save Button */}
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Button
+            variant="outline"
+            onClick={handleSaveClick}
+            disabled={gates.length === 0}
+            className="border-primary/30 hover:border-primary/50"
+          >
+            <Save className="w-4 h-4 mr-2 text-primary" />
+            Save
+          </Button>
+        </motion.div>
+
+        {/* My Circuits Button */}
+        {user && (
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              variant="outline"
+              onClick={() => setSidebarOpen(true)}
+              className="border-secondary/30 hover:border-secondary/50"
+            >
+              <FolderOpen className="w-4 h-4 mr-2 text-secondary" />
+              My Circuits
+            </Button>
+          </motion.div>
+        )}
+
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={simulate}
@@ -207,5 +296,19 @@ export const Toolbar = () => {
         </span>
       </div>
     </motion.div>
+
+      {/* Dialogs and Sidebars */}
+      <SaveCircuitDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        existingCircuit={currentCircuit}
+      />
+
+      <MyCircuitsSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onCircuitLoaded={handleCircuitLoaded}
+      />
+    </>
   );
 };
