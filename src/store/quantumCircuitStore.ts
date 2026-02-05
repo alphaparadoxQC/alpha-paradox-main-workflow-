@@ -151,7 +151,11 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
         isSimulating: false,
         simulationResult: {
           probabilities: result.probabilities,
-          blochVectors: result.blochVectors
+          blochVectors: result.blochVectors,
+          amplitudes: result.amplitudes,
+          circuitDepth: result.circuitDepth,
+          fidelity: 100,
+          measurementOutcomes: result.measurementOutcomes
         }
       });
     }, 500); // Small delay for visual feedback
