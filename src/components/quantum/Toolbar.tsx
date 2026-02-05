@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork, History } from 'lucide-react';
@@ -20,6 +20,7 @@ import { MyCircuitsSidebar } from './MyCircuitsSidebar';
 import { HardwarePanel } from './HardwarePanel';
 import { NaturalLanguageBuilder } from './NaturalLanguageBuilder';
 import { VisualFlowBuilder } from './VisualFlowBuilder';
+import { BackendSelector, BackendType, getBackendById } from './BackendSelector';
 import { useAuth } from '@/hooks/useAuth';
 import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
 import { BRANDING } from '@/config/branding';
@@ -58,8 +59,19 @@ export const Toolbar = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentCircuit, setCurrentCircuit] = useState<SavedCircuit | null>(null);
-   const [forkedFrom, setForkedFrom] = useState<ForkedFromInfo | null>(null);
+  const [forkedFrom, setForkedFrom] = useState<ForkedFromInfo | null>(null);
+  const [selectedBackend, setSelectedBackend] = useState<BackendType>('local');
 
+  const handleBackendChange = useCallback((backend: BackendType) => {
+    setSelectedBackend(backend);
+    const backendInfo = getBackendById(backend);
+    if (backendInfo && backend !== 'local') {
+      toast.info(`Backend: ${backendInfo.name}`, {
+        description: `${backendInfo.estimatedCost} • ${backendInfo.estimatedWait}`,
+        duration: 3000,
+      });
+    }
+  }, []);
   // Auto-save draft every 30 seconds
   const lastAutoSaveRef = useRef<string>('');
  
@@ -363,6 +375,9 @@ export const Toolbar = () => {
           </Link>
         )}
 
+        {/* Backend Selector */}
+        <BackendSelector onBackendChange={handleBackendChange} />
+
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={simulate}
@@ -397,7 +412,7 @@ export const Toolbar = () => {
           </Button>
         </motion.div>
 
-        {/* IBM Quantum Hardware Panel */}
+        {/* Hardware Panel (for detailed hardware submission) */}
         <HardwarePanel />
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
