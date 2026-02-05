@@ -96,6 +96,77 @@ export type Database = {
           },
         ]
       }
+      quantum_jobs: {
+        Row: {
+          backend: string
+          circuit_id: string | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          hardware_results: Json | null
+          id: string
+          job_id: string
+          local_results: Json | null
+          qasm: string | null
+          qubit_count: number
+          queue_position: number | null
+          shots: number
+          started_at: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backend: string
+          circuit_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          hardware_results?: Json | null
+          id?: string
+          job_id: string
+          local_results?: Json | null
+          qasm?: string | null
+          qubit_count: number
+          queue_position?: number | null
+          shots?: number
+          started_at?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backend?: string
+          circuit_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          hardware_results?: Json | null
+          id?: string
+          job_id?: string
+          local_results?: Json | null
+          qasm?: string | null
+          qubit_count?: number
+          queue_position?: number | null
+          shots?: number
+          started_at?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quantum_jobs_circuit_id_fkey"
+            columns: ["circuit_id"]
+            isOneToOne: false
+            referencedRelation: "quantum_circuits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

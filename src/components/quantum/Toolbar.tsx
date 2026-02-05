@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-  import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-  import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork } from 'lucide-react';
+import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { UserMenu } from './UserMenu';
 import { SaveCircuitDialog } from './SaveCircuitDialog';
 import { MyCircuitsSidebar } from './MyCircuitsSidebar';
+import { HardwarePanel } from './HardwarePanel';
 import { useAuth } from '@/hooks/useAuth';
 import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
  
@@ -374,6 +375,9 @@ export const Toolbar = () => {
             )}
           </Button>
         </motion.div>
+
+        {/* IBM Quantum Hardware Panel */}
+        <HardwarePanel />
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
