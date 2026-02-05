@@ -3,10 +3,13 @@ import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { BarChart3, Circle, Loader2, Link2, Unlink, Activity, Target, Gauge, Table } from 'lucide-react';
 import { InteractiveBlochSphere } from './InteractiveBlochSphere';
 import { PhaseWheel, phaseToColor } from './PhaseWheel';
+import { HardwareResults } from './HardwareResults';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useIBMQuantum } from '@/hooks/useIBMQuantum';
 
 export const SimulationResults = () => {
   const { simulationResult, isSimulating, qubitCount, gates } = useQuantumCircuitStore();
+  const { currentJob } = useIBMQuantum();
   const circuitDepth = simulationResult?.circuitDepth ?? (gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0);
 
   return (
@@ -336,6 +339,11 @@ export const SimulationResults = () => {
                 </div>
               </div>
             </motion.div>
+
+            {/* Hardware Results (if job exists) */}
+            {currentJob && (
+              <HardwareResults job={currentJob} />
+            )}
           </>
         )}
       </div>
