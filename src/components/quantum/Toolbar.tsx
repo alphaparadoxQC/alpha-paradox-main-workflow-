@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
+ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen } from 'lucide-react';
+ import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -39,6 +40,8 @@ export const Toolbar = () => {
      redo,
      canUndo,
      canRedo,
+      setGates,
+      setQubitCount,
    } = useQuantumCircuitStore();
 
   const { user } = useAuth();
@@ -49,6 +52,25 @@ export const Toolbar = () => {
 
   // Auto-save draft every 30 seconds
   const lastAutoSaveRef = useRef<string>('');
+ 
+   // Check for circuit loaded from gallery
+   useEffect(() => {
+     const loadedCircuit = sessionStorage.getItem('loadCircuit');
+     if (loadedCircuit) {
+       try {
+         const { gates: loadedGates, qubitCount, name, isCopy } = JSON.parse(loadedCircuit);
+         setGates(loadedGates);
+         if (qubitCount) setQubitCount(qubitCount);
+         sessionStorage.removeItem('loadCircuit');
+         toast.success(`Loaded: ${name}`, {
+           description: isCopy ? 'This is a copy - feel free to modify!' : undefined,
+           duration: 3000,
+         });
+       } catch (e) {
+         console.error('Failed to load circuit from gallery:', e);
+       }
+     }
+   }, [setGates, setQubitCount]);
 
   useEffect(() => {
     if (!user || gates.length === 0) return;
@@ -239,6 +261,19 @@ export const Toolbar = () => {
           </motion.div>
         )}
 
+         {/* Gallery Link */}
+         <Link to="/gallery">
+           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+             <Button
+               variant="outline"
+               className="border-accent/30 hover:border-accent/50"
+             >
+               <Globe className="w-4 h-4 mr-2 text-accent" />
+               Gallery
+             </Button>
+           </motion.div>
+         </Link>
+ 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={simulate}

@@ -94,6 +94,10 @@ interface QuantumCircuitStore {
    // Gate manipulation
    duplicateGate: (gateId: string) => void;
    moveGate: (gateId: string, newQubit: number, newPosition: number) => void;
+   
+   // Direct setters (for loading from gallery/storage)
+   setGates: (gates: QuantumGate[]) => void;
+   setQubitCount: (count: number) => void;
   
   // Computed
   getCircuitDepth: () => number;
@@ -235,6 +239,16 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
        activeTemplate: null,
      });
    },
+ 
+   setGates: (gates) => set((state) => ({
+     past: saveToHistory(state.gates, state.past),
+     future: [],
+     gates,
+     activeTemplate: null,
+     selectedGateId: null,
+   })),
+ 
+   setQubitCount: (qubitCount) => set({ qubitCount }),
 
   simulate: () => {
     set({ isSimulating: true });

@@ -14,8 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      circuit_likes: {
+        Row: {
+          circuit_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          circuit_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          circuit_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circuit_likes_circuit_id_fkey"
+            columns: ["circuit_id"]
+            isOneToOne: false
+            referencedRelation: "quantum_circuits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quantum_circuits: {
         Row: {
+          category: string | null
           circuit_data: Json
           created_at: string
           description: string | null
@@ -27,6 +57,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
           circuit_data?: Json
           created_at?: string
           description?: string | null
@@ -38,6 +69,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
           circuit_data?: Json
           created_at?: string
           description?: string | null

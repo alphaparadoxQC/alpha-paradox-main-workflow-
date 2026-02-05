@@ -15,6 +15,7 @@ import { Json } from '@/integrations/supabase/types';
    created_at: string;
    updated_at: string;
    user_id: string;
+   category?: string;
  }
 
 // Helper to safely extract gates from circuit_data
@@ -66,7 +67,8 @@ export function getGatesFromCircuit(circuit: SavedCircuit): QuantumGate[] {
      gates: QuantumGate[],
      qubitCount: number,
      isPublic: boolean,
-     existingId?: string
+     existingId?: string,
+     category?: string
    ): Promise<SavedCircuit | null> => {
      if (!user) {
        toast.error('Please sign in to save circuits');
@@ -87,6 +89,7 @@ export function getGatesFromCircuit(circuit: SavedCircuit): QuantumGate[] {
              circuit_data: circuitData,
              qubit_count: qubitCount,
              is_public: isPublic,
+             category: category || 'Custom',
            })
            .eq('id', existingId)
            .eq('user_id', user.id)
@@ -107,6 +110,7 @@ export function getGatesFromCircuit(circuit: SavedCircuit): QuantumGate[] {
              qubit_count: qubitCount,
              is_public: isPublic,
              user_id: user.id,
+             category: category || 'Custom',
            })
            .select()
            .single();
