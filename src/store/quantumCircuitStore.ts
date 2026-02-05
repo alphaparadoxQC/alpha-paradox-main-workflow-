@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { QuantumGate, SimulationResult } from '@/types/quantum';
 import { simulateCircuit } from '@/lib/quantum/simulator';
+import { CircuitTemplate, createGatesFromTemplate } from '@/lib/quantum/templates';
 
 interface QuantumCircuitStore {
   // Circuit state
@@ -14,6 +15,9 @@ interface QuantumCircuitStore {
   // Drag state
   draggedGate: string | null;
   
+  // Template state
+  activeTemplate: CircuitTemplate | null;
+  
   // Actions
   addGate: (gate: QuantumGate) => void;
   removeGate: (gateId: string) => void;
@@ -21,6 +25,7 @@ interface QuantumCircuitStore {
   clearCircuit: () => void;
   setDraggedGate: (gateType: string | null) => void;
   simulate: () => void;
+  loadTemplate: (template: CircuitTemplate) => void;
   
   // Computed
   getCircuitDepth: () => number;
@@ -33,27 +38,41 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   isSimulating: false,
   simulationResult: null,
   draggedGate: null,
+  activeTemplate: null,
 
   addGate: (gate) => set((state) => ({ 
-    gates: [...state.gates, gate] 
+    gates: [...state.gates, gate],
+    activeTemplate: null // Clear template when manually adding gates
   })),
 
   removeGate: (gateId) => set((state) => ({
-    gates: state.gates.filter((g) => g.id !== gateId)
+    gates: state.gates.filter((g) => g.id !== gateId),
+    activeTemplate: null
   })),
 
   updateGate: (gateId, updates) => set((state) => ({
     gates: state.gates.map((g) => 
       g.id === gateId ? { ...g, ...updates } : g
-    )
+    ),
+    activeTemplate: null
   })),
 
   clearCircuit: () => set({ 
     gates: [], 
-    simulationResult: null 
+    simulationResult: null,
+    activeTemplate: null
   }),
 
   setDraggedGate: (gateType) => set({ draggedGate: gateType }),
+
+  loadTemplate: (template) => {
+    const gates = createGatesFromTemplate(template);
+    set({
+      gates,
+      activeTemplate: template,
+      simulationResult: null
+    });
+  },
 
   simulate: () => {
     set({ isSimulating: true });
