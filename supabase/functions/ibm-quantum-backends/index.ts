@@ -75,10 +75,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Accept GET only
-    if (req.method !== "GET") {
+    // Accept GET and POST (POST is used by supabase.functions.invoke)
+    if (req.method !== "GET" && req.method !== "POST") {
       return new Response(
-        JSON.stringify({ error: "Method not allowed. Use GET." }),
+        JSON.stringify({ error: "Method not allowed. Use GET or POST." }),
         { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
