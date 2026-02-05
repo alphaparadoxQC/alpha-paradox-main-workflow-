@@ -90,7 +90,10 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
           probabilities: result.probabilities,
           blochVectors: result.blochVectors,
           isEntangled: result.isEntangled,
-          entangledPairs: result.entangledPairs
+          entangledPairs: result.entangledPairs,
+          amplitudes: result.amplitudes,
+          circuitDepth: result.circuitDepth,
+          hasMeasurement: result.hasMeasurement
         }
       });
     }, 500); // Small delay for visual feedback

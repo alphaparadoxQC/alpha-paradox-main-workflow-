@@ -18,6 +18,9 @@ export interface SimulationOutput {
   stateVector: StateVector;
   isEntangled: boolean;
   entangledPairs: [number, number][];
+  amplitudes: { state: string; re: number; im: number; magnitude: number; phase: number }[];
+  circuitDepth: number;
+  hasMeasurement: boolean;
 }
 
 /**
@@ -293,6 +296,45 @@ export const applyToffoli = (
 };
 
 /**
+ * Calculate full amplitude information including phase
+ */
+export const calculateAmplitudes = (state: StateVector): { state: string; re: number; im: number; magnitude: number; phase: number }[] => {
+  const { amplitudes, qubitCount } = state;
+  
+  return amplitudes
+    .map((amp, index) => {
+      const binaryStr = index.toString(2).padStart(qubitCount, '0');
+      const magnitude = Math.sqrt(magnitudeSquared(amp));
+      const phase = Math.atan2(amp.im, amp.re);
+      
+      return {
+        state: `|${binaryStr}⟩`,
+        re: amp.re,
+        im: amp.im,
+        magnitude,
+        phase
+      };
+    })
+    .filter(a => a.magnitude > 1e-10) // Filter negligible amplitudes
+    .sort((a, b) => b.magnitude - a.magnitude);
+};
+
+/**
+ * Calculate circuit depth (maximum position + 1)
+ */
+export const calculateCircuitDepth = (gates: QuantumGate[]): number => {
+  if (gates.length === 0) return 0;
+  return Math.max(...gates.map(g => g.position)) + 1;
+};
+
+/**
+ * Check if circuit has measurement gates
+ */
+export const hasMeasurementGate = (gates: QuantumGate[]): boolean => {
+  return gates.some(g => g.type === 'M');
+};
+
+/**
  * Calculate probabilities for all basis states
  */
 export const calculateProbabilities = (state: StateVector): { state: string; probability: number }[] => {
@@ -430,12 +472,18 @@ export const simulateCircuit = (
   const probabilities = calculateProbabilities(state);
   const blochVectors = extractQubitStates(state);
   const entanglement = detectEntanglement(state);
+  const amplitudeInfo = calculateAmplitudes(state);
+  const circuitDepth = calculateCircuitDepth(gates);
+  const hasMeasurement = hasMeasurementGate(gates);
   
   return {
     probabilities,
     blochVectors,
     stateVector: state,
     isEntangled: entanglement.isEntangled,
-    entangledPairs: entanglement.pairs
+    entangledPairs: entanglement.pairs,
+    amplitudes: amplitudeInfo,
+    circuitDepth,
+    hasMeasurement
   };
 };

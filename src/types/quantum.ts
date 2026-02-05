@@ -31,6 +31,9 @@ export interface SimulationResult {
   blochVectors: { x: number; y: number; z: number }[];
   isEntangled?: boolean;
   entangledPairs?: [number, number][];
+  amplitudes?: { state: string; re: number; im: number; magnitude: number; phase: number }[];
+  circuitDepth?: number;
+  hasMeasurement?: boolean;
 }
 
 export interface GateInfo {
