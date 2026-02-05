@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
- import { Link } from 'react-router-dom';
+  import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
- import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe } from 'lucide-react';
+  import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -19,6 +19,11 @@ import { SaveCircuitDialog } from './SaveCircuitDialog';
 import { MyCircuitsSidebar } from './MyCircuitsSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
+ 
+ interface ForkedFromInfo {
+   id: string;
+   name: string;
+ }
 
 export const Toolbar = () => {
    /**
@@ -49,6 +54,7 @@ export const Toolbar = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentCircuit, setCurrentCircuit] = useState<SavedCircuit | null>(null);
+   const [forkedFrom, setForkedFrom] = useState<ForkedFromInfo | null>(null);
 
   // Auto-save draft every 30 seconds
   const lastAutoSaveRef = useRef<string>('');
@@ -58,12 +64,18 @@ export const Toolbar = () => {
      const loadedCircuit = sessionStorage.getItem('loadCircuit');
      if (loadedCircuit) {
        try {
-         const { gates: loadedGates, qubitCount, name, isCopy } = JSON.parse(loadedCircuit);
+         const { gates: loadedGates, qubitCount, name, isCopy, forkedFrom: forkId, forkedFromName } = JSON.parse(loadedCircuit);
          setGates(loadedGates);
          if (qubitCount) setQubitCount(qubitCount);
          sessionStorage.removeItem('loadCircuit');
+         
+         // Track fork origin
+         if (forkId && forkedFromName) {
+           setForkedFrom({ id: forkId, name: forkedFromName });
+         }
+         
          toast.success(`Loaded: ${name}`, {
-           description: isCopy ? 'This is a copy - feel free to modify!' : undefined,
+           description: isCopy ? `Forked from "${forkedFromName}" - feel free to modify!` : undefined,
            duration: 3000,
          });
        } catch (e) {
@@ -71,6 +83,54 @@ export const Toolbar = () => {
        }
      }
    }, [setGates, setQubitCount]);
+ 
+   // Keyboard shortcuts
+   useEffect(() => {
+     const handleKeyDown = (e: KeyboardEvent) => {
+       // Ctrl/Cmd + S = Save
+       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+         e.preventDefault();
+         if (user && gates.length > 0) {
+           handleSaveClick();
+         }
+       }
+       
+       // Ctrl/Cmd + O = Open My Circuits
+       if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+         e.preventDefault();
+         if (user) {
+           setSidebarOpen(true);
+         }
+       }
+       
+       // Ctrl/Cmd + Z = Undo
+       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+         e.preventDefault();
+         if (canUndo()) {
+           undo();
+         }
+       }
+       
+       // Ctrl/Cmd + Shift + Z = Redo
+       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') {
+         e.preventDefault();
+         if (canRedo()) {
+           redo();
+         }
+       }
+       
+       // Ctrl/Cmd + Y = Redo (alternative)
+       if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+         e.preventDefault();
+         if (canRedo()) {
+           redo();
+         }
+       }
+     };
+ 
+     window.addEventListener('keydown', handleKeyDown);
+     return () => window.removeEventListener('keydown', handleKeyDown);
+   }, [user, gates, undo, redo, canUndo, canRedo]);
 
   useEffect(() => {
     if (!user || gates.length === 0) return;
@@ -151,7 +211,14 @@ export const Toolbar = () => {
             Quantum Workload
           </h1>
           <p className="text-[10px] text-muted-foreground -mt-0.5">
-            Circuit Builder
+            {forkedFrom ? (
+              <span className="flex items-center gap-1">
+                <GitFork className="w-3 h-3" />
+                Forked from {forkedFrom.name}
+              </span>
+            ) : (
+              'Circuit Builder'
+            )}
           </p>
         </div>
       </div>
@@ -337,6 +404,7 @@ export const Toolbar = () => {
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
         existingCircuit={currentCircuit}
+        forkedFromId={forkedFrom?.id}
       />
 
       <MyCircuitsSidebar
