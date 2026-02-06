@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork, History } from 'lucide-react';
+import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork, History, Menu, Wand2, Blocks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -24,7 +24,8 @@ import { BackendSelector, BackendType, getBackendById } from './BackendSelector'
 import { useAuth } from '@/hooks/useAuth';
 import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
 import { BRANDING } from '@/config/branding';
- 
+import { useIsMobile } from '@/hooks/use-mobile';
+
  interface ForkedFromInfo {
    id: string;
    name: string;
@@ -56,6 +57,7 @@ export const Toolbar = () => {
 
   const { user } = useAuth();
   const { saveCircuit } = useCircuits();
+  const isMobile = useIsMobile();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentCircuit, setCurrentCircuit] = useState<SavedCircuit | null>(null);
@@ -240,55 +242,39 @@ export const Toolbar = () => {
       </div>
 
       {/* Center - Actions */}
-      <div className="flex items-center gap-2">
-         {/* ============================================================
-             UNDO/REDO BUTTONS
-             ============================================================
-             These buttons navigate through the circuit history.
-             - Undo: Reverts to the previous circuit state
-             - Redo: Re-applies a previously undone change
-             
-             Buttons are disabled when there's no history in that direction.
-             Keyboard shortcuts: Ctrl+Z (Undo), Ctrl+Shift+Z (Redo)
-             ============================================================ */}
-         <div className="flex items-center gap-1 mr-2">
-           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-             <Button
-               variant="ghost"
-               size="icon"
-               onClick={undo}
-               disabled={!canUndo()}
-               className="h-8 w-8"
-               title="Undo (Ctrl+Z)"
-             >
-               <Undo2 className="w-4 h-4" />
-             </Button>
-           </motion.div>
-           
-           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-             <Button
-               variant="ghost"
-               size="icon"
-               onClick={redo}
-               disabled={!canRedo()}
-               className="h-8 w-8"
-               title="Redo (Ctrl+Shift+Z)"
-             >
-               <Redo2 className="w-4 h-4" />
-             </Button>
-           </motion.div>
+      <div className="flex items-center gap-1 md:gap-2 overflow-x-auto">
+         {/* Undo/Redo - always visible */}
+         <div className="flex items-center gap-1 shrink-0">
+           <Button
+             variant="ghost"
+             size="icon"
+             onClick={undo}
+             disabled={!canUndo()}
+             className="h-8 w-8"
+             title="Undo (Ctrl+Z)"
+           >
+             <Undo2 className="w-4 h-4" />
+           </Button>
+           <Button
+             variant="ghost"
+             size="icon"
+             onClick={redo}
+             disabled={!canRedo()}
+             className="h-8 w-8"
+             title="Redo (Ctrl+Shift+Z)"
+           >
+             <Redo2 className="w-4 h-4" />
+           </Button>
          </div>
- 
-        {/* Templates Dropdown */}
+
+        {/* Templates Dropdown - always visible */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button variant="outline" className="border-primary/30 hover:border-primary/50">
-                <FileCode className="w-4 h-4 mr-2 text-primary" />
-                Templates
-                <ChevronDown className="w-3 h-3 ml-2 opacity-60" />
-              </Button>
-            </motion.div>
+            <Button variant="outline" size={isMobile ? "icon" : "default"} className="border-primary/30 hover:border-primary/50 shrink-0">
+              <FileCode className="w-4 h-4 md:mr-2 text-primary" />
+              {!isMobile && <span>Templates</span>}
+              {!isMobile && <ChevronDown className="w-3 h-3 ml-2 opacity-60" />}
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-72">
             <DropdownMenuLabel className="text-xs text-muted-foreground">
@@ -317,115 +303,118 @@ export const Toolbar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* No-Code/Low-Code Builders */}
-        <NaturalLanguageBuilder />
-        <VisualFlowBuilder />
-        {/* Save Button */}
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+        {/* More Actions Dropdown - groups AI builders + secondary actions */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size={isMobile ? "icon" : "default"} className="border-secondary/30 hover:border-secondary/50 shrink-0">
+              <Menu className="w-4 h-4 md:mr-2 text-secondary" />
+              {!isMobile && <span>More</span>}
+              {!isMobile && <ChevronDown className="w-3 h-3 ml-2 opacity-60" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-56">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              AI Builders
+            </DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <NaturalLanguageBuilder />
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <VisualFlowBuilder />
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Navigation
+            </DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link to="/gallery" className="flex items-center gap-2 w-full">
+                <Globe className="w-4 h-4 text-accent" />
+                Gallery
+              </Link>
+            </DropdownMenuItem>
+            {user && (
+              <DropdownMenuItem asChild>
+                <Link to="/jobs" className="flex items-center gap-2 w-full">
+                  <History className="w-4 h-4 text-accent" />
+                  Jobs
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={clearCircuit}
+              disabled={gates.length === 0}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear Circuit
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Save Button - always visible */}
+        <Button
+          variant="outline"
+          size={isMobile ? "icon" : "default"}
+          onClick={handleSaveClick}
+          disabled={gates.length === 0}
+          className="border-primary/30 hover:border-primary/50 shrink-0"
+        >
+          <Save className="w-4 h-4 md:mr-2 text-primary" />
+          {!isMobile && <span>Save</span>}
+        </Button>
+
+        {/* My Circuits Button - hidden on mobile */}
+        {user && !isMobile && (
           <Button
             variant="outline"
-            onClick={handleSaveClick}
-            disabled={gates.length === 0}
-            className="border-primary/30 hover:border-primary/50"
+            onClick={() => setSidebarOpen(true)}
+            className="border-secondary/30 hover:border-secondary/50 shrink-0"
           >
-            <Save className="w-4 h-4 mr-2 text-primary" />
-            Save
+            <FolderOpen className="w-4 h-4 mr-2 text-secondary" />
+            My Circuits
           </Button>
-        </motion.div>
-
-        {/* My Circuits Button */}
-        {user && (
-          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button
-              variant="outline"
-              onClick={() => setSidebarOpen(true)}
-              className="border-secondary/30 hover:border-secondary/50"
-            >
-              <FolderOpen className="w-4 h-4 mr-2 text-secondary" />
-              My Circuits
-            </Button>
-          </motion.div>
-        )}
-
-         {/* Gallery Link */}
-         <Link to="/gallery">
-           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-             <Button
-               variant="outline"
-               className="border-accent/30 hover:border-accent/50"
-             >
-               <Globe className="w-4 h-4 mr-2 text-accent" />
-              Gallery
-            </Button>
-          </motion.div>
-        </Link>
-
-        {/* Job History Link */}
-        {user && (
-          <Link to="/jobs">
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                variant="outline"
-                className="border-accent/30 hover:border-accent/50"
-              >
-                <History className="w-4 h-4 mr-2 text-accent" />
-                Jobs
-              </Button>
-            </motion.div>
-          </Link>
         )}
 
         {/* Backend Selector */}
         <BackendSelector onBackendChange={handleBackendChange} />
 
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            onClick={simulate}
-            disabled={isSimulating || gates.length === 0}
-            className="relative overflow-hidden bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground"
-          >
-            {isSimulating ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                </motion.div>
-                Simulating...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-2" />
-                Simulate
-              </>
-            )}
-            
-            {/* Animated background */}
-            {isSimulating && (
+        {/* Simulate Button - always visible */}
+        <Button
+          onClick={simulate}
+          disabled={isSimulating || gates.length === 0}
+          size={isMobile ? "icon" : "default"}
+          className="relative overflow-hidden bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground shrink-0"
+        >
+          {isSimulating ? (
+            <>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                animate={{ x: ['-100%', '100%'] }}
+                animate={{ rotate: 360 }}
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
-            )}
-          </Button>
-        </motion.div>
+              >
+                <Zap className="w-4 h-4 md:mr-2" />
+              </motion.div>
+              {!isMobile && <span>Simulating...</span>}
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 md:mr-2" />
+              {!isMobile && <span>Simulate</span>}
+            </>
+          )}
+          
+          {/* Animated background */}
+          {isSimulating && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            />
+          )}
+        </Button>
 
-        {/* Hardware Panel (for detailed hardware submission) */}
-        <HardwarePanel />
-
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            variant="outline"
-            onClick={clearCircuit}
-            disabled={gates.length === 0}
-            className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear
-          </Button>
-        </motion.div>
+        {/* Hardware Panel - hidden on mobile */}
+        {!isMobile && <HardwarePanel />}
       </div>
 
       {/* Right side - Status indicator */}

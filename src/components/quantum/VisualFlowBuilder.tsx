@@ -238,15 +238,16 @@ export const VisualFlowBuilder = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            variant="outline"
-            className="border-accent/30 hover:border-accent/50"
-          >
-            <Blocks className="w-4 h-4 mr-2 text-accent" />
-            Visual Flow
-          </Button>
-        </motion.div>
+        <button
+          className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault();
+            setIsOpen(true);
+          }}
+        >
+          <Blocks className="w-4 h-4 text-accent" />
+          Visual Flow
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

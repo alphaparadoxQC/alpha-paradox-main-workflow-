@@ -139,15 +139,16 @@ Only respond with the JSON, no explanation.`,
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            variant="outline"
-            className="border-secondary/30 hover:border-secondary/50"
-          >
-            <Wand2 className="w-4 h-4 mr-2 text-secondary" />
-            Natural Language
-          </Button>
-        </motion.div>
+        <button
+          className="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault();
+            setIsOpen(true);
+          }}
+        >
+          <Wand2 className="w-4 h-4 text-secondary" />
+          Natural Language
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
