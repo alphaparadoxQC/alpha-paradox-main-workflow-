@@ -4,3 +4,5 @@ export { LipinskiAnalysis } from './LipinskiAnalysis';
 export { ADMETPanel } from './ADMETPanel';
 export { DockingResults } from './DockingResults';
 export { TargetSelector } from './TargetSelector';
+export { AIAssistantPanel } from './AIAssistantPanel';
+export { CustomMoleculeInput } from './CustomMoleculeInput';

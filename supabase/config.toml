@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.amazon-braket]
 verify_jwt = false
+
+[functions.drug-ai-predict]
+verify_jwt = false
