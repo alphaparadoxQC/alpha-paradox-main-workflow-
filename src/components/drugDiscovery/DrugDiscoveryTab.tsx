@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Pill, Play, RotateCcw, Download, Atom, FlaskConical } from 'lucide-react';
+import { Pill, Play, RotateCcw, Download, Atom, FlaskConical, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -18,6 +18,8 @@ import { LipinskiAnalysis } from './LipinskiAnalysis';
 import { ADMETPanel } from './ADMETPanel';
 import { DockingResults } from './DockingResults';
 import { TargetSelector } from './TargetSelector';
+import { AIAssistantPanel } from './AIAssistantPanel';
+import { CustomMoleculeInput } from './CustomMoleculeInput';
 import {
   DRUG_CANDIDATES,
   PROTEIN_TARGETS,
@@ -27,6 +29,7 @@ import {
   predictADMET,
   simulateDocking,
   type DockingResult,
+  type DrugCandidate,
 } from '@/lib/drugDiscovery/drugData';
 import { toast } from 'sonner';
 
@@ -39,11 +42,18 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
   const [selectedTargetId, setSelectedTargetId] = useState<string>('cox2');
   const [dockingResult, setDockingResult] = useState<DockingResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [customDrugs, setCustomDrugs] = useState<DrugCandidate[]>([]);
 
-  const drug = getDrugById(selectedDrugId) || DRUG_CANDIDATES[0];
+  const allDrugs = [...DRUG_CANDIDATES, ...customDrugs];
+  const drug = getDrugById(selectedDrugId) || customDrugs.find(d => d.id === selectedDrugId) || allDrugs[0];
   const target = getTargetById(selectedTargetId) || PROTEIN_TARGETS[0];
   const lipinskiResult = calculateLipinski(drug);
   const admetProfile = predictADMET(drug);
+
+  const handleAddCustomDrug = useCallback((newDrug: DrugCandidate) => {
+    setCustomDrugs(prev => [...prev, newDrug]);
+    setSelectedDrugId(newDrug.id);
+  }, []);
 
   const handleRunDocking = useCallback(async () => {
     setIsRunning(true);
@@ -131,7 +141,7 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
             Select Drug Candidate
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 space-y-3">
           <Select
             value={selectedDrugId}
             onValueChange={setSelectedDrugId}
@@ -141,6 +151,21 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
               <SelectValue placeholder="Choose a drug" />
             </SelectTrigger>
             <SelectContent>
+              {customDrugs.length > 0 && (
+                <>
+                  <div className="px-2 py-1 text-xs text-muted-foreground font-medium">Custom Compounds</div>
+                  {customDrugs.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      <div className="flex items-center gap-2">
+                        <Brain className="w-3 h-3 text-secondary" />
+                        <span className="font-mono text-primary">{d.formula}</span>
+                        <span className="text-muted-foreground">- {d.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                  <div className="px-2 py-1 text-xs text-muted-foreground font-medium mt-2">Known Compounds</div>
+                </>
+              )}
               {DRUG_CANDIDATES.map((d) => (
                 <SelectItem key={d.id} value={d.id}>
                   <div className="flex items-center gap-2">
@@ -151,6 +176,9 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
               ))}
             </SelectContent>
           </Select>
+          
+          {/* Custom Molecule Input */}
+          <CustomMoleculeInput onAddMolecule={handleAddCustomDrug} />
         </CardContent>
       </Card>
 
@@ -230,14 +258,22 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
       </div>
 
       {/* Results Tabs */}
-      <Tabs defaultValue="analysis" className="flex-1">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="analysis">Drug Analysis</TabsTrigger>
+      <Tabs defaultValue="ai" className="flex-1">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="ai">
+            <Brain className="w-3 h-3 mr-1" />
+            AI Predict
+          </TabsTrigger>
+          <TabsTrigger value="analysis">Analysis</TabsTrigger>
           <TabsTrigger value="admet">ADMET</TabsTrigger>
           <TabsTrigger value="docking" disabled={!dockingResult}>
             Docking
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="ai" className="mt-4">
+          <AIAssistantPanel drug={drug} target={target} />
+        </TabsContent>
 
         <TabsContent value="analysis" className="mt-4">
           <LipinskiAnalysis result={lipinskiResult} drugName={drug.name} />
