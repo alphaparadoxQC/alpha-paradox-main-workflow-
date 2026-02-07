@@ -25,6 +25,53 @@ interface CircuitRequest {
   backendName?: string;
 }
 
+// NEW IBM Cloud Quantum API base URL
+const IBM_CLOUD_API_BASE = "https://quantum.cloud.ibm.com/api/v1";
+
+// Cache for IAM token (valid for ~1 hour)
+let cachedIamToken: { token: string; expiresAt: number } | null = null;
+
+// Exchange IBM API Key for IAM Bearer Token
+async function getIamToken(apiKey: string): Promise<string> {
+  // Check cache first
+  if (cachedIamToken && Date.now() < cachedIamToken.expiresAt - 60000) {
+    console.log("[IBM Quantum] Using cached IAM token");
+    return cachedIamToken.token;
+  }
+
+  console.log("[IBM Quantum] Exchanging API key for IAM token...");
+  
+  const response = await fetch("https://iam.cloud.ibm.com/identity/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "urn:ibm:params:oauth:grant-type:apikey",
+      apikey: apiKey,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[IBM Quantum] IAM token exchange failed:", errorText);
+    throw new Error(`IAM token exchange failed: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  const token = data.access_token;
+  const expiresIn = data.expires_in || 3600; // Default 1 hour
+  
+  // Cache the token
+  cachedIamToken = {
+    token,
+    expiresAt: Date.now() + expiresIn * 1000,
+  };
+  
+  console.log("[IBM Quantum] IAM token obtained successfully");
+  return token;
+}
+
 // Convert circuit to OpenQASM 2.0 format
 function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
   const lines: string[] = [
@@ -109,39 +156,61 @@ function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
   return lines.join("\n");
 }
 
-// IBM Quantum API helpers
-const IBM_API_BASE = "https://api.quantum-computing.ibm.com/runtime";
+// Fallback backends when API is unreachable
+const FALLBACK_BACKENDS = [
+  { name: "ibm_brisbane", numQubits: 127, status: "online", isSimulator: false, pendingJobs: 0 },
+  { name: "ibm_kyiv", numQubits: 127, status: "online", isSimulator: false, pendingJobs: 0 },
+  { name: "ibm_sherbrooke", numQubits: 127, status: "online", isSimulator: false, pendingJobs: 0 },
+  { name: "ibmq_qasm_simulator", numQubits: 32, status: "online", isSimulator: true, pendingJobs: 0 },
+];
 
-async function getAvailableBackends(token: string): Promise<any[]> {
-  console.log("[IBM Quantum] Fetching available backends...");
+async function getAvailableBackends(iamToken: string, serviceCrn?: string): Promise<any[]> {
+  console.log("[IBM Quantum] Fetching available backends from Cloud API...");
   
-  const response = await fetch(`${IBM_API_BASE}/backends`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${iamToken}`,
       "Content-Type": "application/json",
-    },
-  });
+      Accept: "application/json",
+    };
+    
+    // Add Service CRN if available
+    if (serviceCrn) {
+      headers["Service-CRN"] = serviceCrn;
+    }
+    
+    const response = await fetch(`${IBM_CLOUD_API_BASE}/backends`, {
+      method: "GET",
+      headers,
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeout);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("[IBM Quantum] Failed to fetch backends:", errorText);
-    throw new Error(`Failed to fetch backends: ${response.status} - ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[IBM Quantum] Failed to fetch backends:", response.status, errorText);
+      throw new Error(`Failed to fetch backends: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const backends = data.backends || data;
+    console.log(`[IBM Quantum] Found ${backends.length} backends`);
+    return backends;
+  } catch (err) {
+    console.warn("[IBM Quantum] API unreachable, using fallback backends:", err);
+    return FALLBACK_BACKENDS;
   }
-
-  const backends = await response.json();
-  console.log(`[IBM Quantum] Found ${backends.length} backends`);
-  return backends;
 }
 
 function selectLeastBusyBackend(backends: any[], qubitCount: number): any {
-  // Filter backends that:
-  // 1. Are operational
-  // 2. Have enough qubits
-  // 3. Are simulators or real devices (prefer real for small circuits)
   const suitableBackends = backends.filter((b: any) => {
-    const isOperational = b.status === "online" || b.is_simulator;
-    const hasEnoughQubits = (b.num_qubits || b.n_qubits || 127) >= qubitCount;
+    const isOperational = b.status === "online" || b.isSimulator || b.is_simulator;
+    const numQubits = b.numQubits || b.num_qubits || b.n_qubits || 127;
+    const hasEnoughQubits = numQubits >= qubitCount;
     return isOperational && hasEnoughQubits;
   });
 
@@ -149,33 +218,39 @@ function selectLeastBusyBackend(backends: any[], qubitCount: number): any {
     throw new Error(`No suitable backend found for ${qubitCount} qubits`);
   }
 
-  // Sort by pending jobs (least busy first)
   suitableBackends.sort((a: any, b: any) => {
-    const aJobs = a.pending_jobs || 0;
-    const bJobs = b.pending_jobs || 0;
+    const aJobs = a.pendingJobs || a.pending_jobs || 0;
+    const bJobs = b.pendingJobs || b.pending_jobs || 0;
     return aJobs - bJobs;
   });
 
   const selected = suitableBackends[0];
-  console.log(`[IBM Quantum] Selected backend: ${selected.name} (pending jobs: ${selected.pending_jobs || 0})`);
+  console.log(`[IBM Quantum] Selected backend: ${selected.name}`);
   return selected;
 }
 
 async function submitJob(
-  token: string,
+  iamToken: string,
   backendName: string,
   qasm: string,
-  shots: number
+  shots: number,
+  serviceCrn?: string
 ): Promise<{ jobId: string; status: string }> {
   console.log(`[IBM Quantum] Submitting job to ${backendName} with ${shots} shots`);
 
-  // IBM Quantum Runtime API job submission
-  const response = await fetch(`${IBM_API_BASE}/jobs`, {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${iamToken}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  
+  if (serviceCrn) {
+    headers["Service-CRN"] = serviceCrn;
+  }
+
+  const response = await fetch(`${IBM_CLOUD_API_BASE}/jobs`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       program_id: "sampler",
       backend: backendName,
@@ -263,22 +338,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get IBM Quantum API token
-    const ibmToken = Deno.env.get("IBM_QUANTUM_API_TOKEN");
-    if (!ibmToken) {
-      console.error("[IBM Quantum] API token not configured");
+    // Get IBM Quantum API key
+    const ibmApiKey = Deno.env.get("IBM_QUANTUM_API_TOKEN");
+    if (!ibmApiKey) {
+      console.error("[IBM Quantum] API key not configured");
       return new Response(
-        JSON.stringify({ error: "IBM Quantum API token not configured" }),
+        JSON.stringify({ error: "IBM Quantum API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Get optional Service CRN
+    const serviceCrn = Deno.env.get("IBM_QUANTUM_SERVICE_CRN");
+
+    // Exchange API key for IAM token
+    const iamToken = await getIamToken(ibmApiKey);
 
     // Convert circuit to OpenQASM
     const qasm = circuitToOpenQASM(gates, qubitCount);
     console.log("[IBM Quantum] Generated OpenQASM:", qasm);
 
     // Get available backends
-    const backends = await getAvailableBackends(ibmToken);
+    const backends = await getAvailableBackends(iamToken, serviceCrn);
 
     // Select backend (user-specified or least busy)
     let selectedBackend: any;
@@ -298,7 +379,7 @@ Deno.serve(async (req) => {
     }
 
     // Submit job
-    const jobResult = await submitJob(ibmToken, selectedBackend.name, qasm, shots);
+    const jobResult = await submitJob(iamToken, selectedBackend.name, qasm, shots, serviceCrn);
 
     return new Response(
       JSON.stringify({

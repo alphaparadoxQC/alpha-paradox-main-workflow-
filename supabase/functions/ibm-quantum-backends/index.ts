@@ -6,7 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const IBM_API_BASE = "https://api.quantum-computing.ibm.com/runtime";
+// NEW IBM Cloud Quantum API base URL
+const IBM_CLOUD_API_BASE = "https://quantum.cloud.ibm.com/api/v1";
+
+// Cache for IAM token
+let cachedIamToken: { token: string; expiresAt: number } | null = null;
 
 interface BackendInfo {
   name: string;
@@ -68,19 +72,29 @@ const FALLBACK_BACKENDS: BackendInfo[] = [
   },
 ];
 
-async function getBackends(token: string): Promise<{ backends: BackendInfo[]; fromCache: boolean }> {
-  console.log("[IBM Backends] Fetching available backends...");
+// Exchange IBM API Key for IAM Bearer Token
+async function getIamToken(apiKey: string): Promise<string> {
+  // Check cache first
+  if (cachedIamToken && Date.now() < cachedIamToken.expiresAt - 60000) {
+    console.log("[IBM Backends] Using cached IAM token");
+    return cachedIamToken.token;
+  }
+
+  console.log("[IBM Backends] Exchanging API key for IAM token...");
+  
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-    
-    const response = await fetch(`${IBM_API_BASE}/backends`, {
-      method: "GET",
+    const response = await fetch("https://iam.cloud.ibm.com/identity/token", {
+      method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
+      body: new URLSearchParams({
+        grant_type: "urn:ibm:params:oauth:grant-type:apikey",
+        apikey: apiKey,
+      }),
       signal: controller.signal,
     });
     
@@ -88,16 +102,65 @@ async function getBackends(token: string): Promise<{ backends: BackendInfo[]; fr
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[IBM Backends] Failed to fetch backends:", errorText);
+      console.error("[IBM Backends] IAM token exchange failed:", errorText);
+      throw new Error(`IAM token exchange failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const token = data.access_token;
+    const expiresIn = data.expires_in || 3600;
+    
+    cachedIamToken = {
+      token,
+      expiresAt: Date.now() + expiresIn * 1000,
+    };
+    
+    console.log("[IBM Backends] IAM token obtained successfully");
+    return token;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
+  }
+}
+
+async function getBackends(iamToken: string, serviceCrn?: string): Promise<{ backends: BackendInfo[]; fromCache: boolean }> {
+  console.log("[IBM Backends] Fetching available backends from Cloud API...");
+  
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${iamToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    
+    // Add Service CRN if available
+    if (serviceCrn) {
+      headers["Service-CRN"] = serviceCrn;
+    }
+    
+    const response = await fetch(`${IBM_CLOUD_API_BASE}/backends`, {
+      method: "GET",
+      headers,
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[IBM Backends] Failed to fetch backends:", response.status, errorText);
       throw new Error(`Failed to fetch backends: ${response.status} - ${errorText}`);
     }
 
-    const rawBackends = await response.json();
+    const data = await response.json();
+    const rawBackends = data.backends || data;
     console.log(`[IBM Backends] Found ${rawBackends.length} backends`);
 
     // Transform to our format
     const backends: BackendInfo[] = rawBackends.map((b: any) => {
-      // Determine status
       let status: BackendInfo["status"] = "offline";
       if (b.status === "online" || b.operational === true) {
         status = "online";
@@ -107,10 +170,10 @@ async function getBackends(token: string): Promise<{ backends: BackendInfo[]; fr
 
       return {
         name: b.name || b.backend_name,
-        numQubits: b.num_qubits || b.n_qubits || 0,
+        numQubits: b.num_qubits || b.n_qubits || b.numQubits || 0,
         status,
         isSimulator: b.is_simulator || b.simulator || b.name?.includes("simulator") || false,
-        pendingJobs: b.pending_jobs || 0,
+        pendingJobs: b.pending_jobs || b.pendingJobs || 0,
         maxShots: b.max_shots || 100000,
         basisGates: b.basis_gates || ["id", "rz", "sx", "x", "cx"],
         description: b.description,
@@ -133,7 +196,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Accept GET and POST (POST is used by supabase.functions.invoke)
+    // Accept GET and POST
     if (req.method !== "GET" && req.method !== "POST") {
       return new Response(
         JSON.stringify({ error: "Method not allowed. Use GET or POST." }),
@@ -167,13 +230,43 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get IBM Quantum API token
-    const ibmToken = Deno.env.get("IBM_QUANTUM_API_TOKEN");
-    if (!ibmToken) {
-      console.error("[IBM Backends] API token not configured");
+    // Get IBM Quantum API key
+    const ibmApiKey = Deno.env.get("IBM_QUANTUM_API_TOKEN");
+    if (!ibmApiKey) {
+      console.error("[IBM Backends] API key not configured");
       return new Response(
-        JSON.stringify({ error: "IBM Quantum API token not configured" }),
+        JSON.stringify({ error: "IBM Quantum API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get optional Service CRN
+    const serviceCrn = Deno.env.get("IBM_QUANTUM_SERVICE_CRN");
+
+    // Exchange API key for IAM token
+    let iamToken: string;
+    try {
+      iamToken = await getIamToken(ibmApiKey);
+    } catch (iamError) {
+      console.warn("[IBM Backends] IAM token exchange failed, using fallback:", iamError);
+      // Return fallback backends if IAM fails
+      return new Response(
+        JSON.stringify({
+          success: true,
+          backends: FALLBACK_BACKENDS,
+          summary: {
+            total: FALLBACK_BACKENDS.length,
+            online: FALLBACK_BACKENDS.filter(b => b.status === "online").length,
+            simulators: FALLBACK_BACKENDS.filter(b => b.isSimulator).length,
+            realDevices: FALLBACK_BACKENDS.filter(b => !b.isSimulator).length,
+            leastBusy: FALLBACK_BACKENDS[0]?.name || null,
+            maxQubits: Math.max(...FALLBACK_BACKENDS.map(b => b.numQubits), 0),
+          },
+          fromCache: true,
+          fetchedAt: new Date().toISOString(),
+          note: "Using fallback backends due to IAM authentication issue. Please verify your IBM API key."
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -184,7 +277,7 @@ Deno.serve(async (req) => {
     const excludeSimulators = url.searchParams.get("excludeSimulators") === "true";
 
     // Get backends
-    const result = await getBackends(ibmToken);
+    const result = await getBackends(iamToken, serviceCrn);
     let backendsList = result.backends;
 
     // Apply filters
