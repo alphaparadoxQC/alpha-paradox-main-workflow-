@@ -30,8 +30,8 @@ export interface BrandingConfig {
  * Replace these values to white-label the platform
  */
 export const BRANDING: BrandingConfig = {
-  platformName: 'Quantum Workload',
-  platformShortName: 'QW',
+  platformName: 'Alpha ParadoxQC',
+  platformShortName: 'APQC',
   platformTagline: 'Circuit Builder',
   
   hardwareServiceName: 'Quantum Cloud',
