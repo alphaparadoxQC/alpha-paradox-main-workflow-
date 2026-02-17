@@ -36,8 +36,7 @@
  import { Slider } from '@/components/ui/slider';
  import { Label } from '@/components/ui/label';
  import { Trash2, Copy, Settings } from 'lucide-react';
-import { QuantumGate, GATE_INFO, GateType } from '@/types/quantum';
-import { EXTENDED_GATE_INFO, ExtendedGateType } from '@/types/quantum-extended';
+ import { QuantumGate, GATE_INFO } from '@/types/quantum';
  import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
  
  interface GateContextMenuProps {
@@ -59,7 +58,7 @@ import { EXTENDED_GATE_INFO, ExtendedGateType } from '@/types/quantum-extended';
    const { removeGate, duplicateGate, updateGate } = useQuantumCircuitStore();
    const [showProperties, setShowProperties] = useState(false);
    
-   const gateInfo = GATE_INFO[gate.type as GateType] || EXTENDED_GATE_INFO[gate.type as ExtendedGateType];
+   const gateInfo = GATE_INFO[gate.type];
    const isRotationGate = ROTATION_GATES.includes(gate.type);
    
    /**
