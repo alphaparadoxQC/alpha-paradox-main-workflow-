@@ -414,7 +414,7 @@ export const Toolbar = () => {
         </Button>
 
         {/* Hardware Panel - hidden on mobile */}
-        {!isMobile && <HardwarePanel />}
+        {!isMobile && <HardwarePanel selectedBackendType={selectedBackend} />}
       </div>
 
       {/* Right side - Status indicator */}
