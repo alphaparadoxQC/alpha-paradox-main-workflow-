@@ -33,22 +33,15 @@ import { useQuantumCloud, QuantumCloudBackend, QuantumJob } from '@/hooks/useQua
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { BRANDING } from '@/config/branding';
-import { BackendType } from './BackendSelector';
-import { supabase } from '@/integrations/supabase/client';
 
-interface HardwarePanelProps {
-  selectedBackendType?: BackendType;
-}
-
-export const HardwarePanel = ({ selectedBackendType = 'local' }: HardwarePanelProps) => {
+export const HardwarePanel = () => {
   const { gates, qubitCount, simulationResult, simulate } = useQuantumCircuitStore();
-  const { user, session } = useAuth();
+  const { user } = useAuth();
   const {
     backends,
     isLoadingBackends,
     fetchBackends,
     currentJob,
-    setCurrentJob,
     isSubmitting,
     submitJob,
     startPolling,
@@ -58,9 +51,6 @@ export const HardwarePanel = ({ selectedBackendType = 'local' }: HardwarePanelPr
   const [selectedBackend, setSelectedBackend] = useState<string>('auto');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [shots, setShots] = useState(1024);
-  const [isSubmittingAws, setIsSubmittingAws] = useState(false);
-
-  const isAwsBackend = selectedBackendType?.startsWith('aws-braket');
 
   // Fetch backends on mount
   useEffect(() => {
@@ -98,84 +88,11 @@ export const HardwarePanel = ({ selectedBackendType = 'local' }: HardwarePanelPr
   const handleConfirmSubmit = async () => {
     setConfirmDialogOpen(false);
     
-    if (isAwsBackend) {
-      await submitAwsBraketJob();
-    } else {
-      const backendName = selectedBackend === 'auto' ? undefined : selectedBackend;
-      const job = await submitJob(gates, qubitCount, simulationResult, backendName, shots);
-      if (job) {
-        startPolling(job);
-      }
-    }
-  };
-
-  const getDeviceArn = (): string | undefined => {
-    const deviceMap: Record<string, string> = {
-      'aws-braket-sv1': 'arn:aws:braket:::device/quantum-simulator/amazon/sv1',
-      'aws-braket-rigetti': 'arn:aws:braket:us-west-1::device/qpu/rigetti/Aspen-M-3',
-      'aws-braket-ionq': 'arn:aws:braket:us-east-1::device/qpu/ionq/Aria-1',
-    };
-    return selectedBackendType ? deviceMap[selectedBackendType] : undefined;
-  };
-
-  const submitAwsBraketJob = async () => {
-    if (!session?.access_token || !user) {
-      toast.error('Please sign in to run on AWS Braket');
-      return;
-    }
-
-    setIsSubmittingAws(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('amazon-braket', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { gates, qubitCount, shots, deviceArn: getDeviceArn() },
-      });
-
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || 'Submission failed');
-
-      // Save job to database
-      const { data: jobData, error: dbError } = await supabase
-        .from('quantum_jobs')
-        .insert({
-          user_id: user.id,
-          job_id: data.taskArn,
-          backend: data.device,
-          status: 'queued',
-          qubit_count: qubitCount,
-          shots,
-          qasm: data.qasm,
-          local_results: simulationResult as any,
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      const job: QuantumJob = {
-        id: jobData.id,
-        user_id: jobData.user_id,
-        job_id: jobData.job_id,
-        backend: jobData.backend,
-        status: 'queued',
-        qubit_count: jobData.qubit_count,
-        shots: jobData.shots,
-        qasm: jobData.qasm,
-        local_results: simulationResult || undefined,
-        submitted_at: jobData.submitted_at,
-      };
-
-      setCurrentJob(job);
-      toast.success(`Job submitted to AWS Braket`, {
-        description: `Task: ${data.taskArn.split('/').pop()?.slice(0, 8)}...`,
-      });
-    } catch (err) {
-      console.error('Failed to submit AWS Braket job:', err);
-      toast.error('Failed to submit to AWS Braket', {
-        description: err instanceof Error ? err.message : 'Unknown error',
-      });
-    } finally {
-      setIsSubmittingAws(false);
+    const backendName = selectedBackend === 'auto' ? undefined : selectedBackend;
+    const job = await submitJob(gates, qubitCount, simulationResult, backendName, shots);
+    
+    if (job) {
+      startPolling(job);
     }
   };
 
@@ -332,10 +249,10 @@ export const HardwarePanel = ({ selectedBackendType = 'local' }: HardwarePanelPr
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={handleRunClick}
-            disabled={isSubmitting || isSubmittingAws || isJobActive || gates.length === 0 || !user}
+            disabled={isSubmitting || isJobActive || gates.length === 0 || !user}
             className="relative overflow-hidden bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-primary-foreground"
           >
-            {isSubmitting || isSubmittingAws || isJobActive ? (
+            {isSubmitting || isJobActive ? (
               <>
                 {getStatusIcon()}
                 <span className="ml-2 text-xs">{getStatusText()}</span>
@@ -347,7 +264,7 @@ export const HardwarePanel = ({ selectedBackendType = 'local' }: HardwarePanelPr
               </>
             )}
             
-            {(isSubmitting || isSubmittingAws || isJobActive) && (
+            {(isSubmitting || isJobActive) && (
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                 animate={{ x: ['-100%', '100%'] }}

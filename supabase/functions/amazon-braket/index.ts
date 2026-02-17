@@ -274,7 +274,7 @@ async function submitBraketTask(
   const requestBody = JSON.stringify({
     action: JSON.stringify(program),
     deviceArn,
-    outputS3Bucket: `amazon-braket-${region}-output`,
+    outputS3Bucket: `amazon-braket-${region}-${Date.now()}`,
     outputS3KeyPrefix: "quantum-tasks",
     shots,
   });
