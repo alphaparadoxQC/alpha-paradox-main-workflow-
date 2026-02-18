@@ -22,6 +22,7 @@
 import { motion } from 'framer-motion';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { GateType, GATE_INFO } from '@/types/quantum';
+import { EXTENDED_GATE_INFO } from '@/types/quantum-extended';
 import { X } from 'lucide-react';
  import { GateContextMenu } from './GateContextMenu';
 
@@ -297,7 +298,7 @@ export const QuantumCanvas = () => {
 
         {/* Gates */}
         {gates.map((gate) => {
-          const gateInfo = GATE_INFO[gate.type];
+          const gateInfo = GATE_INFO[gate.type as GateType] ?? EXTENDED_GATE_INFO[gate.type as keyof typeof EXTENDED_GATE_INFO] ?? { color: 'hsl(200, 80%, 60%)', symbol: gate.type, name: gate.type };
           const x = CANVAS_PADDING + 40 + gate.position * GATE_SPACING;
           const y = CANVAS_PADDING + gate.qubit * QUBIT_SPACING;
            const isSelected = selectedGateId === gate.id;
