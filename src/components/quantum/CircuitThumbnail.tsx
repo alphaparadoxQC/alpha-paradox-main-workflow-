@@ -1,5 +1,11 @@
  import { useMemo } from 'react';
- import { QuantumGate, GATE_INFO } from '@/types/quantum';
+ import { QuantumGate, GATE_INFO, GateType } from '@/types/quantum';
+ import { EXTENDED_GATE_INFO } from '@/types/quantum-extended';
+
+const getGateInfo = (type: string) =>
+  GATE_INFO[type as GateType] ??
+  EXTENDED_GATE_INFO[type as keyof typeof EXTENDED_GATE_INFO] ??
+  { color: 'hsl(200, 80%, 60%)', symbol: type, name: type };
  
  interface CircuitThumbnailProps {
    gates: QuantumGate[];
@@ -43,7 +49,7 @@
        {gates
          .filter(gate => gate.qubit < visibleQubits && gate.position < visiblePositions)
          .map((gate) => {
-           const gateInfo = GATE_INFO[gate.type];
+           const gateInfo = getGateInfo(gate.type);
            const x = (gate.position + 0.5) * cellWidth;
            const y = (gate.qubit + 0.5) * cellHeight;
            const size = Math.min(cellWidth * 0.7, cellHeight * 0.7);
