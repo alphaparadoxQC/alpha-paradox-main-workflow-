@@ -21,6 +21,7 @@ import { HardwarePanel } from './HardwarePanel';
 import { NaturalLanguageBuilder } from './NaturalLanguageBuilder';
 import { VisualFlowBuilder } from './VisualFlowBuilder';
 import { BackendSelector, BackendType, getBackendById } from './BackendSelector';
+import { TranspilerPanel } from './TranspilerPanel';
 import { useAuth } from '@/hooks/useAuth';
 import { useCircuits, SavedCircuit } from '@/hooks/useCircuits';
 import { BRANDING } from '@/config/branding';
@@ -375,6 +376,9 @@ export const Toolbar = () => {
             My Circuits
           </Button>
         )}
+
+        {/* Transpiler */}
+        {!isMobile && <TranspilerPanel />}
 
         {/* Backend Selector */}
         <BackendSelector onBackendChange={handleBackendChange} />
