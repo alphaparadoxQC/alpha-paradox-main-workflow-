@@ -9,3 +9,4 @@ export { InteractiveBlochSphere } from './InteractiveBlochSphere';
 export { PhaseWheel } from './PhaseWheel';
 export { HardwarePanel } from './HardwarePanel';
 export { HardwareResults } from './HardwareResults';
+export { TargetHardwarePanel } from './TargetHardwarePanel';

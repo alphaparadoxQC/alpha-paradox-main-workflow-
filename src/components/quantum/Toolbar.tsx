@@ -18,6 +18,7 @@ import { UserMenu } from './UserMenu';
 import { SaveCircuitDialog } from './SaveCircuitDialog';
 import { MyCircuitsSidebar } from './MyCircuitsSidebar';
 import { HardwarePanel } from './HardwarePanel';
+import { TargetHardwarePanel } from './TargetHardwarePanel';
 import { NaturalLanguageBuilder } from './NaturalLanguageBuilder';
 import { VisualFlowBuilder } from './VisualFlowBuilder';
 import { BackendSelector, BackendType, getBackendById } from './BackendSelector';
@@ -377,8 +378,11 @@ export const Toolbar = () => {
           </Button>
         )}
 
-        {/* Transpiler */}
-        {!isMobile && <TranspilerPanel />}
+        {/* Transpiler - always visible */}
+        <TranspilerPanel />
+
+        {/* Target Hardware Panel */}
+        {!isMobile && <TargetHardwarePanel />}
 
         {/* Backend Selector */}
         <BackendSelector onBackendChange={handleBackendChange} />

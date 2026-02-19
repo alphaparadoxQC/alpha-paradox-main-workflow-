@@ -2,7 +2,7 @@
  * Transpiler pipeline: decompose → route → optimize → export QASM
  */
 
-export { HARDWARE_BACKENDS, type HardwareBackend } from './backends';
+export { HARDWARE_BACKENDS, createCustomBackend, type HardwareBackend, type QubitSpec } from './backends';
 export { decomposeCircuit, decomposeGate, type DecomposedGate } from './decompose';
 export { routeCircuit, type RoutingResult } from './routing';
 export { optimizeCircuit } from './optimize';
