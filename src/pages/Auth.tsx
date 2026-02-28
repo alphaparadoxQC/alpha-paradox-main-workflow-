@@ -64,16 +64,14 @@ const passwordSchema = z.string().min(6, 'Password must be at least 6 characters
      const { error } = await signIn(email, password);
      setIsLoading(false);
      
-      if (error) {
-        if (error.message.includes('Load failed') || error.message.includes('fetch') || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-          toast.error('Network error — please check your connection and try again.');
-        } else if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid email or password');
-        } else if (error.message.includes('Email not confirmed')) {
-          toast.error('Please verify your email before signing in');
-        } else {
-          toast.error(error.message);
-        }
+     if (error) {
+       if (error.message.includes('Invalid login credentials')) {
+         toast.error('Invalid email or password');
+       } else if (error.message.includes('Email not confirmed')) {
+         toast.error('Please verify your email before signing in');
+       } else {
+         toast.error(error.message);
+       }
      } else {
        toast.success('Welcome back!');
        const returnUrl = sessionStorage.getItem('returnUrl') || '/';
@@ -90,14 +88,12 @@ const passwordSchema = z.string().min(6, 'Password must be at least 6 characters
      const { error } = await signUp(email, password);
      setIsLoading(false);
      
-      if (error) {
-        if (error.message.includes('Load failed') || error.message.includes('fetch') || error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-          toast.error('Network error — please check your connection and try again.');
-        } else if (error.message.includes('already registered')) {
-          toast.error('This email is already registered. Try signing in instead.');
-        } else {
-          toast.error(error.message);
-        }
+     if (error) {
+       if (error.message.includes('already registered')) {
+         toast.error('This email is already registered. Try signing in instead.');
+       } else {
+         toast.error(error.message);
+       }
      } else {
        toast.success('Account created! Please check your email to verify your account.');
      }
