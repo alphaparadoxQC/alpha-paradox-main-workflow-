@@ -44,6 +44,12 @@ export const QuantumCanvas = () => {
      moveGate,
      undo,
      redo,
+     selectionVibeGate,
+     selectionVibeStep,
+     selectionVibeControlQubit,
+     selectControlQubit,
+     selectTargetQubit,
+     cancelSelectionVibe,
    } = useQuantumCircuitStore();
    
    /**
@@ -81,7 +87,11 @@ export const QuantumCanvas = () => {
      
      // Escape to deselect
      if (e.key === 'Escape') {
-       selectGate(null);
+       if (selectionVibeStep !== 'idle') {
+         cancelSelectionVibe();
+       } else {
+         selectGate(null);
+       }
      }
      
      // Undo: Ctrl+Z (or Cmd+Z on Mac)
@@ -95,7 +105,7 @@ export const QuantumCanvas = () => {
        e.preventDefault();
        redo();
      }
-   }, [selectedGateId, removeGate, selectGate, undo, redo]);
+   }, [selectedGateId, removeGate, selectGate, undo, redo, selectionVibeStep, cancelSelectionVibe]);
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -245,9 +255,23 @@ export const QuantumCanvas = () => {
         {/* Qubit lines */}
         {Array.from({ length: qubitCount }).map((_, i) => {
           const y = CANVAS_PADDING + i * QUBIT_SPACING;
+          const isVibeActive = selectionVibeStep !== 'idle';
+          const isControlSelected = selectionVibeStep === 'selectTarget' && selectionVibeControlQubit === i;
+          const isValidTarget = selectionVibeStep === 'selectTarget' && selectionVibeControlQubit !== i;
+          const isClickable = selectionVibeStep === 'selectControl' || isValidTarget;
           
           return (
-            <g key={`qubit-${i}`}>
+            <g 
+              key={`qubit-${i}`}
+              style={{ cursor: isClickable ? 'pointer' : 'default' }}
+              onClick={() => {
+                if (selectionVibeStep === 'selectControl') {
+                  selectControlQubit(i);
+                } else if (selectionVibeStep === 'selectTarget' && selectionVibeControlQubit !== i) {
+                  selectTargetQubit(i);
+                }
+              }}
+            >
               {/* Line glow */}
               <line
                 x1={CANVAS_PADDING}
@@ -292,6 +316,47 @@ export const QuantumCanvas = () => {
               >
                 |0⟩
               </text>
+              
+              {/* Selection Vibe highlight on qubit line */}
+              {isVibeActive && isClickable && (
+                <motion.rect
+                  x={CANVAS_PADDING - 30}
+                  y={y - 20}
+                  width={canvasWidth - CANVAS_PADDING * 2 + 60}
+                  height={40}
+                  rx="6"
+                  fill={selectionVibeStep === 'selectControl' ? 'hsl(185, 100%, 50%)' : 'hsl(265, 100%, 65%)'}
+                  fillOpacity="0.08"
+                  animate={{ fillOpacity: [0.04, 0.12, 0.04] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  style={{ pointerEvents: 'none' }}
+                />
+              )}
+              
+              {/* Control qubit indicator when selected */}
+              {isControlSelected && (
+                <motion.g
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                >
+                  <circle
+                    cx={CANVAS_PADDING - 40}
+                    cy={y}
+                    r="8"
+                    fill="hsl(185, 100%, 50%)"
+                  />
+                  <text
+                    x={CANVAS_PADDING - 40}
+                    y={y + 4}
+                    fill="hsl(var(--background))"
+                    fontSize="10"
+                    fontWeight="bold"
+                    textAnchor="middle"
+                  >
+                    ●
+                  </text>
+                </motion.g>
+              )}
             </g>
           );
         })}
@@ -444,7 +509,76 @@ export const QuantumCanvas = () => {
           );
         })}
 
-        {/* Drop zones indicator when dragging */}
+        {/* Multi-qubit gate visuals: ● control, ⊕ target, vertical connection line */}
+        {gates.map((gate) => {
+          if (gate.targetQubit === undefined || gate.controlQubit === undefined) return null;
+          if (gate.controlQubit === gate.targetQubit) return null;
+          
+          const gateInfo = GATE_INFO[gate.type as GateType] ?? EXTENDED_GATE_INFO[gate.type as keyof typeof EXTENDED_GATE_INFO] ?? { color: 'hsl(265, 100%, 65%)' };
+          const x = CANVAS_PADDING + 40 + gate.position * GATE_SPACING;
+          const controlY = CANVAS_PADDING + gate.controlQubit * QUBIT_SPACING;
+          const targetY = CANVAS_PADDING + gate.targetQubit * QUBIT_SPACING;
+          
+          return (
+            <g key={`multi-${gate.id}`}>
+              {/* Vertical connection line */}
+              <motion.line
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                x1={x}
+                y1={controlY}
+                x2={x}
+                y2={targetY}
+                stroke={gateInfo.color}
+                strokeWidth="2"
+                strokeOpacity="0.8"
+              />
+              
+              {/* Control qubit: solid dot ● */}
+              <motion.circle
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                cx={x}
+                cy={controlY}
+                r="6"
+                fill={gateInfo.color}
+              />
+              
+              {/* Target qubit: plus in circle ⊕ */}
+              <motion.g
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+              >
+                <circle
+                  cx={x}
+                  cy={targetY}
+                  r="14"
+                  fill="none"
+                  stroke={gateInfo.color}
+                  strokeWidth="2"
+                />
+                {/* Horizontal line of ⊕ */}
+                <line
+                  x1={x - 10}
+                  y1={targetY}
+                  x2={x + 10}
+                  y2={targetY}
+                  stroke={gateInfo.color}
+                  strokeWidth="2"
+                />
+                {/* Vertical line of ⊕ */}
+                <line
+                  x1={x}
+                  y1={targetY - 10}
+                  x2={x}
+                  y2={targetY + 10}
+                  stroke={gateInfo.color}
+                  strokeWidth="2"
+                />
+              </motion.g>
+            </g>
+          );
+        })}
         {draggedGate && Array.from({ length: qubitCount }).map((_, qubitIndex) => (
           Array.from({ length: 8 }).map((_, posIndex) => {
             const isOccupied = gates.some(g => g.qubit === qubitIndex && g.position === posIndex);
@@ -473,8 +607,31 @@ export const QuantumCanvas = () => {
         ))}
       </svg>
 
+      {/* Selection Vibe overlay */}
+      {selectionVibeStep !== 'idle' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
+        >
+          <div className="bg-card/90 backdrop-blur border border-primary/30 rounded-xl px-6 py-3 shadow-lg">
+            <p className="text-sm font-medium text-center">
+              {selectionVibeStep === 'selectControl' ? (
+                <span className="text-quantum-cyan">
+                  🎯 Click a qubit line to select the <strong>Control Qubit</strong> (●)
+                </span>
+              ) : (
+                <span className="text-quantum-purple">
+                  ⊕ Click a qubit line to select the <strong>Target Qubit</strong>
+                </span>
+              )}
+            </p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Empty state */}
-      {gates.length === 0 && !draggedGate && (
+      {gates.length === 0 && !draggedGate && selectionVibeStep === 'idle' && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
