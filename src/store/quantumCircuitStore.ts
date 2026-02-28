@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { QuantumGate, SimulationResult } from '@/types/quantum';
+import { QuantumGate, SimulationResult, GateType } from '@/types/quantum';
 import { simulateCircuit } from '@/lib/quantum/simulator';
 import { CircuitTemplate, createGatesFromTemplate } from '@/lib/quantum/templates';
 
@@ -77,18 +77,15 @@ interface QuantumCircuitStore {
   // Template state
   activeTemplate: CircuitTemplate | null;
   
-   // ============================================================
-   // SELECTION STATE
-   // ============================================================
-   // Tracks which gate is currently selected for editing operations.
-   // Only one gate can be selected at a time.
-   // Click on canvas background deselects.
-   // ============================================================
+   // Selection state
    selectedGateId: string | null;
    
-   // ============================================================
-   // UNDO/REDO HISTORY
-   // ============================================================
+   // Selection Vibe workflow for multi-qubit gates
+   selectionVibeGate: string | null; // Gate type being placed
+   selectionVibeStep: 'idle' | 'selectControl' | 'selectTarget';
+   selectionVibeControlQubit: number | null;
+   
+   // Undo/Redo history
    past: HistoryState[];
    future: HistoryState[];
  
@@ -103,6 +100,12 @@ interface QuantumCircuitStore {
    
    // Selection actions
    selectGate: (gateId: string | null) => void;
+   
+   // Selection Vibe actions
+   startSelectionVibe: (gateType: string) => void;
+   selectControlQubit: (qubit: number) => void;
+   selectTargetQubit: (qubit: number) => void;
+   cancelSelectionVibe: () => void;
    
    // History actions
    undo: () => void;
@@ -136,6 +139,9 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   draggedGate: null,
   activeTemplate: null,
    selectedGateId: null,
+   selectionVibeGate: null,
+   selectionVibeStep: 'idle',
+   selectionVibeControlQubit: null,
    past: [],
    future: [],
 
@@ -188,6 +194,54 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   },
    
    selectGate: (gateId) => set({ selectedGateId: gateId }),
+   
+   startSelectionVibe: (gateType) => set({
+     selectionVibeGate: gateType,
+     selectionVibeStep: 'selectControl',
+     selectionVibeControlQubit: null,
+     selectedGateId: null,
+   }),
+   
+   selectControlQubit: (qubit) => set({
+     selectionVibeStep: 'selectTarget',
+     selectionVibeControlQubit: qubit,
+   }),
+   
+   selectTargetQubit: (qubit) => {
+     const state = get();
+     if (!state.selectionVibeGate || state.selectionVibeControlQubit === null) return;
+     if (qubit === state.selectionVibeControlQubit) return; // Must be different
+     
+     const maxPosition = state.gates.length > 0 ? Math.max(...state.gates.map(g => g.position)) + 1 : 0;
+     
+     const newGate: QuantumGate = {
+       id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+       type: state.selectionVibeGate as GateType,
+       qubit: state.selectionVibeControlQubit,
+       position: maxPosition,
+       controlQubit: state.selectionVibeControlQubit,
+       targetQubit: qubit,
+       // For rotation-based controlled gates, set default angle
+       ...(['CP', 'CRx', 'CRy', 'CRz'].includes(state.selectionVibeGate) 
+         ? { angle: Math.PI / 2 } : {}),
+     };
+     
+     set({
+       past: saveToHistory(state.gates, state.past),
+       future: [],
+       gates: [...state.gates, newGate],
+       selectionVibeGate: null,
+       selectionVibeStep: 'idle',
+       selectionVibeControlQubit: null,
+       activeTemplate: null,
+     });
+   },
+   
+   cancelSelectionVibe: () => set({
+     selectionVibeGate: null,
+     selectionVibeStep: 'idle',
+     selectionVibeControlQubit: null,
+   }),
    
    undo: () => set((state) => {
      if (state.past.length === 0) return state;

@@ -26,7 +26,7 @@ const BASIC_GATES: GateType[] = [
 ];
 
 export const GatesPalette = () => {
-  const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
+  const { setDraggedGate, draggedGate, addGate, gates, qubitCount, startSelectionVibe, selectionVibeStep } = useQuantumCircuitStore();
   const [expandedCategories, setExpandedCategories] = useState<Set<GateCategory>>(
     new Set(['standard', 'twoQubit'])
   );
@@ -49,9 +49,22 @@ export const GatesPalette = () => {
     setDraggedGate(null);
   };
 
+  // Multi-qubit gate types that use the Selection Vibe workflow
+  const MULTI_QUBIT_GATES = new Set([
+    'CNOT', 'CY', 'CZ', 'CH', 'SWAP', 'iSWAP', 'SQSWAP', 'DCX', 'ECR',
+    'CP', 'CRx', 'CRy', 'CRz', 'CCX', 'CCZ', 'CSWAP', 'C3X', 'C4X',
+    'MCX', 'MCZ', 'MCRY', 'RXX', 'RYY', 'RZZ'
+  ]);
+
   const handleClick = (gateType: GateType | ExtendedGateType) => {
+    // Multi-qubit gates use Selection Vibe workflow
+    if (MULTI_QUBIT_GATES.has(gateType)) {
+      startSelectionVibe(gateType);
+      return;
+    }
+    
+    // Single-qubit gates: add directly
     const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
-    const gateInfo = GATE_INFO[gateType as GateType] || EXTENDED_GATE_INFO[gateType as ExtendedGateType];
     const extendedInfo = EXTENDED_GATE_INFO[gateType as ExtendedGateType];
     
     const newGate = {
@@ -59,17 +72,8 @@ export const GatesPalette = () => {
       type: gateType as GateType,
       qubit: 0,
       position: maxPosition,
-      // Multi-qubit gate targets
-      ...(gateType === 'CNOT' || gateType === 'SWAP' || gateType === 'CZ' || 
-          gateType === 'CY' || gateType === 'CH' || gateType === 'iSWAP'
-        ? { targetQubit: Math.min(1, qubitCount - 1) } 
-        : {}),
-      // Toffoli gate targets
-      ...(gateType === 'CCX' || gateType === 'CCZ' || gateType === 'CSWAP'
-        ? { controlQubit2: Math.min(1, qubitCount - 1), targetQubit: Math.min(2, qubitCount - 1) } 
-        : {}),
       // Rotation gates default angle (π/2)
-      ...(['Rx', 'Ry', 'Rz', 'P', 'U1', 'RXX', 'RYY', 'RZZ', 'CP', 'CRx', 'CRy', 'CRz'].includes(gateType) 
+      ...(['Rx', 'Ry', 'Rz', 'P', 'U1'].includes(gateType) 
         ? { angle: extendedInfo?.defaultParams?.angle ?? Math.PI / 2 } 
         : {}),
     };
