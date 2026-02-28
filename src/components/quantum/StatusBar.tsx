@@ -21,7 +21,6 @@ export const StatusBar = () => {
     incrementQubits,
     decrementQubits,
     setSimulationMethod,
-    placementMode,
   } = useQuantumCircuitStore();
   
   const gateCount = getGateCount();
@@ -134,28 +133,9 @@ export const StatusBar = () => {
         ))}
       </div>
 
-      {/* Center info - placement mode or simulation status */}
+      {/* Center info - simulation status and timing */}
       <div className="flex items-center gap-4">
-        {placementMode && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center gap-2"
-          >
-            <motion.div
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="w-2 h-2 rounded-full bg-primary"
-            />
-            <span className="text-xs text-primary font-medium">
-              {placementMode.step === 'selectControl' 
-                ? `${placementMode.gateType}: Click control qubit` 
-                : `${placementMode.gateType}: Click target qubit (control: q${placementMode.controlQubit})`}
-            </span>
-          </motion.div>
-        )}
-        
-        {!placementMode && executionTimeMs !== null && !isSimulating && (
+        {executionTimeMs !== null && !isSimulating && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -168,7 +148,7 @@ export const StatusBar = () => {
           </motion.div>
         )}
         
-        {!placementMode && isSimulating && (
+        {isSimulating && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

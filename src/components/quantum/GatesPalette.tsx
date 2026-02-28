@@ -9,7 +9,7 @@ import {
   GateCategory 
 } from '@/types/quantum-extended';
 import { GATE_INFO, GateType } from '@/types/quantum';
-import { useQuantumCircuitStore, MULTI_QUBIT_GATES } from '@/store/quantumCircuitStore';
+import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -26,7 +26,7 @@ const BASIC_GATES: GateType[] = [
 ];
 
 export const GatesPalette = () => {
-  const { setDraggedGate, draggedGate, addGate, gates, qubitCount, startPlacementMode, placementMode } = useQuantumCircuitStore();
+  const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
   const [expandedCategories, setExpandedCategories] = useState<Set<GateCategory>>(
     new Set(['standard', 'twoQubit'])
   );
@@ -42,8 +42,6 @@ export const GatesPalette = () => {
   };
 
   const handleDragStart = (gateType: GateType | ExtendedGateType) => {
-    // Don't allow drag for multi-qubit gates - they use click workflow
-    if (MULTI_QUBIT_GATES.has(gateType)) return;
     setDraggedGate(gateType);
   };
 
@@ -52,13 +50,8 @@ export const GatesPalette = () => {
   };
 
   const handleClick = (gateType: GateType | ExtendedGateType) => {
-    // Multi-qubit gates use the selection workflow
-    if (MULTI_QUBIT_GATES.has(gateType)) {
-      startPlacementMode(gateType);
-      return;
-    }
-    
     const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
+    const gateInfo = GATE_INFO[gateType as GateType] || EXTENDED_GATE_INFO[gateType as ExtendedGateType];
     const extendedInfo = EXTENDED_GATE_INFO[gateType as ExtendedGateType];
     
     const newGate = {
@@ -66,12 +59,17 @@ export const GatesPalette = () => {
       type: gateType as GateType,
       qubit: 0,
       position: maxPosition,
+      // Multi-qubit gate targets
+      ...(gateType === 'CNOT' || gateType === 'SWAP' || gateType === 'CZ' || 
+          gateType === 'CY' || gateType === 'CH' || gateType === 'iSWAP'
+        ? { targetQubit: Math.min(1, qubitCount - 1) } 
+        : {}),
       // Toffoli gate targets
       ...(gateType === 'CCX' || gateType === 'CCZ' || gateType === 'CSWAP'
         ? { controlQubit2: Math.min(1, qubitCount - 1), targetQubit: Math.min(2, qubitCount - 1) } 
         : {}),
       // Rotation gates default angle (π/2)
-      ...(['Rx', 'Ry', 'Rz', 'P', 'U1', 'RXX', 'RYY', 'RZZ'].includes(gateType) 
+      ...(['Rx', 'Ry', 'Rz', 'P', 'U1', 'RXX', 'RYY', 'RZZ', 'CP', 'CRx', 'CRy', 'CRz'].includes(gateType) 
         ? { angle: extendedInfo?.defaultParams?.angle ?? Math.PI / 2 } 
         : {}),
     };

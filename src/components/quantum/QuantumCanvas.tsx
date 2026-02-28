@@ -44,9 +44,6 @@ export const QuantumCanvas = () => {
      moveGate,
      undo,
      redo,
-     placementMode,
-     selectQubitForPlacement,
-     cancelPlacementMode,
    } = useQuantumCircuitStore();
    
    /**
@@ -82,14 +79,10 @@ export const QuantumCanvas = () => {
        removeGate(selectedGateId);
      }
      
-      // Escape to deselect or cancel placement
-      if (e.key === 'Escape') {
-        if (placementMode) {
-          cancelPlacementMode();
-        } else {
-          selectGate(null);
-        }
-      }
+     // Escape to deselect
+     if (e.key === 'Escape') {
+       selectGate(null);
+     }
      
      // Undo: Ctrl+Z (or Cmd+Z on Mac)
      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
@@ -102,7 +95,7 @@ export const QuantumCanvas = () => {
        e.preventDefault();
        redo();
      }
-   }, [selectedGateId, removeGate, selectGate, undo, redo, placementMode, cancelPlacementMode]);
+   }, [selectedGateId, removeGate, selectGate, undo, redo]);
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -252,63 +245,9 @@ export const QuantumCanvas = () => {
         {/* Qubit lines */}
         {Array.from({ length: qubitCount }).map((_, i) => {
           const y = CANVAS_PADDING + i * QUBIT_SPACING;
-          const isHighlighted = placementMode?.step === 'selectTarget' && placementMode?.controlQubit === i;
-          const isClickable = !!placementMode;
           
           return (
-            <g 
-              key={`qubit-${i}`}
-              onClick={() => {
-                if (placementMode) {
-                  selectQubitForPlacement(i);
-                }
-              }}
-              style={{ cursor: isClickable ? 'pointer' : 'default' }}
-            >
-              {/* Clickable hit area for placement mode */}
-              {isClickable && (
-                <rect
-                  x={CANVAS_PADDING}
-                  y={y - 20}
-                  width={canvasWidth - CANVAS_PADDING * 2}
-                  height={40}
-                  fill="transparent"
-                />
-              )}
-              
-              {/* Highlight for selected control qubit */}
-              {isHighlighted && (
-                <motion.rect
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  x={CANVAS_PADDING - 5}
-                  y={y - 20}
-                  width={canvasWidth - CANVAS_PADDING * 2 + 10}
-                  height={40}
-                  rx="6"
-                  fill="hsl(265, 100%, 65%)"
-                  fillOpacity="0.15"
-                  stroke="hsl(265, 100%, 65%)"
-                  strokeWidth="1"
-                  strokeOpacity="0.4"
-                />
-              )}
-              
-              {/* Hover highlight during placement */}
-              {isClickable && !isHighlighted && (
-                <rect
-                  x={CANVAS_PADDING - 5}
-                  y={y - 20}
-                  width={canvasWidth - CANVAS_PADDING * 2 + 10}
-                  height={40}
-                  rx="6"
-                  fill="hsl(var(--primary))"
-                  fillOpacity="0"
-                  className="hover:fill-opacity-10"
-                  style={{ transition: 'fill-opacity 0.15s' }}
-                />
-              )}
-              
+            <g key={`qubit-${i}`}>
               {/* Line glow */}
               <line
                 x1={CANVAS_PADDING}
@@ -357,70 +296,13 @@ export const QuantumCanvas = () => {
           );
         })}
 
-        {/* Multi-qubit gate connections (vertical lines between control and target) */}
-        {gates.map((gate) => {
-          if (gate.targetQubit === undefined) return null;
-          const gateInfo = GATE_INFO[gate.type as GateType] ?? EXTENDED_GATE_INFO[gate.type as keyof typeof EXTENDED_GATE_INFO] ?? { color: 'hsl(200, 80%, 60%)', symbol: gate.type, name: gate.type };
-          const x = CANVAS_PADDING + 40 + gate.position * GATE_SPACING;
-          const controlY = CANVAS_PADDING + gate.qubit * QUBIT_SPACING;
-          const targetY = CANVAS_PADDING + gate.targetQubit * QUBIT_SPACING;
-          
-          return (
-            <g key={`conn-${gate.id}`}>
-              {/* Vertical connecting line */}
-              <line
-                x1={x}
-                y1={controlY}
-                x2={x}
-                y2={targetY}
-                stroke={gateInfo.color}
-                strokeWidth="2"
-                strokeOpacity="0.8"
-              />
-              {/* Control qubit: solid dot ● */}
-              <circle
-                cx={x}
-                cy={controlY}
-                r="6"
-                fill={gateInfo.color}
-              />
-              {/* Target qubit: ⊕ circle with plus */}
-              <circle
-                cx={x}
-                cy={targetY}
-                r="14"
-                fill="hsl(var(--card))"
-                stroke={gateInfo.color}
-                strokeWidth="2"
-              />
-              <line
-                x1={x - 9}
-                y1={targetY}
-                x2={x + 9}
-                y2={targetY}
-                stroke={gateInfo.color}
-                strokeWidth="2"
-              />
-              <line
-                x1={x}
-                y1={targetY - 9}
-                x2={x}
-                y2={targetY + 9}
-                stroke={gateInfo.color}
-                strokeWidth="2"
-              />
-            </g>
-          );
-        })}
-
         {/* Gates */}
         {gates.map((gate) => {
           const gateInfo = GATE_INFO[gate.type as GateType] ?? EXTENDED_GATE_INFO[gate.type as keyof typeof EXTENDED_GATE_INFO] ?? { color: 'hsl(200, 80%, 60%)', symbol: gate.type, name: gate.type };
           const x = CANVAS_PADDING + 40 + gate.position * GATE_SPACING;
           const y = CANVAS_PADDING + gate.qubit * QUBIT_SPACING;
-          const isSelected = selectedGateId === gate.id;
-          const isDragging = draggingGateId === gate.id;
-          const hasTarget = gate.targetQubit !== undefined;
+           const isSelected = selectedGateId === gate.id;
+           const isDragging = draggingGateId === gate.id;
 
           return (
              <GateContextMenu key={gate.id} gate={gate}>
@@ -435,13 +317,19 @@ export const QuantumCanvas = () => {
                 style={{ cursor: 'grab' }}
                onClick={(e) => handleGateClick(gate.id, e)}
                 onMouseDown={(e) => {
-                  if (e.button === 0) {
+                  // Start drag tracking on mouse down
+                  if (e.button === 0) { // Left click only
                     handleGateDragStart(gate.id);
                   }
                 }}
                 onMouseUp={() => setDraggingGateId(null)}
             >
-               {/* Selection highlight */}
+               {/* ============================================================
+                   SELECTION HIGHLIGHT
+                   ============================================================
+                   Shows a pulsing border when the gate is selected.
+                   Uses the gate's color with reduced opacity.
+                   ============================================================ */}
                {isSelected && (
                  <motion.rect
                    x={x - GATE_WIDTH / 2 - 6}
@@ -458,78 +346,76 @@ export const QuantumCanvas = () => {
                  />
                )}
                
-               {/* For multi-qubit gates with target, only show a small label near control dot */}
-               {hasTarget ? (
+               {/* Gate background glow */}
+              <rect
+                x={x - GATE_WIDTH / 2 - 2}
+                y={y - GATE_WIDTH / 2 - 2}
+                width={GATE_WIDTH + 4}
+                height={GATE_WIDTH + 4}
+                rx="8"
+                fill={gateInfo.color}
+                fillOpacity="0.2"
+                filter="url(#glow-cyan)"
+              />
+              
+               {/* ============================================================
+                   GATE BOX
+                   ============================================================
+                   The main gate rectangle.
+                   Stroke width increases when selected for visual feedback.
+                   ============================================================ */}
+              <rect
+                x={x - GATE_WIDTH / 2}
+                y={y - GATE_WIDTH / 2}
+                width={GATE_WIDTH}
+                height={GATE_WIDTH}
+                rx="6"
+                fill="hsl(var(--card))"
+                stroke={gateInfo.color}
+                 strokeWidth={isSelected ? 3 : 2}
+                 className="hover:stroke-[3]"
+                style={{ transition: 'stroke-width 0.2s' }}
+              />
+              
+              {/* Gate symbol */}
+              <text
+                x={x}
+                y={y + 6}
+                fill={gateInfo.color}
+                fontSize="18"
+                fontFamily="monospace"
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                {gateInfo.symbol}
+              </text>
+               
+               {/* ============================================================
+                   ANGLE DISPLAY FOR ROTATION GATES
+                   ============================================================
+                   Shows the current angle below the gate symbol.
+                   Only displayed for Rx, Ry, Rz gates.
+                   ============================================================ */}
+               {gate.angle !== undefined && (
                  <text
-                   x={x + 12}
-                   y={y - 10}
+                   x={x}
+                   y={y + 20}
                    fill={gateInfo.color}
-                   fontSize="10"
+                   fontSize="9"
                    fontFamily="monospace"
-                   fontWeight="bold"
-                   opacity="0.7"
+                   textAnchor="middle"
+                   opacity="0.8"
                  >
-                   {gate.type}
+                   {(gate.angle / Math.PI).toFixed(1)}π
                  </text>
-               ) : (
-                 <>
-                   {/* Gate background glow */}
-                   <rect
-                     x={x - GATE_WIDTH / 2 - 2}
-                     y={y - GATE_WIDTH / 2 - 2}
-                     width={GATE_WIDTH + 4}
-                     height={GATE_WIDTH + 4}
-                     rx="8"
-                     fill={gateInfo.color}
-                     fillOpacity="0.2"
-                     filter="url(#glow-cyan)"
-                   />
-                   
-                   {/* Gate box */}
-                   <rect
-                     x={x - GATE_WIDTH / 2}
-                     y={y - GATE_WIDTH / 2}
-                     width={GATE_WIDTH}
-                     height={GATE_WIDTH}
-                     rx="6"
-                     fill="hsl(var(--card))"
-                     stroke={gateInfo.color}
-                     strokeWidth={isSelected ? 3 : 2}
-                     className="hover:stroke-[3]"
-                     style={{ transition: 'stroke-width 0.2s' }}
-                   />
-                   
-                   {/* Gate symbol */}
-                   <text
-                     x={x}
-                     y={y + 6}
-                     fill={gateInfo.color}
-                     fontSize="18"
-                     fontFamily="monospace"
-                     fontWeight="bold"
-                     textAnchor="middle"
-                   >
-                     {gateInfo.symbol}
-                   </text>
-                   
-                   {/* Angle display for rotation gates */}
-                   {gate.angle !== undefined && (
-                     <text
-                       x={x}
-                       y={y + 20}
-                       fill={gateInfo.color}
-                       fontSize="9"
-                       fontFamily="monospace"
-                       textAnchor="middle"
-                       opacity="0.8"
-                     >
-                       {(gate.angle / Math.PI).toFixed(1)}π
-                     </text>
-                   )}
-                 </>
                )}
 
-               {/* Quick delete button */}
+               {/* ============================================================
+                   QUICK DELETE BUTTON
+                   ============================================================
+                   Small X button that appears on hover.
+                   Alternative to Delete key or context menu.
+                   ============================================================ */}
               <g
                 className="cursor-pointer opacity-0 hover:opacity-100"
                 style={{ transition: 'opacity 0.2s' }}
@@ -539,14 +425,14 @@ export const QuantumCanvas = () => {
                  }}
               >
                 <circle
-                  cx={x + (hasTarget ? 8 : GATE_WIDTH / 2 - 5)}
-                  cy={y - (hasTarget ? 18 : GATE_WIDTH / 2 - 5)}
+                  cx={x + GATE_WIDTH / 2 - 5}
+                  cy={y - GATE_WIDTH / 2 + 5}
                   r="8"
                   fill="hsl(var(--destructive))"
                 />
                 <foreignObject
-                  x={x + (hasTarget ? 2 : GATE_WIDTH / 2 - 11)}
-                  y={y - (hasTarget ? 24 : GATE_WIDTH / 2 + 1)}
+                  x={x + GATE_WIDTH / 2 - 11}
+                  y={y - GATE_WIDTH / 2 - 1}
                   width="12"
                   height="12"
                 >
@@ -602,45 +488,6 @@ export const QuantumCanvas = () => {
             <p className="text-muted-foreground/60 text-sm mt-2">
               Drop them on qubit lines to build your circuit
             </p>
-          </div>
-        </motion.div>
-      )}
-      
-      {/* Placement mode overlay */}
-      {placementMode && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-10"
-        >
-          <div className="bg-card border-2 border-primary rounded-xl px-6 py-3 shadow-lg shadow-primary/20 flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              {placementMode.step === 'selectControl' ? (
-                <>
-                  <span className="inline-block w-3 h-3 rounded-full bg-primary animate-pulse" />
-                  <span className="text-sm font-medium text-foreground">
-                    Select <span className="text-primary font-bold">Control</span> Qubit for {placementMode.gateType}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-xs text-muted-foreground">
-                    Control: <span className="text-primary font-bold">q{placementMode.controlQubit}</span>
-                  </span>
-                  <span className="text-muted-foreground">→</span>
-                  <span className="inline-block w-3 h-3 rounded-full border-2 border-primary animate-pulse" />
-                  <span className="text-sm font-medium text-foreground">
-                    Select <span className="text-primary font-bold">Target</span> Qubit
-                  </span>
-                </>
-              )}
-            </div>
-            <button
-              onClick={cancelPlacementMode}
-              className="text-xs text-muted-foreground hover:text-destructive transition-colors ml-2"
-            >
-              Cancel (Esc)
-            </button>
           </div>
         </motion.div>
       )}

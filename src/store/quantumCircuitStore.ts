@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { QuantumGate, SimulationResult, GateType } from '@/types/quantum';
+import { QuantumGate, SimulationResult } from '@/types/quantum';
 import { simulateCircuit } from '@/lib/quantum/simulator';
 import { CircuitTemplate, createGatesFromTemplate } from '@/lib/quantum/templates';
 
@@ -60,17 +60,6 @@ export const QUBIT_LIMITS = {
    return newPast;
  };
  
-/**
- * Multi-qubit gate placement mode
- * Step 1: 'selectControl' - waiting for user to click a control qubit
- * Step 2: 'selectTarget' - waiting for user to click a target qubit
- */
-export interface PlacementMode {
-  gateType: string;
-  step: 'selectControl' | 'selectTarget';
-  controlQubit?: number;
-}
-
 interface QuantumCircuitStore {
   // Circuit state
   gates: QuantumGate[];
@@ -88,15 +77,20 @@ interface QuantumCircuitStore {
   // Template state
   activeTemplate: CircuitTemplate | null;
   
-  // Selection state
-  selectedGateId: string | null;
-  
-  // Multi-qubit placement mode
-  placementMode: PlacementMode | null;
-  
-  // Undo/Redo history
-  past: HistoryState[];
-  future: HistoryState[];
+   // ============================================================
+   // SELECTION STATE
+   // ============================================================
+   // Tracks which gate is currently selected for editing operations.
+   // Only one gate can be selected at a time.
+   // Click on canvas background deselects.
+   // ============================================================
+   selectedGateId: string | null;
+   
+   // ============================================================
+   // UNDO/REDO HISTORY
+   // ============================================================
+   past: HistoryState[];
+   future: HistoryState[];
  
   // Actions
   addGate: (gate: QuantumGate) => void;
@@ -107,44 +101,30 @@ interface QuantumCircuitStore {
   simulate: () => void;
   loadTemplate: (template: CircuitTemplate) => void;
    
-  // Selection actions
-  selectGate: (gateId: string | null) => void;
+   // Selection actions
+   selectGate: (gateId: string | null) => void;
    
-  // Placement mode actions
-  startPlacementMode: (gateType: string) => void;
-  cancelPlacementMode: () => void;
-  selectQubitForPlacement: (qubitIndex: number) => void;
+   // History actions
+   undo: () => void;
+   redo: () => void;
+   canUndo: () => boolean;
+   canRedo: () => boolean;
    
-  // History actions
-  undo: () => void;
-  redo: () => void;
-  canUndo: () => boolean;
-  canRedo: () => boolean;
+   // Gate manipulation
+   duplicateGate: (gateId: string) => void;
+   moveGate: (gateId: string, newQubit: number, newPosition: number) => void;
    
-  // Gate manipulation
-  duplicateGate: (gateId: string) => void;
-  moveGate: (gateId: string, newQubit: number, newPosition: number) => void;
-   
-  // Direct setters
-  setGates: (gates: QuantumGate[]) => void;
-  setQubitCount: (count: number) => void;
-  setSimulationMethod: (method: 'stateVector' | 'mps' | 'auto') => void;
-  incrementQubits: () => void;
-  decrementQubits: () => void;
+   // Direct setters (for loading from gallery/storage)
+   setGates: (gates: QuantumGate[]) => void;
+   setQubitCount: (count: number) => void;
+   setSimulationMethod: (method: 'stateVector' | 'mps' | 'auto') => void;
+   incrementQubits: () => void;
+   decrementQubits: () => void;
   
   // Computed
   getCircuitDepth: () => number;
   getGateCount: () => number;
 }
-
-// Gates that require multi-qubit selection workflow
-export const MULTI_QUBIT_GATES = new Set([
-  'CNOT', 'SWAP', 'CZ', 'CY', 'CH', 'iSWAP', 'CP', 'CRx', 'CRy', 'CRz',
-]);
-
-export const THREE_QUBIT_GATES = new Set([
-  'CCX', 'CCZ', 'CSWAP',
-]);
 
 export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => ({
   gates: [],
@@ -155,10 +135,9 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   simulationResult: null,
   draggedGate: null,
   activeTemplate: null,
-  selectedGateId: null,
-  placementMode: null,
-  past: [],
-  future: [],
+   selectedGateId: null,
+   past: [],
+   future: [],
 
    addGate: (gate) => set((state) => ({
      past: saveToHistory(state.gates, state.past),
@@ -209,52 +188,6 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   },
    
    selectGate: (gateId) => set({ selectedGateId: gateId }),
-   
-   startPlacementMode: (gateType) => set({ 
-     placementMode: { gateType, step: 'selectControl' },
-     selectedGateId: null,
-   }),
-   
-   cancelPlacementMode: () => set({ placementMode: null }),
-   
-   selectQubitForPlacement: (qubitIndex) => {
-     const state = get();
-     const { placementMode, gates, qubitCount } = state;
-     if (!placementMode) return;
-     
-     if (placementMode.step === 'selectControl') {
-       set({ 
-         placementMode: { 
-           ...placementMode, 
-           step: 'selectTarget', 
-           controlQubit: qubitIndex 
-         } 
-       });
-     } else if (placementMode.step === 'selectTarget') {
-       const controlQubit = placementMode.controlQubit!;
-       if (qubitIndex === controlQubit) return; // Must be different
-       
-       const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
-       
-       const newGate: QuantumGate = {
-         id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-         type: placementMode.gateType as GateType,
-         qubit: controlQubit,
-         position: maxPosition,
-         targetQubit: qubitIndex,
-         ...((['Rx', 'Ry', 'Rz', 'CRx', 'CRy', 'CRz', 'CP'].includes(placementMode.gateType)) 
-           && { angle: Math.PI / 2 }),
-       };
-       
-       set({
-         past: saveToHistory(gates, state.past),
-         future: [],
-         gates: [...gates, newGate],
-         placementMode: null,
-         activeTemplate: null,
-       });
-     }
-   },
    
    undo: () => set((state) => {
      if (state.past.length === 0) return state;
