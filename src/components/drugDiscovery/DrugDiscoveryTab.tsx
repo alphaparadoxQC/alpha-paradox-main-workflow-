@@ -117,8 +117,8 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
             <Pill className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Drug Discovery</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-sm font-semibold text-foreground">Drug Discovery</h2>
+            <p className="text-[10px] text-muted-foreground">
               Molecular docking with quantum enhancement
             </p>
           </div>
