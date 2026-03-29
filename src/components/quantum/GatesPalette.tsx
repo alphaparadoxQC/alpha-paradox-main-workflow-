@@ -83,6 +83,7 @@ export const GatesPalette = () => {
 
   const renderGateButton = (gateType: GateType | ExtendedGateType, index: number) => {
     const gate = GATE_INFO[gateType as GateType] || EXTENDED_GATE_INFO[gateType as ExtendedGateType];
+    if (!gate) return null;
     const isBeingDragged = draggedGate === gateType;
     
     return (
