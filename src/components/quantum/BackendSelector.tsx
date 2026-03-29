@@ -18,7 +18,8 @@ export type BackendType =
   | 'ibm-quantum'
   | 'aws-braket-sv1'
   | 'aws-braket-rigetti'
-  | 'aws-braket-ionq';
+  | 'aws-braket-ionq'
+  | 'origin-quantum';
 
 interface BackendOption {
   id: BackendType;
