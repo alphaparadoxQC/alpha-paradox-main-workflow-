@@ -19,7 +19,8 @@ export type BackendType =
   | 'aws-braket-sv1'
   | 'aws-braket-rigetti'
   | 'aws-braket-ionq'
-  | 'origin-quantum';
+  | 'origin-quantum'
+  | 'open-quantum';
 
 interface BackendOption {
   id: BackendType;
@@ -97,6 +98,17 @@ const BACKEND_OPTIONS: BackendOption[] = [
     icon: <Atom className="w-4 h-4" />,
     estimatedCost: 'Free tier available',
     estimatedWait: '2-30 min queue',
+    isHardware: true,
+    isAvailable: true,
+  },
+  {
+    id: 'open-quantum',
+    name: 'Open Quantum',
+    description: 'Free QPU access — IonQ, Rigetti, IQM',
+    provider: 'OpenQuantum',
+    icon: <Zap className="w-4 h-4" />,
+    estimatedCost: 'Free ($50 credits/90d)',
+    estimatedWait: '1-15 min queue',
     isHardware: true,
     isAvailable: true,
   },

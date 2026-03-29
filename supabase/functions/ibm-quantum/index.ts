@@ -107,12 +107,16 @@ function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
         lines.push(`t q[${gate.qubit}];`);
         break;
       case "CNOT":
-        if (gate.controlQubit !== undefined) {
+        if (gate.controlQubit !== undefined && gate.targetQubit !== undefined) {
+          lines.push(`cx q[${gate.controlQubit}], q[${gate.targetQubit}];`);
+        } else if (gate.controlQubit !== undefined) {
           lines.push(`cx q[${gate.controlQubit}], q[${gate.qubit}];`);
         }
         break;
       case "CZ":
-        if (gate.controlQubit !== undefined) {
+        if (gate.controlQubit !== undefined && gate.targetQubit !== undefined) {
+          lines.push(`cz q[${gate.controlQubit}], q[${gate.targetQubit}];`);
+        } else if (gate.controlQubit !== undefined) {
           lines.push(`cz q[${gate.controlQubit}], q[${gate.qubit}];`);
         }
         break;
@@ -306,18 +310,17 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("[IBM Quantum] Auth failed:", claimsError);
+    if (authError || !user) {
+      console.error("[IBM Quantum] Auth failed:", authError);
       return new Response(
         JSON.stringify({ error: "Unauthorized - invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
     console.log(`[IBM Quantum] Authenticated user: ${userId}`);
 
     // Parse request body
