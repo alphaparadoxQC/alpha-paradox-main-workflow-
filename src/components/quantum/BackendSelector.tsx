@@ -101,6 +101,17 @@ const BACKEND_OPTIONS: BackendOption[] = [
     isHardware: true,
     isAvailable: true,
   },
+  {
+    id: 'open-quantum',
+    name: 'Open Quantum',
+    description: 'Free QPU access — IonQ, Rigetti, IQM',
+    provider: 'OpenQuantum',
+    icon: <Zap className="w-4 h-4" />,
+    estimatedCost: 'Free ($50 credits/90d)',
+    estimatedWait: '1-15 min queue',
+    isHardware: true,
+    isAvailable: true,
+  },
 ];
 
 const STORAGE_KEY = 'quantum-preferred-backend';
