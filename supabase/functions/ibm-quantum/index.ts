@@ -107,12 +107,16 @@ function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
         lines.push(`t q[${gate.qubit}];`);
         break;
       case "CNOT":
-        if (gate.controlQubit !== undefined) {
+        if (gate.controlQubit !== undefined && gate.targetQubit !== undefined) {
+          lines.push(`cx q[${gate.controlQubit}], q[${gate.targetQubit}];`);
+        } else if (gate.controlQubit !== undefined) {
           lines.push(`cx q[${gate.controlQubit}], q[${gate.qubit}];`);
         }
         break;
       case "CZ":
-        if (gate.controlQubit !== undefined) {
+        if (gate.controlQubit !== undefined && gate.targetQubit !== undefined) {
+          lines.push(`cz q[${gate.controlQubit}], q[${gate.targetQubit}];`);
+        } else if (gate.controlQubit !== undefined) {
           lines.push(`cz q[${gate.controlQubit}], q[${gate.qubit}];`);
         }
         break;
