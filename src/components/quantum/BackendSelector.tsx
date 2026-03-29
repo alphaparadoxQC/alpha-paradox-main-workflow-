@@ -89,6 +89,17 @@ const BACKEND_OPTIONS: BackendOption[] = [
     isHardware: true,
     isAvailable: true,
   },
+  {
+    id: 'origin-quantum',
+    name: 'Origin Quantum',
+    description: 'QPanda3 superconducting processor (China)',
+    provider: 'OriginQ',
+    icon: <Atom className="w-4 h-4" />,
+    estimatedCost: 'Free tier available',
+    estimatedWait: '2-30 min queue',
+    isHardware: true,
+    isAvailable: true,
+  },
 ];
 
 const STORAGE_KEY = 'quantum-preferred-backend';
