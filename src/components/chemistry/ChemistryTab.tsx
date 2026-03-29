@@ -79,7 +79,7 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
   }, [vqe, molecule, clearCircuit, setQubitCount, setGates]);
 
   return (
-    <div className="h-full flex flex-col gap-4 p-4 overflow-auto">
+    <div className="h-full flex flex-col gap-3 p-3 overflow-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
