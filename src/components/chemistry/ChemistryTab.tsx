@@ -79,7 +79,7 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
   }, [vqe, molecule, clearCircuit, setQubitCount, setGates]);
 
   return (
-    <div className="h-full flex flex-col gap-4 p-4 overflow-auto">
+    <div className="h-full flex flex-col gap-3 p-3 overflow-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -87,8 +87,8 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
             <FlaskConical className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Quantum Chemistry</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-sm font-semibold text-foreground">Quantum Chemistry</h2>
+            <p className="text-[10px] text-muted-foreground">
               VQE ground state simulation
             </p>
           </div>

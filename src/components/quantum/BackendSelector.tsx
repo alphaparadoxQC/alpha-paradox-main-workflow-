@@ -18,7 +18,8 @@ export type BackendType =
   | 'ibm-quantum'
   | 'aws-braket-sv1'
   | 'aws-braket-rigetti'
-  | 'aws-braket-ionq';
+  | 'aws-braket-ionq'
+  | 'origin-quantum';
 
 interface BackendOption {
   id: BackendType;
@@ -85,6 +86,17 @@ const BACKEND_OPTIONS: BackendOption[] = [
     icon: <Zap className="w-4 h-4" />,
     estimatedCost: '$0.30/task + $0.01/shot',
     estimatedWait: '5-120 min queue',
+    isHardware: true,
+    isAvailable: true,
+  },
+  {
+    id: 'origin-quantum',
+    name: 'Origin Quantum',
+    description: 'QPanda3 superconducting processor (China)',
+    provider: 'OriginQ',
+    icon: <Atom className="w-4 h-4" />,
+    estimatedCost: 'Free tier available',
+    estimatedWait: '2-30 min queue',
     isHardware: true,
     isAvailable: true,
   },

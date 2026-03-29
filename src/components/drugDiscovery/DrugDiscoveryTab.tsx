@@ -109,7 +109,7 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
   }, [drug, target, dockingResult, lipinskiResult, admetProfile]);
 
   return (
-    <div className="h-full flex flex-col gap-4 p-4 overflow-auto">
+    <div className="h-full flex flex-col gap-3 p-3 overflow-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -117,8 +117,8 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
             <Pill className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Drug Discovery</h2>
-            <p className="text-xs text-muted-foreground">
+            <h2 className="text-sm font-semibold text-foreground">Drug Discovery</h2>
+            <p className="text-[10px] text-muted-foreground">
               Molecular docking with quantum enhancement
             </p>
           </div>
