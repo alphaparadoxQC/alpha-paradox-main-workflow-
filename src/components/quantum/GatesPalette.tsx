@@ -146,7 +146,7 @@ export const GatesPalette = () => {
   };
 
   return (
-    <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
+    <div className="w-72 max-w-[40vw] bg-sidebar border-r border-sidebar-border flex flex-col h-full overflow-hidden">
       <Tabs defaultValue="gates" className="flex flex-col h-full">
         <div className="p-3 border-b border-sidebar-border">
           <TabsList className="w-full grid grid-cols-3">
