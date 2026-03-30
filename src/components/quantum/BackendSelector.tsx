@@ -104,10 +104,10 @@ const BACKEND_OPTIONS: BackendOption[] = [
   {
     id: 'open-quantum',
     name: 'Open Quantum',
-    description: 'Free QPU access — IonQ, Rigetti, IQM',
-    provider: 'OpenQuantum',
+    description: 'Free QPU access via qBraid — IonQ, Rigetti, IBM',
+    provider: 'qBraid',
     icon: <Zap className="w-4 h-4" />,
-    estimatedCost: 'Free ($50 credits/90d)',
+    estimatedCost: 'Free credits on signup',
     estimatedWait: '1-15 min queue',
     isHardware: true,
     isAvailable: true,

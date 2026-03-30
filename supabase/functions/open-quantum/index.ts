@@ -27,7 +27,7 @@ interface CircuitRequest {
 function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
   const lines: string[] = [
     "OPENQASM 2.0;",
-    "include \"qelib1.inc\";",
+    'include "qelib1.inc";',
     "",
     `qreg q[${qubitCount}];`,
     `creg c[${qubitCount}];`,
@@ -86,8 +86,22 @@ function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
   return lines.join("\n");
 }
 
-// Open Quantum API base
-const OQ_API_BASE = "https://api.openquantum.com/v1";
+// qBraid REST API - free quantum computing access
+const QBRAID_API_BASE = "https://api.qbraid.com/api";
+
+// Map our backend names to qBraid device IDs
+function mapBackendToQbraidDevice(backendName?: string): string {
+  const mapping: Record<string, string> = {
+    "ionq:harmony": "ionq_harmony",
+    "ionq:aria": "ionq_aria_1",
+    "rigetti:ankaa-3": "rigetti_ankaa_3",
+    "ibm:brisbane": "ibm_brisbane",
+    "qbraid-simulator": "qbraid_qir_simulator",
+  };
+  if (backendName && mapping[backendName]) return mapping[backendName];
+  // Default to qBraid's free QIR simulator for reliable execution
+  return "qbraid_qir_simulator";
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -138,14 +152,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get Open Quantum API key
-    const oqApiKey = Deno.env.get("OPEN_QUANTUM_API_KEY");
-    if (!oqApiKey) {
+    // Get API key (stored as OPEN_QUANTUM_API_KEY but used for qBraid)
+    const apiKey = Deno.env.get("OPEN_QUANTUM_API_KEY");
+    if (!apiKey) {
       console.error("[Open Quantum] API key not configured");
       return new Response(
-        JSON.stringify({ 
-          error: "Open Quantum API key not configured. Sign up free at openquantum.com",
-          setupUrl: "https://www.openquantum.com/"
+        JSON.stringify({
+          error: "Open Quantum API key not configured. Sign up free at qbraid.com",
+          setupUrl: "https://account.qbraid.com/",
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -153,56 +167,65 @@ Deno.serve(async (req) => {
 
     // Generate QASM
     const qasm = circuitToOpenQASM(gates, qubitCount);
-    console.log("[Open Quantum] Generated OpenQASM:", qasm);
+    console.log("[Open Quantum] Generated OpenQASM:\n", qasm);
 
-    // Submit job to Open Quantum API
-    const selectedBackend = backendName || "rigetti:ankaa-3";
-    console.log(`[Open Quantum] Submitting to ${selectedBackend} with ${shots} shots`);
+    // Map backend
+    const deviceId = mapBackendToQbraidDevice(backendName);
+    console.log(`[Open Quantum] Submitting to qBraid device: ${deviceId} with ${shots} shots`);
 
-    const response = await fetch(`${OQ_API_BASE}/jobs`, {
+    // Submit job via qBraid REST API
+    const response = await fetch(`${QBRAID_API_BASE}/quantum-jobs`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${oqApiKey}`,
+        "api-key": apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        backend: selectedBackend,
-        qasm: qasm,
+        qbraidDeviceId: deviceId,
+        openQasm: qasm,
+        circuitNumQubits: qubitCount,
         shots: shots,
-        name: `Alpha-ParadoxQC-${Date.now()}`,
+        tags: { source: "alpha-paradoxqc" },
       }),
     });
 
+    const responseText = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[Open Quantum] Job submission failed:", response.status, errorText);
+      console.error("[Open Quantum] qBraid job submission failed:", response.status, responseText);
       return new Response(
-        JSON.stringify({ 
-          error: `Open Quantum submission failed: ${response.status}`,
-          details: errorText 
+        JSON.stringify({
+          error: `Submission failed (${response.status})`,
+          details: responseText,
         }),
         { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const result = await response.json();
-    console.log(`[Open Quantum] Job submitted: ${result.id || result.job_id}`);
+    let result: Record<string, unknown>;
+    try {
+      result = JSON.parse(responseText);
+    } catch {
+      result = { rawResponse: responseText };
+    }
+
+    const jobId = (result.qbraidJobId || result.jobId || result.id || `oq-${Date.now()}`) as string;
+    console.log(`[Open Quantum] Job submitted successfully: ${jobId}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        jobId: result.id || result.job_id || `oq-${Date.now()}`,
-        status: result.status || "queued",
-        backend: selectedBackend,
+        jobId,
+        status: (result.status as string) || "queued",
+        backend: deviceId,
         qubitCount,
         shots,
         qasm,
-        provider: "Open Quantum",
+        provider: "qBraid (Open Quantum)",
         submittedAt: new Date().toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error) {
     console.error("[Open Quantum] Error:", error);
     return new Response(
