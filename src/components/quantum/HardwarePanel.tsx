@@ -34,7 +34,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { BRANDING } from '@/config/branding';
 
-export const HardwarePanel = () => {
+interface HardwarePanelProps {
+  globalBackend?: string;
+}
+
+export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
   const { gates, qubitCount, simulationResult, simulate } = useQuantumCircuitStore();
   const { user } = useAuth();
   const {
@@ -88,7 +92,11 @@ export const HardwarePanel = () => {
   const handleConfirmSubmit = async () => {
     setConfirmDialogOpen(false);
     
-    const backendName = selectedBackend === 'auto' ? undefined : selectedBackend;
+    // Use global backend type (open-quantum, ibm-quantum, etc.) if set, otherwise use panel's selected backend
+    const backendName = globalBackend && globalBackend !== 'local' 
+      ? globalBackend 
+      : (selectedBackend === 'auto' ? undefined : selectedBackend);
+    console.log(`[HardwarePanel] Submitting with backend: ${backendName} (global: ${globalBackend})`);
     const job = await submitJob(gates, qubitCount, simulationResult, backendName, shots);
     
     if (job) {

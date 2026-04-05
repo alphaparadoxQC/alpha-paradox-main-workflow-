@@ -66,6 +66,15 @@ export function useQuantumCloud() {
     }
   }, [session?.access_token]);
 
+  // Determine which edge function to call based on backend
+  const getEdgeFunctionForBackend = (backendType?: string): string => {
+    if (!backendType) return 'ibm-quantum';
+    if (backendType === 'open-quantum') return 'open-quantum';
+    if (backendType.startsWith('aws-braket')) return 'amazon-braket';
+    if (backendType === 'ibm-quantum') return 'ibm-quantum';
+    return 'ibm-quantum';
+  };
+
   // Submit circuit to Quantum Cloud
   const submitJob = useCallback(async (
     gates: QuantumGate[],
@@ -81,8 +90,11 @@ export function useQuantumCloud() {
 
     setIsSubmitting(true);
     try {
-      // Submit to Quantum Cloud
-      const { data, error } = await supabase.functions.invoke('ibm-quantum', {
+      const edgeFunction = getEdgeFunctionForBackend(backendName);
+      console.log(`[QuantumCloud] Routing to edge function: ${edgeFunction} for backend: ${backendName}`);
+
+      // Submit to the appropriate Quantum Cloud backend
+      const { data, error } = await supabase.functions.invoke(edgeFunction, {
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: { gates, qubitCount, shots, backendName },
       });
