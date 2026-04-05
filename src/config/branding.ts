@@ -32,7 +32,7 @@ export interface BrandingConfig {
 export const BRANDING: BrandingConfig = {
   platformName: 'Alpha ParadoxQC',
   platformShortName: 'APQC',
-  platformTagline: 'Circuit Builder',
+  platformTagline: 'Quantum Computing in Your Browser',
   
   hardwareServiceName: 'Quantum Cloud',
   hardwareServiceShortName: 'QC',

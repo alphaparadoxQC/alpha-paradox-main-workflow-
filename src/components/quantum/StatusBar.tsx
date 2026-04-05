@@ -263,7 +263,7 @@ export const StatusBar = () => {
         
         <span>2^{qubitCount} = {Math.pow(2, qubitCount)} states</span>
         <div className="w-px h-4 bg-border" />
-        <span className="font-mono">v1.0.0</span>
+        <span className="font-mono">v2.0.0</span>
       </div>
     </motion.div>
   );
