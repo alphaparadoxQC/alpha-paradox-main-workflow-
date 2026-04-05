@@ -12,7 +12,7 @@ const Index = () => {
      if (!loading && !user) {
        // Store current path for redirect after login
        sessionStorage.setItem('returnUrl', window.location.pathname);
-       navigate('/auth', { replace: true });
+       navigate('/auth', { replace: true, state: { returnTo: '/builder' } });
      }
    }, [user, loading, navigate]);
  

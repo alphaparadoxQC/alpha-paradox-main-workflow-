@@ -6,6 +6,7 @@ import { Toolbar } from './Toolbar';
 import { StatusBar } from './StatusBar';
 import { AnonymousUserBanner } from './AnonymousUserBanner';
 import { QuantumAssistant } from './QuantumAssistant';
+import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 
 export const QuantumCircuitBuilder = () => {
   return (
@@ -37,6 +38,9 @@ export const QuantumCircuitBuilder = () => {
       
       {/* AI Assistant */}
       <QuantumAssistant />
+      
+      {/* Keyboard shortcuts overlay */}
+      <KeyboardShortcutsDialog />
     </motion.div>
   );
 };
