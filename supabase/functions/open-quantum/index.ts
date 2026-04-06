@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── Open Quantum API endpoints ──
+const KEYCLOAK_BASE = "https://id.openquantum.com";
+const KEYCLOAK_REALM = "platform";
+const MANAGEMENT_API = "https://management.openquantum.com";
+const SCHEDULER_API = "https://scheduler.openquantum.com";
+
+// ── Types ──
 interface QuantumGate {
   id: string;
   type: string;
@@ -23,11 +30,11 @@ interface CircuitRequest {
   backendName?: string;
 }
 
-// Convert circuit to OpenQASM 2.0
+// ── Convert circuit to OpenQASM 2.0 ──
 function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
   const lines: string[] = [
     "OPENQASM 2.0;",
-    'include "qelib1.inc";',
+    "include \"qelib1.inc\";",
     "",
     `qreg q[${qubitCount}];`,
     `creg c[${qubitCount}];`,
@@ -74,7 +81,6 @@ function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
     }
   }
 
-  // Add measurement if none explicit
   const hasMeasurement = gates.some((g) => g.type === "M");
   if (!hasMeasurement) {
     lines.push("");
@@ -86,21 +92,79 @@ function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
   return lines.join("\n");
 }
 
-// qBraid REST API - free quantum computing access
-const QBRAID_API_BASE = "https://api.qbraid.com/api";
-
-// Map our backend names to qBraid device IDs
-function mapBackendToQbraidDevice(backendName?: string): string {
+// ── Map backend names to Open Quantum short codes ──
+function mapBackendToShortCode(backendName?: string): string {
   const mapping: Record<string, string> = {
-    "ionq:harmony": "ionq_harmony",
-    "ionq:aria": "ionq_aria_1",
-    "rigetti:ankaa-3": "rigetti_ankaa_3",
-    "ibm:brisbane": "ibm_brisbane",
-    "qbraid-simulator": "qbraid_qir_simulator",
+    "ionq:aria": "ionq:aria-1",
+    "ionq:forte": "ionq:forte-1",
+    "rigetti:ankaa-3": "rigetti:ankaa-3",
+    "iqm:emerald": "iqm:emerald",
+    "iqm:garnet": "iqm:garnet",
   };
   if (backendName && mapping[backendName]) return mapping[backendName];
-  // Default to qBraid's free QIR simulator for reliable execution
-  return "qbraid_qir_simulator";
+  return "rigetti:ankaa-3"; // Default
+}
+
+// ── Keycloak OAuth2 client credentials ──
+async function getAccessToken(clientId: string, clientSecret: string): Promise<string> {
+  const tokenUrl = `${KEYCLOAK_BASE}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
+
+  const body = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: clientId,
+    client_secret: clientSecret,
+  });
+
+  const resp = await fetch(tokenUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+
+  const text = await resp.text();
+  if (!resp.ok) {
+    throw new Error(`Keycloak auth failed (${resp.status}): ${text}`);
+  }
+
+  const data = JSON.parse(text);
+  if (!data.access_token) {
+    throw new Error("Keycloak response missing access_token");
+  }
+
+  return data.access_token;
+}
+
+// ── Helper: authenticated request ──
+async function apiRequest(
+  baseUrl: string,
+  endpoint: string,
+  token: string,
+  options: { method?: string; body?: unknown; params?: Record<string, string> } = {}
+): Promise<Record<string, unknown>> {
+  const { method = "GET", body, params } = options;
+  let url = `${baseUrl}${endpoint}`;
+  if (params) {
+    const qs = new URLSearchParams(params).toString();
+    url += `?${qs}`;
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+
+  const resp = await fetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  const text = await resp.text();
+  if (!resp.ok) {
+    throw new Error(`API ${method} ${endpoint} failed (${resp.status}): ${text}`);
+  }
+
+  return resp.status === 204 ? {} : JSON.parse(text);
 }
 
 Deno.serve(async (req) => {
@@ -116,7 +180,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Authenticate user via Supabase
+    // ── Authenticate user via Supabase ──
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -141,9 +205,9 @@ Deno.serve(async (req) => {
 
     console.log(`[Open Quantum] Authenticated user: ${user.id}`);
 
-    // Parse request
+    // ── Parse request ──
     const body: CircuitRequest = await req.json();
-    const { gates, qubitCount, shots = 1024, backendName } = body;
+    const { gates, qubitCount, shots = 100, backendName } = body;
 
     if (!gates || !Array.isArray(gates)) {
       return new Response(
@@ -152,76 +216,155 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get API key (stored as OPEN_QUANTUM_API_KEY but used for qBraid)
-    const apiKey = Deno.env.get("OPEN_QUANTUM_API_KEY");
-    if (!apiKey) {
-      console.error("[Open Quantum] API key not configured");
+    // ── Get Open Quantum credentials ──
+    const clientId = Deno.env.get("OPENQUANTUM_CLIENT_ID");
+    const clientSecret = Deno.env.get("OPENQUANTUM_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
       return new Response(
         JSON.stringify({
-          error: "Open Quantum API key not configured. Sign up free at qbraid.com",
-          setupUrl: "https://account.qbraid.com/",
+          error: "Open Quantum credentials not configured. Get your SDK key at openquantum.com/keys",
+          setupUrl: "https://www.openquantum.com/keys",
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Generate QASM
+    // ── Step 1: Authenticate with Keycloak ──
+    console.log("[Open Quantum] Authenticating with Keycloak...");
+    const accessToken = await getAccessToken(clientId, clientSecret);
+    console.log("[Open Quantum] Keycloak auth successful");
+
+    // ── Step 2: Get organization ──
+    const orgsData = await apiRequest(MANAGEMENT_API, "/v1/users/organizations", accessToken);
+    const organizations = orgsData.organizations as Array<{ id: string; name: string }>;
+    if (!organizations || organizations.length === 0) {
+      throw new Error("No organizations found for this account");
+    }
+    const orgId = organizations[0].id;
+    console.log(`[Open Quantum] Using org: ${organizations[0].name} (${orgId})`);
+
+    // ── Step 3: Generate QASM ──
     const qasm = circuitToOpenQASM(gates, qubitCount);
     console.log("[Open Quantum] Generated OpenQASM:\n", qasm);
 
-    // Map backend
-    const deviceId = mapBackendToQbraidDevice(backendName);
-    console.log(`[Open Quantum] Submitting to qBraid device: ${deviceId} with ${shots} shots`);
-
-    // Submit job via qBraid REST API
-    const response = await fetch(`${QBRAID_API_BASE}/quantum-jobs`, {
+    // ── Step 4: Upload QASM ──
+    const uploadData = await apiRequest(SCHEDULER_API, "/v1/jobs/upload", accessToken, {
       method: "POST",
-      headers: {
-        "api-key": apiKey,
-        "Content-Type": "application/json",
+    });
+    const uploadId = (uploadData as { id: string; url: string }).id;
+    const uploadUrl = (uploadData as { id: string; url: string }).url;
+    console.log(`[Open Quantum] Got upload endpoint: ${uploadId}`);
+
+    // Upload the QASM content to the presigned URL
+    const uploadResp = await fetch(uploadUrl, {
+      method: "PUT",
+      body: new TextEncoder().encode(qasm),
+    });
+    if (!uploadResp.ok) {
+      const uploadErr = await uploadResp.text();
+      throw new Error(`QASM upload failed (${uploadResp.status}): ${uploadErr}`);
+    }
+    console.log("[Open Quantum] QASM uploaded successfully");
+
+    // ── Step 5: Prepare job ──
+    const backendShortCode = mapBackendToShortCode(backendName);
+    console.log(`[Open Quantum] Preparing job on backend: ${backendShortCode}, shots: ${shots}`);
+
+    const prepData = await apiRequest(SCHEDULER_API, "/v1/jobs/preparations", accessToken, {
+      method: "POST",
+      body: {
+        organization_id: orgId,
+        backend_class_id: backendShortCode,
+        name: `ParadoxQC Circuit - ${new Date().toISOString()}`,
+        upload_endpoint_id: uploadId,
+        job_subcategory_id: "oth:oth",
+        shots,
+        configuration_data: {},
       },
-      body: JSON.stringify({
-        qbraidDeviceId: deviceId,
-        openQasm: qasm,
-        circuitNumQubits: qubitCount,
-        shots: shots,
-        tags: { source: "alpha-paradoxqc" },
-      }),
+    });
+    const preparationId = (prepData as { id: string }).id;
+    console.log(`[Open Quantum] Job preparation created: ${preparationId}`);
+
+    // ── Step 6: Poll preparation until quote is ready ──
+    let prepResult: Record<string, unknown> | null = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const result = await apiRequest(
+        SCHEDULER_API,
+        `/v1/jobs/preparations/${preparationId}/result`,
+        accessToken
+      );
+      const status = result.status as string;
+      console.log(`[Open Quantum] Preparation status: ${status}`);
+
+      if (status === "Completed") {
+        prepResult = result;
+        break;
+      }
+      if (status === "Failed") {
+        throw new Error(`Job preparation failed: ${result.message || "Unknown error"}`);
+      }
+    }
+
+    if (!prepResult) {
+      throw new Error("Job preparation timed out after 60 seconds");
+    }
+
+    // ── Step 7: Select cheapest execution plan ──
+    const quote = prepResult.quote as Array<{
+      name: string;
+      price: number;
+      execution_plan_id: string;
+      queue_priorities: Array<{
+        name: string;
+        price_increase: number;
+        queue_priority_id: string;
+      }>;
+    }>;
+
+    if (!quote || quote.length === 0) {
+      throw new Error("No execution plans available in quote");
+    }
+
+    const cheapestPlan = quote.reduce((min, p) => (p.price < min.price ? p : min), quote[0]);
+    const cheapestPriority = cheapestPlan.queue_priorities.reduce(
+      (min, q) => (q.price_increase < min.price_increase ? q : min),
+      cheapestPlan.queue_priorities[0]
+    );
+
+    console.log(
+      `[Open Quantum] Selected plan: ${cheapestPlan.name} (${cheapestPlan.price} credits), priority: ${cheapestPriority.name}`
+    );
+
+    // ── Step 8: Create the job ──
+    const jobData = await apiRequest(SCHEDULER_API, "/v1/jobs", accessToken, {
+      method: "POST",
+      body: {
+        organization_id: orgId,
+        job_preparation_id: preparationId,
+        execution_plan_id: cheapestPlan.execution_plan_id,
+        queue_priority_id: cheapestPriority.queue_priority_id,
+      },
     });
 
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      console.error("[Open Quantum] qBraid job submission failed:", response.status, responseText);
-      return new Response(
-        JSON.stringify({
-          error: `Submission failed (${response.status})`,
-          details: responseText,
-        }),
-        { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    let result: Record<string, unknown>;
-    try {
-      result = JSON.parse(responseText);
-    } catch {
-      result = { rawResponse: responseText };
-    }
-
-    const jobId = (result.qbraidJobId || result.jobId || result.id || `oq-${Date.now()}`) as string;
-    console.log(`[Open Quantum] Job submitted successfully: ${jobId}`);
+    const jobId = (jobData as { id: string }).id;
+    const jobStatus = (jobData as { status: string }).status;
+    console.log(`[Open Quantum] Job created: ${jobId}, status: ${jobStatus}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         jobId,
-        status: (result.status as string) || "queued",
-        backend: deviceId,
+        status: jobStatus || "submitted",
+        backend: backendShortCode,
         qubitCount,
         shots,
         qasm,
-        provider: "qBraid (Open Quantum)",
+        provider: "Open Quantum (openquantum.com)",
+        organizationId: orgId,
+        executionPlan: cheapestPlan.name,
+        creditsUsed: cheapestPlan.price + cheapestPriority.price_increase,
         submittedAt: new Date().toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
