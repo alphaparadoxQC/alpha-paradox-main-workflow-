@@ -271,7 +271,7 @@ Deno.serve(async (req) => {
     const backendShortCode = mapBackendToShortCode(backendName);
     console.log(`[Open Quantum] Preparing job on backend: ${backendShortCode}, shots: ${shots}`);
 
-    const prepData = await apiRequest(SCHEDULER_API, "/v1/jobs/preparations", accessToken, {
+    const prepData = await apiRequest(SCHEDULER_API, "/v1/jobs/prepare", accessToken, {
       method: "POST",
       body: {
         organization_id: orgId,
@@ -292,7 +292,7 @@ Deno.serve(async (req) => {
       await new Promise((r) => setTimeout(r, 2000));
       const result = await apiRequest(
         SCHEDULER_API,
-        `/v1/jobs/preparations/${preparationId}/result`,
+        `/v1/jobs/prepare/${preparationId}`,
         accessToken
       );
       const status = result.status as string;
