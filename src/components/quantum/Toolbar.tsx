@@ -303,7 +303,7 @@ export const Toolbar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* More Actions Dropdown - groups AI builders + secondary actions */}
+        {/* More Actions Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size={isMobile ? "icon" : "default"} className="border-secondary/30 hover:border-secondary/50 shrink-0">
@@ -313,6 +313,28 @@ export const Toolbar = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-56">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Circuit
+            </DropdownMenuLabel>
+            <DropdownMenuItem onClick={handleSaveClick} disabled={gates.length === 0}>
+              <Save className="w-4 h-4 mr-2 text-primary" />
+              Save Circuit
+            </DropdownMenuItem>
+            {user && (
+              <DropdownMenuItem onClick={() => setSidebarOpen(true)}>
+                <FolderOpen className="w-4 h-4 mr-2 text-secondary" />
+                My Circuits
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={clearCircuit}
+              disabled={gates.length === 0}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear Circuit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               AI Builders
             </DropdownMenuLabel>
@@ -340,15 +362,6 @@ export const Toolbar = () => {
                 </Link>
               </DropdownMenuItem>
             )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={clearCircuit}
-              disabled={gates.length === 0}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Circuit
-            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
