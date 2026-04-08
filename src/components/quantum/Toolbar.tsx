@@ -352,30 +352,6 @@ export const Toolbar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Save Button - always visible */}
-        <Button
-          variant="outline"
-          size={isMobile ? "icon" : "default"}
-          onClick={handleSaveClick}
-          disabled={gates.length === 0}
-          className="border-primary/30 hover:border-primary/50 shrink-0"
-        >
-          <Save className="w-4 h-4 md:mr-2 text-primary" />
-          {!isMobile && <span>Save</span>}
-        </Button>
-
-        {/* My Circuits Button - hidden on mobile */}
-        {user && !isMobile && (
-          <Button
-            variant="outline"
-            onClick={() => setSidebarOpen(true)}
-            className="border-secondary/30 hover:border-secondary/50 shrink-0"
-          >
-            <FolderOpen className="w-4 h-4 mr-2 text-secondary" />
-            My Circuits
-          </Button>
-        )}
-
         {/* Backend Selector */}
         <BackendSelector onBackendChange={handleBackendChange} />
 
@@ -403,7 +379,6 @@ export const Toolbar = () => {
             </>
           )}
           
-          {/* Animated background */}
           {isSimulating && (
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
@@ -413,8 +388,8 @@ export const Toolbar = () => {
           )}
         </Button>
 
-        {/* Hardware Panel - hidden on mobile */}
-        {!isMobile && <HardwarePanel globalBackend={selectedBackend} />}
+        {/* Hardware Panel - shows Run on Hardware when hardware backend selected */}
+        <HardwarePanel globalBackend={selectedBackend} />
       </div>
 
       {/* Right side - Status indicator */}
