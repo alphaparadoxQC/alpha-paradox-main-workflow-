@@ -2,24 +2,14 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Cpu, 
-  ChevronDown, 
   Loader2, 
   CheckCircle2, 
   XCircle, 
   Clock, 
   Zap,
-  RefreshCw,
   AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -42,9 +32,6 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
   const { gates, qubitCount, simulationResult, simulate } = useQuantumCircuitStore();
   const { user } = useAuth();
   const {
-    backends,
-    isLoadingBackends,
-    fetchBackends,
     currentJob,
     isSubmitting,
     submitJob,
@@ -52,16 +39,8 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
     stopPolling,
   } = useQuantumCloud();
 
-  const [selectedBackend, setSelectedBackend] = useState<string>('auto');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [shots, setShots] = useState(1024);
-
-  // Fetch backends on mount
-  useEffect(() => {
-    if (user) {
-      fetchBackends();
-    }
-  }, [user, fetchBackends]);
 
   // Start polling when job is submitted
   useEffect(() => {
@@ -80,6 +59,10 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
       toast.error('Add gates to your circuit first');
       return;
     }
+    if (!globalBackend || globalBackend === 'local') {
+      toast.error('Select a hardware backend first (not Local Simulator)');
+      return;
+    }
     
     // Run local simulation first if not already done
     if (!simulationResult) {
@@ -92,32 +75,15 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
   const handleConfirmSubmit = async () => {
     setConfirmDialogOpen(false);
     
-    // Use global backend type (open-quantum, ibm-quantum, etc.) if set, otherwise use panel's selected backend
     const backendName = globalBackend && globalBackend !== 'local' 
       ? globalBackend 
-      : (selectedBackend === 'auto' ? undefined : selectedBackend);
-    console.log(`[HardwarePanel] Submitting with backend: ${backendName} (global: ${globalBackend})`);
+      : undefined;
+    console.log(`[HardwarePanel] Submitting with backend: ${backendName}`);
     const job = await submitJob(gates, qubitCount, simulationResult, backendName, shots);
     
     if (job) {
       startPolling(job);
     }
-  };
-
-  const getSelectedBackendInfo = (): QuantumCloudBackend | null => {
-    if (selectedBackend === 'auto') {
-      const online = backends.filter(b => b.status === 'online');
-      return online.sort((a, b) => a.pendingJobs - b.pendingJobs)[0] || null;
-    }
-    return backends.find(b => b.name === selectedBackend) || null;
-  };
-
-  const estimatedWaitTime = () => {
-    const backend = getSelectedBackendInfo();
-    if (!backend) return 'Unknown';
-    const minutes = Math.max(1, Math.ceil(backend.pendingJobs * 0.5));
-    if (minutes < 60) return `~${minutes} min`;
-    return `~${Math.ceil(minutes / 60)} hr`;
   };
 
   const getStatusIcon = () => {
@@ -144,12 +110,12 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
         return 'Submitting...';
       case 'queued':
         return currentJob.queue_position 
-          ? `Queued (Position ${currentJob.queue_position})`
+          ? `Queued (#${currentJob.queue_position})`
           : 'Queued';
       case 'running':
-        return 'Running on hardware';
+        return 'Running';
       case 'completed':
-        return 'Completed';
+        return 'Done';
       case 'failed':
         return 'Failed';
       case 'cancelled':
@@ -158,117 +124,29 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
   };
 
   const isJobActive = currentJob && ['submitting', 'queued', 'running'].includes(currentJob.status);
+  const isHardwareSelected = globalBackend && globalBackend !== 'local';
 
   return (
     <>
-      <div className="flex items-center gap-2">
-        {/* Backend Selector */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="border-accent/30 hover:border-accent/50 min-w-[140px]"
-              disabled={isLoadingBackends || isJobActive}
-            >
-              {isLoadingBackends ? (
-                <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-              ) : (
-                <Cpu className="w-3 h-3 mr-2 text-accent" />
-              )}
-              <span className="truncate text-xs">
-                {selectedBackend === 'auto' ? 'Auto (Least Busy)' : selectedBackend}
-              </span>
-              <ChevronDown className="w-3 h-3 ml-1 opacity-60" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuLabel className="text-xs flex items-center justify-between">
-              <span>{BRANDING.hardwareServiceName} Backends</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5"
-                onClick={(e) => {
-                  e.preventDefault();
-                  fetchBackends();
-                }}
-              >
-                <RefreshCw className={`w-3 h-3 ${isLoadingBackends ? 'animate-spin' : ''}`} />
-              </Button>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            
-            <DropdownMenuItem
-              onClick={() => setSelectedBackend('auto')}
-              className="flex items-center justify-between"
-            >
-              <span>Auto (Least Busy)</span>
-              {selectedBackend === 'auto' && (
-                <CheckCircle2 className="w-4 h-4 text-primary" />
-              )}
-            </DropdownMenuItem>
-            
-            <DropdownMenuSeparator />
-            
-            {backends.length === 0 && !isLoadingBackends && (
-              <div className="px-2 py-4 text-center text-xs text-muted-foreground">
-                No backends available
-              </div>
-            )}
-            
-            {backends.map((backend) => (
-              <DropdownMenuItem
-                key={backend.name}
-                onClick={() => setSelectedBackend(backend.name)}
-                className="flex flex-col items-start py-2"
-                disabled={backend.status !== 'online' || backend.numQubits < qubitCount}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className="font-medium text-xs">{backend.name}</span>
-                  <div className="flex items-center gap-2">
-                    {backend.status === 'online' ? (
-                      <span className="w-2 h-2 rounded-full bg-accent" />
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-destructive" />
-                    )}
-                    {selectedBackend === backend.name && (
-                      <CheckCircle2 className="w-4 h-4 text-primary" />
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                  <span>{backend.numQubits} qubits</span>
-                  <span>•</span>
-                  <span>{backend.pendingJobs} jobs queued</span>
-                  {backend.isSimulator && (
-                    <>
-                      <span>•</span>
-                      <span className="text-secondary">Simulator</span>
-                    </>
-                  )}
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Run Button */}
+      {/* Run on Hardware Button - only show when a hardware backend is selected */}
+      {isHardwareSelected && (
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Button
             onClick={handleRunClick}
-            disabled={isSubmitting || isJobActive || gates.length === 0 || !user}
-            className="relative overflow-hidden bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-primary-foreground"
+            disabled={isSubmitting || !!isJobActive || gates.length === 0 || !user}
+            size="default"
+            className="relative overflow-hidden bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-primary-foreground shrink-0"
           >
             {isSubmitting || isJobActive ? (
               <>
                 {getStatusIcon()}
-                <span className="ml-2 text-xs">{getStatusText()}</span>
+                <span className="ml-1 text-xs">{getStatusText()}</span>
               </>
             ) : (
               <>
-                <Cpu className="w-4 h-4 mr-2" />
-                Run on Cloud
+                <Cpu className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Run Hardware</span>
+                <span className="sm:hidden">HW</span>
               </>
             )}
             
@@ -281,7 +159,7 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
             )}
           </Button>
         </motion.div>
-      </div>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -297,7 +175,6 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Circuit Info */}
             <div className="bg-muted rounded-lg p-3 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Qubits:</span>
@@ -311,25 +188,12 @@ export const HardwarePanel = ({ globalBackend }: HardwarePanelProps) => {
                 <span className="text-muted-foreground">Shots:</span>
                 <span className="font-mono">{shots}</span>
               </div>
-            </div>
-
-            {/* Backend Info */}
-            <div className="bg-card rounded-lg p-3 border border-border space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Backend:</span>
-                <span className="font-medium">
-                  {selectedBackend === 'auto' 
-                    ? getSelectedBackendInfo()?.name || 'Selecting...'
-                    : selectedBackend}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Est. Wait Time:</span>
-                <span className="font-medium text-secondary">{estimatedWaitTime()}</span>
+                <span className="font-mono text-accent">{globalBackend}</span>
               </div>
             </div>
 
-            {/* Warning */}
             <div className="flex items-start gap-2 text-xs text-muted-foreground bg-secondary/10 rounded-lg p-3">
               <AlertTriangle className="w-4 h-4 text-secondary mt-0.5 shrink-0" />
               <p>
