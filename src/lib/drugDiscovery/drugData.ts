@@ -495,46 +495,63 @@ function calculateToxicity(drug: DrugCandidate) {
   };
 }
 
-// Simulate molecular docking with quantum correction
+// Simulate molecular docking with deterministic quantum-inspired scoring
 export function simulateDocking(drug: DrugCandidate, target: ProteinTarget): DockingResult {
-  // Classical scoring function (simplified)
-  const baseEnergy = -5.0 - Math.random() * 5.0; // -5 to -10 kcal/mol
+  // Deterministic scoring based on molecular descriptors and target properties
+  // Uses physics-based energy terms instead of random values
   
-  // Hydrogen bond contribution
-  const hBonds = Math.min(drug.hBondDonors + drug.hBondAcceptors, 6);
-  const hBondEnergy = -hBonds * 0.5;
+  // Shape complementarity: penalize large/inflexible molecules
+  const shapePenalty = Math.max(0, (drug.molecularWeight - 300) / 200) * 1.5;
   
-  // Hydrophobic contribution
-  const hydrophobicScore = drug.logP > 0 ? Math.min(drug.logP, 4) * 0.3 : 0;
+  // Hydrogen bond energy: ~1.0–1.5 kcal/mol per H-bond
+  const maxHBonds = Math.min(drug.hBondDonors + drug.hBondAcceptors, target.bindingSite.residues.length);
+  const hBonds = Math.min(maxHBonds, 6);
+  const hBondEnergy = -hBonds * 1.2;
   
-  // Electrostatic contribution
-  const electrostaticScore = drug.polarSurfaceArea > 50 ? -1.0 : -0.5;
+  // Hydrophobic interaction: favorable for moderately lipophilic drugs
+  const optimalLogP = 2.5;
+  const hydrophobicScore = -Math.max(0, 3.0 - Math.abs(drug.logP - optimalLogP) * 0.8);
+  
+  // Electrostatic contribution: based on charge complementarity
+  const chargeSum = drug.atoms.reduce((sum, a) => sum + Math.abs(a.charge), 0);
+  const electrostaticScore = -(chargeSum * 0.3 + (drug.polarSurfaceArea > 50 ? 1.0 : 0.3));
+  
+  // Desolvation penalty: large PSA means harder to desolvate
+  const desolvationPenalty = drug.polarSurfaceArea > 120 ? 2.0 : drug.polarSurfaceArea > 80 ? 1.0 : 0.3;
+  
+  // Entropy penalty from rotatable bonds (conformational entropy loss)
+  const entropyPenalty = drug.rotableBonds * 0.3;
   
   // Total classical binding energy
-  const classicalEnergy = baseEnergy + hBondEnergy - hydrophobicScore + electrostaticScore;
+  const classicalEnergy = hBondEnergy + hydrophobicScore + electrostaticScore 
+                        + desolvationPenalty + entropyPenalty - shapePenalty - 3.5; // baseline attraction
   
-  // Quantum correction (VQE would provide this)
-  const quantumCorrection = (Math.random() - 0.5) * 1.0; // -0.5 to +0.5 kcal/mol
+  // Quantum correction: electron correlation effects on binding
+  // Deterministic based on drug electronic structure
+  const electronDensityFactor = chargeSum / Math.max(drug.atoms.length, 1);
+  const quantumCorrection = -(electronDensityFactor * 0.8 + 0.15);
   
   const bindingEnergy = classicalEnergy + quantumCorrection;
   
-  // Convert to binding affinity (Ki)
-  // ΔG = RT ln(Ki) => Ki = exp(ΔG/RT)
+  // Convert to binding affinity (Ki) via Boltzmann: ΔG = RT ln(Ki)
   const RT = 0.592; // kcal/mol at 298K
-  const bindingAffinity = Math.exp(bindingEnergy / RT) * 1e9; // Convert to nM
+  const bindingAffinity = Math.exp(bindingEnergy / RT) * 1e9; // nM
+
+  // Hydrophobic contacts based on LogP and binding site radius
+  const hydrophobicContacts = Math.max(1, Math.floor(Math.min(drug.logP + 1, 5)));
 
   return {
     drugId: drug.id,
     targetId: target.id,
-    bindingEnergy,
-    bindingAffinity: Math.min(bindingAffinity, 10000), // Cap at 10 μM
-    poseScore: 80 + Math.random() * 20,
-    interactionCount: 3 + Math.floor(Math.random() * 5),
+    bindingEnergy: Math.round(bindingEnergy * 100) / 100,
+    bindingAffinity: Math.min(Math.round(bindingAffinity * 10) / 10, 10000),
+    poseScore: Math.round(Math.max(60, Math.min(100, 95 - shapePenalty * 5 - entropyPenalty * 2)) * 10) / 10,
+    interactionCount: hBonds + hydrophobicContacts,
     hBonds,
-    hydrophobicContacts: Math.floor(2 + Math.random() * 4),
-    electrostaticScore: Math.abs(electrostaticScore),
-    vqeEnergy: classicalEnergy - 0.3, // VQE typically finds lower energy
-    quantumCorrection,
+    hydrophobicContacts,
+    electrostaticScore: Math.round(Math.abs(electrostaticScore) * 100) / 100,
+    vqeEnergy: Math.round((classicalEnergy + quantumCorrection * 2) * 1000) / 1000,
+    quantumCorrection: Math.round(quantumCorrection * 1000) / 1000,
   };
 }
 

@@ -19,10 +19,13 @@ import { VQEProgressChart } from './VQEProgressChart';
 import { VQEResults } from './VQEResults';
 import { ChemistryResults } from './ChemistryResults';
 import { ChemistryTemplates } from './ChemistryTemplates';
+import { RunOnHardwareButton } from '@/components/shared/RunOnHardwareButton';
 import { MOLECULES, getMoleculeById } from '@/lib/chemistry/moleculeData';
 import { useVQE } from '@/hooks/useVQE';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
+import { getHamiltonian } from '@/lib/chemistry/pauliHamiltonian';
+import { simulateCircuit } from '@/lib/quantum/simulator';
 import { toast } from 'sonner';
 
 interface ChemistryTabProps {
@@ -225,6 +228,29 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
       />
       
       <Separator />
+
+      {/* Hamiltonian Info */}
+      {getHamiltonian(molecule.id) && (
+        <Card className="bg-card/50 backdrop-blur-sm border-accent/20">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2 text-[10px]">
+              <Badge variant="secondary" className="text-[9px]">Jordan-Wigner</Badge>
+              <span className="text-muted-foreground">
+                {getHamiltonian(molecule.id)!.terms.length} Pauli terms • STO-3G basis
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Run on Quantum Hardware */}
+      <RunOnHardwareButton
+        gates={vqe.result ? generateParameterizedAnsatz(molecule, vqe.result.finalParameters) : []}
+        qubitCount={molecule.qubitsRequired}
+        localResults={vqe.result ? simulateCircuit(generateParameterizedAnsatz(molecule, vqe.result.finalParameters), molecule.qubitsRequired) : null}
+        contextLabel="VQE Circuit"
+        disabled={!vqe.result}
+      />
       
       {/* Comprehensive Chemistry Results */}
       <ChemistryResults

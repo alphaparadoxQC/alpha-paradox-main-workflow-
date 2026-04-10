@@ -6,6 +6,7 @@
 import { QuantumGate } from '@/types/quantum';
 import { simulateCircuit } from '@/lib/quantum/simulator';
 import { MoleculeData } from './moleculeData';
+import { getHamiltonian, calculatePauliExpectation } from './pauliHamiltonian';
 
 export interface VQEParameters {
   theta: number[];
@@ -131,7 +132,8 @@ export const initializeParameters = (count: number): number[] => {
 
 /**
  * Calculate energy (expectation value of Hamiltonian)
- * This is a simplified model - real VQE would use qubit operator mapping
+ * Uses Jordan-Wigner mapped Pauli Hamiltonian when available (pyChemiQ-inspired),
+ * falls back to heuristic model for molecules without pre-computed Hamiltonians.
  */
 export const calculateEnergy = (
   gates: QuantumGate[],
@@ -139,26 +141,38 @@ export const calculateEnergy = (
   molecule: MoleculeData
 ): number => {
   const result = simulateCircuit(gates, qubitCount);
-  
-  // Simplified energy calculation based on state probabilities
-  // Maps quantum state to molecular energy contribution
+  const hamiltonian = getHamiltonian(molecule.id);
+
+  if (hamiltonian && result.amplitudes && result.amplitudes.length > 0) {
+    // === Accurate Pauli Hamiltonian evaluation ===
+    // Build full state vector from simulation amplitudes
+    const dim = 1 << qubitCount;
+    const stateVector: { re: number; im: number }[] = new Array(dim).fill(null).map(() => ({ re: 0, im: 0 }));
+
+    for (const amp of result.amplitudes) {
+      // Parse state string like "|01010⟩" → integer index
+      const stateStr = amp.state.replace(/[|⟩]/g, '');
+      const stateIndex = parseInt(stateStr, 2);
+      if (stateIndex < dim) {
+        stateVector[stateIndex] = { re: amp.re, im: amp.im };
+      }
+    }
+
+    return calculatePauliExpectation(stateVector, hamiltonian);
+  }
+
+  // === Fallback: heuristic energy model ===
   let energy = 0;
   const groundStateEnergy = molecule.expectedGroundStateEnergy;
-  
-  // Weight states by their energy contribution
-  // In real VQE, this would use Pauli decomposition of the Hamiltonian
+
   for (const prob of result.probabilities) {
     const stateIndex = parseInt(prob.state.slice(1, -1), 2);
     const hammingWeight = stateIndex.toString(2).split('1').length - 1;
-    
-    // Energy model: ground state (HF-like) has lowest energy
-    // Excited states have higher energy based on excitation level
-    const excitationEnergy = hammingWeight * 0.3; // Energy per excitation
+    const excitationEnergy = hammingWeight * 0.3;
     const stateEnergy = groundStateEnergy + excitationEnergy;
-    
     energy += prob.probability * stateEnergy;
   }
-  
+
   return energy;
 };
 
