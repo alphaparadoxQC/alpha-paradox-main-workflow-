@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Pill, Play, RotateCcw, Download, Atom, FlaskConical, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,10 @@ import { ADMETPanel } from './ADMETPanel';
 import { DockingResults } from './DockingResults';
 import { TargetSelector } from './TargetSelector';
 import { AIAssistantPanel } from './AIAssistantPanel';
+import { CustomMoleculeInput } from './CustomMoleculeInput';
+import { RunOnHardwareButton } from '@/components/shared/RunOnHardwareButton';
+import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
+import { simulateCircuit } from '@/lib/quantum/simulator';
 import { CustomMoleculeInput } from './CustomMoleculeInput';
 import {
   DRUG_CANDIDATES,
