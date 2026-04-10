@@ -23,7 +23,6 @@ import { CustomMoleculeInput } from './CustomMoleculeInput';
 import { RunOnHardwareButton } from '@/components/shared/RunOnHardwareButton';
 import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
 import { simulateCircuit } from '@/lib/quantum/simulator';
-import { CustomMoleculeInput } from './CustomMoleculeInput';
 import {
   DRUG_CANDIDATES,
   PROTEIN_TARGETS,
