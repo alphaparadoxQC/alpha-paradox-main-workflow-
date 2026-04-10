@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Pill, Play, RotateCcw, Download, Atom, FlaskConical, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
