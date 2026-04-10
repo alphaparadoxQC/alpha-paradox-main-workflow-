@@ -22,7 +22,7 @@ import { AIAssistantPanel } from './AIAssistantPanel';
 import { CustomMoleculeInput } from './CustomMoleculeInput';
 import { RunOnHardwareButton } from '@/components/shared/RunOnHardwareButton';
 import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
-import { simulateCircuit } from '@/lib/quantum/simulator';
+
 import {
   DRUG_CANDIDATES,
   PROTEIN_TARGETS,
