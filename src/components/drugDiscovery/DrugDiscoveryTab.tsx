@@ -260,6 +260,49 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
         )}
       </div>
 
+      {/* Run Docking Circuit on Hardware */}
+      {dockingResult && (
+        <RunOnHardwareButton
+          gates={(() => {
+            // Generate a small VQE-style circuit representing the docking interaction
+            const mockMolecule = {
+              id: drug.id,
+              name: drug.name,
+              formula: drug.formula,
+              atoms: [],
+              bonds: [],
+              angles: [],
+              electrons: Math.min(drug.atoms.length, 4),
+              expectedGroundStateEnergy: dockingResult.bindingEnergy / 627.509, // kcal/mol → Hartree
+              orbitals: [],
+              qubitsRequired: 4,
+              vqeDepth: 2,
+            };
+            return generateParameterizedAnsatz(mockMolecule, [
+              dockingResult.bindingEnergy * 0.1,
+              dockingResult.poseScore * 0.01,
+              dockingResult.electrostaticScore * 0.5,
+              dockingResult.hBonds * 0.2,
+              dockingResult.bindingEnergy * -0.05,
+              dockingResult.hydrophobicContacts * 0.15,
+              dockingResult.poseScore * -0.02,
+              dockingResult.electrostaticScore * -0.3,
+              dockingResult.bindingEnergy * 0.08,
+              dockingResult.hBonds * -0.1,
+              dockingResult.poseScore * 0.03,
+              dockingResult.hydrophobicContacts * -0.2,
+              dockingResult.bindingEnergy * -0.03,
+              dockingResult.electrostaticScore * 0.2,
+              dockingResult.hBonds * 0.15,
+              dockingResult.poseScore * -0.01,
+            ]);
+          })()}
+          qubitCount={4}
+          localResults={null}
+          contextLabel="Docking Circuit"
+        />
+      )}
+
       {/* Results Tabs */}
       <Tabs defaultValue="ai" className="flex-1">
         <TabsList className="grid w-full grid-cols-4">
