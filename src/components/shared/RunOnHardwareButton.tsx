@@ -89,8 +89,8 @@ export function RunOnHardwareButton({
         )}
 
         {currentJob?.status === 'completed' && (
-          <div className="p-2 rounded bg-green-500/10 border border-green-500/20 text-[10px]">
-            <span className="text-green-400 font-medium">✓ Hardware results available</span>
+          <div className="p-2 rounded bg-accent/10 border border-accent/20 text-[10px]">
+            <span className="text-accent font-medium">✓ Hardware results available</span>
             <a href="/jobs" className="flex items-center gap-1 text-primary hover:underline mt-1">
               View results <ExternalLink className="w-3 h-3" />
             </a>
