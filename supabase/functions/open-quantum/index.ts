@@ -30,6 +30,12 @@ interface CircuitRequest {
   backendName?: string;
 }
 
+interface StatusRequest {
+  action: "status";
+  jobId: string;
+  qubitCount: number;
+}
+
 // ── Convert circuit to OpenQASM 2.0 ──
 function circuitToOpenQASM(gates: QuantumGate[], qubitCount: number): string {
   const lines: string[] = [
@@ -102,7 +108,7 @@ function mapBackendToShortCode(backendName?: string): string {
     "iqm:garnet": "iqm:garnet",
   };
   if (backendName && mapping[backendName]) return mapping[backendName];
-  return "rigetti:ankaa-3"; // Default
+  return "rigetti:ankaa-3";
 }
 
 // ── Keycloak OAuth2 client credentials ──
@@ -167,6 +173,93 @@ async function apiRequest(
   return resp.status === 204 ? {} : JSON.parse(text);
 }
 
+// ── Map Open Quantum status to our status ──
+function mapStatus(oqStatus: string): string {
+  const statusMap: Record<string, string> = {
+    "Pending": "queued",
+    "Queued": "queued",
+    "Running": "running",
+    "Completed": "completed",
+    "Failed": "failed",
+    "Cancelled": "cancelled",
+  };
+  return statusMap[oqStatus] || "queued";
+}
+
+// ── Parse measurement results into probabilities ──
+function parseResults(
+  resultsData: Record<string, unknown> | null,
+  qubitCount: number
+): { state: string; probability: number }[] | null {
+  if (!resultsData) return null;
+
+  // Open Quantum returns measurement counts like {"00": 512, "11": 512}
+  const counts = (resultsData.measurement_counts || resultsData.counts || resultsData) as Record<string, number>;
+  if (!counts || typeof counts !== "object") return null;
+
+  const totalShots = Object.values(counts).reduce((sum: number, c: number) => sum + c, 0);
+  if (totalShots === 0) return null;
+
+  const probabilities: { state: string; probability: number }[] = [];
+  for (const [state, count] of Object.entries(counts)) {
+    probabilities.push({
+      state: state.padStart(qubitCount, "0"),
+      probability: (count as number) / totalShots,
+    });
+  }
+
+  return probabilities.sort((a, b) => b.probability - a.probability);
+}
+
+// ── Handle status check ──
+async function handleStatusCheck(
+  jobId: string,
+  qubitCount: number,
+  accessToken: string
+): Promise<Response> {
+  console.log(`[Open Quantum] Checking status for job: ${jobId}`);
+
+  const jobData = await apiRequest(SCHEDULER_API, `/v1/jobs/${jobId}`, accessToken);
+  const oqStatus = jobData.status as string;
+  const mappedStatus = mapStatus(oqStatus);
+
+  console.log(`[Open Quantum] Job ${jobId} status: ${oqStatus} -> ${mappedStatus}`);
+
+  const response: Record<string, unknown> = {
+    status: mappedStatus,
+    queuePosition: jobData.queue_position ?? null,
+    startedAt: jobData.started_at ?? null,
+    completedAt: jobData.completed_at ?? null,
+    errorMessage: jobData.error_message ?? null,
+  };
+
+  // If completed, try to get results
+  if (mappedStatus === "completed") {
+    // Try to fetch results
+    try {
+      const resultsData = await apiRequest(SCHEDULER_API, `/v1/jobs/${jobId}/results`, accessToken);
+      const probabilities = parseResults(resultsData, qubitCount);
+      if (probabilities) {
+        response.probabilities = probabilities;
+      }
+    } catch (err) {
+      console.warn(`[Open Quantum] Could not fetch results for ${jobId}:`, err);
+      // Results may be embedded in the job data
+      if (jobData.results) {
+        const probabilities = parseResults(jobData.results as Record<string, unknown>, qubitCount);
+        if (probabilities) {
+          response.probabilities = probabilities;
+        }
+      }
+    }
+  }
+
+  return new Response(
+    JSON.stringify(response),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -203,11 +296,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[Open Quantum] Authenticated user: ${user.id}`);
+    // ── Get Open Quantum credentials ──
+    const clientId = Deno.env.get("OPENQUANTUM_CLIENT_ID");
+    const clientSecret = Deno.env.get("OPENQUANTUM_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      return new Response(
+        JSON.stringify({
+          error: "Open Quantum credentials not configured.",
+          setupUrl: "https://www.openquantum.com/keys",
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Authenticate with Keycloak ──
+    const accessToken = await getAccessToken(clientId, clientSecret);
 
     // ── Parse request ──
-    const body: CircuitRequest = await req.json();
-    const { gates, qubitCount, shots = 100, backendName } = body;
+    const body = await req.json();
+
+    // ── Route: status check ──
+    if (body.action === "status") {
+      return await handleStatusCheck(body.jobId, body.qubitCount || 5, accessToken);
+    }
+
+    // ── Route: submit job ──
+    console.log(`[Open Quantum] Authenticated user: ${user.id}`);
+
+    const { gates, qubitCount, shots = 100, backendName } = body as CircuitRequest;
 
     if (!gates || !Array.isArray(gates)) {
       return new Response(
@@ -216,26 +333,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── Get Open Quantum credentials ──
-    const clientId = Deno.env.get("OPENQUANTUM_CLIENT_ID");
-    const clientSecret = Deno.env.get("OPENQUANTUM_CLIENT_SECRET");
-
-    if (!clientId || !clientSecret) {
-      return new Response(
-        JSON.stringify({
-          error: "Open Quantum credentials not configured. Get your SDK key at openquantum.com/keys",
-          setupUrl: "https://www.openquantum.com/keys",
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // ── Step 1: Authenticate with Keycloak ──
-    console.log("[Open Quantum] Authenticating with Keycloak...");
-    const accessToken = await getAccessToken(clientId, clientSecret);
-    console.log("[Open Quantum] Keycloak auth successful");
-
-    // ── Step 2: Get organization ──
+    // ── Step 1: Get organization ──
     const orgsData = await apiRequest(MANAGEMENT_API, "/v1/users/organizations", accessToken);
     const organizations = orgsData.organizations as Array<{ id: string; name: string }>;
     if (!organizations || organizations.length === 0) {
@@ -244,19 +342,17 @@ Deno.serve(async (req) => {
     const orgId = organizations[0].id;
     console.log(`[Open Quantum] Using org: ${organizations[0].name} (${orgId})`);
 
-    // ── Step 3: Generate QASM ──
+    // ── Step 2: Generate QASM ──
     const qasm = circuitToOpenQASM(gates, qubitCount);
     console.log("[Open Quantum] Generated OpenQASM:\n", qasm);
 
-    // ── Step 4: Upload QASM ──
+    // ── Step 3: Upload QASM ──
     const uploadData = await apiRequest(SCHEDULER_API, "/v1/jobs/upload", accessToken, {
       method: "POST",
     });
     const uploadId = (uploadData as { id: string; url: string }).id;
     const uploadUrl = (uploadData as { id: string; url: string }).url;
-    console.log(`[Open Quantum] Got upload endpoint: ${uploadId}`);
 
-    // Upload the QASM content to the presigned URL
     const uploadResp = await fetch(uploadUrl, {
       method: "PUT",
       body: new TextEncoder().encode(qasm),
@@ -267,7 +363,7 @@ Deno.serve(async (req) => {
     }
     console.log("[Open Quantum] QASM uploaded successfully");
 
-    // ── Step 5: Prepare job ──
+    // ── Step 4: Prepare job ──
     const backendShortCode = mapBackendToShortCode(backendName);
     console.log(`[Open Quantum] Preparing job on backend: ${backendShortCode}, shots: ${shots}`);
 
@@ -286,7 +382,7 @@ Deno.serve(async (req) => {
     const preparationId = (prepData as { id: string }).id;
     console.log(`[Open Quantum] Job preparation created: ${preparationId}`);
 
-    // ── Step 6: Poll preparation until quote is ready ──
+    // ── Step 5: Poll preparation until quote is ready ──
     let prepResult: Record<string, unknown> | null = null;
     for (let i = 0; i < 30; i++) {
       await new Promise((r) => setTimeout(r, 2000));
@@ -311,7 +407,7 @@ Deno.serve(async (req) => {
       throw new Error("Job preparation timed out after 60 seconds");
     }
 
-    // ── Step 7: Select cheapest execution plan ──
+    // ── Step 6: Select cheapest execution plan ──
     const quote = prepResult.quote as Array<{
       name: string;
       price: number;
@@ -337,7 +433,7 @@ Deno.serve(async (req) => {
       `[Open Quantum] Selected plan: ${cheapestPlan.name} (${cheapestPlan.price} credits), priority: ${cheapestPriority.name}`
     );
 
-    // ── Step 8: Create the job ──
+    // ── Step 7: Create the job ──
     const jobData = await apiRequest(SCHEDULER_API, "/v1/jobs", accessToken, {
       method: "POST",
       body: {

@@ -150,14 +150,33 @@ export function useQuantumCloud() {
     }
   }, [session?.access_token, user]);
 
+  // Determine which status function to call based on backend
+  const getStatusFunctionForBackend = (backend: string): { fn: string; body: Record<string, unknown> } => {
+    if (backend.startsWith('rigetti:') || backend.startsWith('ionq:') || backend.startsWith('iqm:') || backend === 'open-quantum') {
+      return { fn: 'open-quantum', body: {} }; // body set per-call
+    }
+    if (backend.startsWith('aws-braket')) {
+      return { fn: 'amazon-braket', body: {} };
+    }
+    return { fn: 'ibm-quantum-status', body: {} };
+  };
+
   // Poll for job status
   const pollJobStatus = useCallback(async (job: QuantumJob) => {
     if (!session?.access_token) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('ibm-quantum-status', {
+      const { fn } = getStatusFunctionForBackend(job.backend);
+      
+      // Build the request body based on provider
+      const isOpenQuantum = fn === 'open-quantum';
+      const requestBody = isOpenQuantum
+        ? { action: 'status', jobId: job.job_id, qubitCount: job.qubit_count }
+        : { jobId: job.job_id, qubitCount: job.qubit_count };
+
+      const { data, error } = await supabase.functions.invoke(fn, {
         headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { jobId: job.job_id, qubitCount: job.qubit_count },
+        body: requestBody,
       });
 
       if (error) throw error;
