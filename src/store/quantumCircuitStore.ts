@@ -17,7 +17,7 @@ export const QUBIT_LIMITS = {
   DEFAULT: 5,
   STATE_VECTOR_MAX: 15,
   MPS_MAX: 25,
-  TENSOR_NETWORK_MAX: 120, // Extended limit with tensor network
+  TENSOR_NETWORK_MAX: 210, // Extended limit with tensor network (+90)
 };
 
  /**
