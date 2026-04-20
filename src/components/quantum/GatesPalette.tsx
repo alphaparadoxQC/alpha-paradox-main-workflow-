@@ -19,7 +19,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ChemistryTab } from '@/components/chemistry/ChemistryTab';
-import { DrugDiscoveryTab } from '@/components/drugDiscovery/DrugDiscoveryTab';
 
 // Legacy gate order for backwards compatibility
 const BASIC_GATES: GateType[] = [
