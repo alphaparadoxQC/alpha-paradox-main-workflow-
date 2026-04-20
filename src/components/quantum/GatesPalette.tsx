@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, FlaskConical, Atom, Pill } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, ChevronRight, FlaskConical, Atom, Pill, ExternalLink } from 'lucide-react';
 import { 
   ExtendedGateType, 
   EXTENDED_GATE_INFO, 
@@ -18,7 +19,6 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ChemistryTab } from '@/components/chemistry/ChemistryTab';
-import { DrugDiscoveryTab } from '@/components/drugDiscovery/DrugDiscoveryTab';
 
 // Legacy gate order for backwards compatibility
 const BASIC_GATES: GateType[] = [
@@ -228,7 +228,26 @@ export const GatesPalette = () => {
         </TabsContent>
         
         <TabsContent value="drugs" className="flex-1 m-0 overflow-hidden">
-          <DrugDiscoveryTab />
+          <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="p-4 rounded-2xl bg-primary/10">
+              <Pill className="w-8 h-8 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">Pharma & Drug Discovery</h3>
+              <p className="text-xs text-muted-foreground max-w-[220px]">
+                Open the dedicated workspace for structured docking, ADMET and Lipinski outputs.
+              </p>
+            </div>
+            <Link
+              to="/pharma"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+            >
+              Open Pharma Workspace
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
