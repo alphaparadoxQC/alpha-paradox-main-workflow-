@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { ChemistryTab } from '@/components/chemistry/ChemistryTab';
 import { PeriodicTable } from '@/components/chemistry/PeriodicTable';
+import { CustomMoleculeLibrary } from '@/components/chemistry/CustomMoleculeLibrary';
 import { MoleculeViewer3D } from '@/components/chemistry/MoleculeViewer3D';
 import { VQEControls } from '@/components/chemistry/VQEControls';
 import { VQEProgressChart } from '@/components/chemistry/VQEProgressChart';
@@ -135,12 +136,15 @@ const Chemistry = () => {
       <main className="flex-1">
         <section className="max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 space-y-4">
           <Tabs defaultValue="builder" className="w-full">
-            <TabsList className="grid grid-cols-2 w-full sm:w-[400px]">
+            <TabsList className="grid grid-cols-3 w-full sm:w-[540px]">
               <TabsTrigger value="builder" className="text-xs gap-1">
-                <AtomIcon className="w-3.5 h-3.5" /> Custom Builder
+                <AtomIcon className="w-3.5 h-3.5" /> Periodic Table
+              </TabsTrigger>
+              <TabsTrigger value="custom" className="text-xs gap-1">
+                <FlaskConical className="w-3.5 h-3.5" /> Custom Molecules
               </TabsTrigger>
               <TabsTrigger value="library" className="text-xs gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> Molecule Library
+                <Sparkles className="w-3.5 h-3.5" /> Templates
               </TabsTrigger>
             </TabsList>
 
@@ -216,7 +220,12 @@ const Chemistry = () => {
               />
             </TabsContent>
 
-            {/* LIBRARY */}
+            {/* CUSTOM MOLECULES LIBRARY */}
+            <TabsContent value="custom" className="mt-4">
+              <CustomMoleculeLibrary />
+            </TabsContent>
+
+            {/* TEMPLATES */}
             <TabsContent value="library" className="mt-4">
               <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
                 <ChemistryTab />
