@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Jobs = lazy(() => import("./pages/Jobs"));
+const Pharma = lazy(() => import("./pages/Pharma"));
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,11 @@ const App = () => (
             <Route path="/jobs" element={
               <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
                 <Jobs />
+              </Suspense>
+            } />
+            <Route path="/pharma" element={
+              <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+                <Pharma />
               </Suspense>
             } />
             <Route path="*" element={<NotFound />} />
