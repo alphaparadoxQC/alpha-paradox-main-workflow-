@@ -18,7 +18,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { ChemistryTab } from '@/components/chemistry/ChemistryTab';
+
 
 // Legacy gate order for backwards compatibility
 const BASIC_GATES: GateType[] = [
@@ -224,7 +224,26 @@ export const GatesPalette = () => {
         </TabsContent>
         
         <TabsContent value="chemistry" className="flex-1 m-0 overflow-hidden">
-          <ChemistryTab />
+          <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="p-4 rounded-2xl bg-primary/10">
+              <FlaskConical className="w-8 h-8 text-primary" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground">Quantum Chemistry</h3>
+              <p className="text-xs text-muted-foreground max-w-[220px]">
+                Open the dedicated workspace with an interactive periodic table and VQE simulations.
+              </p>
+            </div>
+            <Link
+              to="/chemistry"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+            >
+              Open Chemistry Workspace
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </TabsContent>
         
         <TabsContent value="drugs" className="flex-1 m-0 overflow-hidden">
