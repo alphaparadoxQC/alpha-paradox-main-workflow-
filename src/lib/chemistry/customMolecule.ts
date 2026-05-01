@@ -141,6 +141,7 @@ function makeMolecule(
     id: `custom-${elements.map(e => e.symbol).join('-').toLowerCase()}`,
     name: `Custom ${formula}`,
     formula,
+    smiles: atomsToSmiles(elements.map(e => e.symbol)),
     atoms,
     bonds,
     angles: [],
