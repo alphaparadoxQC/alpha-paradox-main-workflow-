@@ -53,6 +53,7 @@ export const MOLECULES: MoleculeData[] = [
     id: 'h2',
     name: 'Hydrogen',
     formula: 'H₂',
+    smiles: '[H][H]',
     atoms: [
       { symbol: 'H', position: [-0.37, 0, 0], ...ATOM_PROPS.H },
       { symbol: 'H', position: [0.37, 0, 0], ...ATOM_PROPS.H },
@@ -72,6 +73,7 @@ export const MOLECULES: MoleculeData[] = [
     id: 'lih',
     name: 'Lithium Hydride',
     formula: 'LiH',
+    smiles: '[LiH]',
     atoms: [
       { symbol: 'Li', position: [-0.80, 0, 0], ...ATOM_PROPS.Li },
       { symbol: 'H', position: [0.80, 0, 0], ...ATOM_PROPS.H },
@@ -92,6 +94,7 @@ export const MOLECULES: MoleculeData[] = [
     id: 'h2o',
     name: 'Water',
     formula: 'H₂O',
+    smiles: 'O',
     atoms: [
       { symbol: 'O', position: [0, 0.12, 0], ...ATOM_PROPS.O },
       { symbol: 'H', position: [-0.76, -0.48, 0], ...ATOM_PROPS.H },
@@ -119,6 +122,7 @@ export const MOLECULES: MoleculeData[] = [
     id: 'beh2',
     name: 'Beryllium Hydride',
     formula: 'BeH₂',
+    smiles: '[BeH2]',
     atoms: [
       { symbol: 'Be', position: [0, 0, 0], ...ATOM_PROPS.Be },
       { symbol: 'H', position: [-1.33, 0, 0], ...ATOM_PROPS.H },
@@ -144,6 +148,7 @@ export const MOLECULES: MoleculeData[] = [
     id: 'nh3',
     name: 'Ammonia',
     formula: 'NH₃',
+    smiles: 'N',
     atoms: [
       { symbol: 'N', position: [0, 0.11, 0], ...ATOM_PROPS.N },
       { symbol: 'H', position: [0, -0.47, 0.94], ...ATOM_PROPS.H },
