@@ -252,6 +252,14 @@ export function CustomMoleculeLibrary() {
                 <Stat label="Electrons" value={String(molecule.electrons)} />
                 <Stat label="Qubits" value={String(molecule.qubitsRequired)} highlight />
                 <Stat label="VQE Depth" value={String(molecule.vqeDepth)} />
+                {molecule.smiles && (
+                  <div className="col-span-2 p-2 rounded-md bg-background/40 border border-border">
+                    <div className="text-[9px] uppercase tracking-wider text-muted-foreground">SMILES</div>
+                    <div className="text-xs font-mono text-primary truncate" title={molecule.smiles}>
+                      {molecule.smiles}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
