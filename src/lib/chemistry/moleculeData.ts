@@ -18,6 +18,8 @@ export interface MoleculeData {
   id: string;
   name: string;
   formula: string;
+  /** Canonical SMILES — drives the RDKit/3Dmol viewer for accurate 3D structure. */
+  smiles?: string;
   atoms: Atom[];
   bonds: Bond[];
   angles: { atoms: [number, number, number]; value: number }[];
