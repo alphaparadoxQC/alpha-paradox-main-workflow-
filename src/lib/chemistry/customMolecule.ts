@@ -4,6 +4,7 @@
 
 import { MoleculeData, Atom, Bond } from './moleculeData';
 import { ELEMENTS, ElementData, getElementBySymbol } from './periodicTable';
+import { atomsToSmiles } from './smilesBuilder';
 
 export interface CustomAtomSelection {
   symbol: string;
@@ -140,6 +141,7 @@ function makeMolecule(
     id: `custom-${elements.map(e => e.symbol).join('-').toLowerCase()}`,
     name: `Custom ${formula}`,
     formula,
+    smiles: atomsToSmiles(elements.map(e => e.symbol)),
     atoms,
     bonds,
     angles: [],

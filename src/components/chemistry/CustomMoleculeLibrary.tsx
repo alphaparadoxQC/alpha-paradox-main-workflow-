@@ -27,8 +27,13 @@ export function CustomMoleculeLibrary() {
 
   const [atoms, setAtoms] = useState<string[]>(['H', 'H']);
   const [customName, setCustomName] = useState('');
+  const [presetSmiles, setPresetSmiles] = useState<string | undefined>('[H][H]');
 
-  const molecule = useMemo(() => buildCustomMolecule(atoms), [atoms]);
+  const molecule = useMemo(() => {
+    const m = buildCustomMolecule(atoms);
+    if (m && presetSmiles) return { ...m, smiles: presetSmiles };
+    return m;
+  }, [atoms, presetSmiles]);
 
   const addAtom = (sym: string) => {
     if (atoms.length >= 8) {
@@ -36,14 +41,23 @@ export function CustomMoleculeLibrary() {
       return;
     }
     setAtoms(prev => [...prev, sym]);
+    // Once user starts editing, drop the preset SMILES so we re-derive from atoms
+    setPresetSmiles(undefined);
   };
 
-  const removeAt = (i: number) => setAtoms(prev => prev.filter((_, idx) => idx !== i));
-  const clearAtoms = () => setAtoms([]);
+  const removeAt = (i: number) => {
+    setAtoms(prev => prev.filter((_, idx) => idx !== i));
+    setPresetSmiles(undefined);
+  };
+  const clearAtoms = () => {
+    setAtoms([]);
+    setPresetSmiles(undefined);
+  };
 
   const loadPreset = (m: FamousMolecule) => {
     setAtoms([...m.atoms]);
     setCustomName(m.name);
+    setPresetSmiles(m.smiles);
     toast.success(`Loaded ${m.name}`, { description: m.formula });
   };
 
@@ -238,6 +252,14 @@ export function CustomMoleculeLibrary() {
                 <Stat label="Electrons" value={String(molecule.electrons)} />
                 <Stat label="Qubits" value={String(molecule.qubitsRequired)} highlight />
                 <Stat label="VQE Depth" value={String(molecule.vqeDepth)} />
+                {molecule.smiles && (
+                  <div className="col-span-2 p-2 rounded-md bg-background/40 border border-border">
+                    <div className="text-[9px] uppercase tracking-wider text-muted-foreground">SMILES</div>
+                    <div className="text-xs font-mono text-primary truncate" title={molecule.smiles}>
+                      {molecule.smiles}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
