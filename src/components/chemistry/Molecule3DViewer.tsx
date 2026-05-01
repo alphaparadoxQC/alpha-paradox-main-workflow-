@@ -54,11 +54,16 @@ export function Molecule3DViewer({
         const $3Dmol = await load3Dmol();
         if (cancelled || !containerRef.current) return;
 
-        // Resolve mol block: explicit > SMILES → RDKit
-        let block = molBlock ?? null;
+        // Resolve mol block: explicit > SMILES → RDKit/NCI
+        let block: string | null = molBlock ?? null;
+        let format: 'sdf' | 'mol' = molBlock ? 'sdf' : 'sdf';
+        let is3D = !!molBlock;
         if (!block && smiles) {
-          block = await smilesTo3DMolBlock(smiles);
-          if (!block) throw new Error(`Invalid SMILES: ${smiles}`);
+          const result = await smilesTo3DMolBlock(smiles);
+          if (!result) throw new Error(`Could not parse SMILES: ${smiles}`);
+          block = result.block;
+          format = result.format;
+          is3D = result.is3D;
         }
         if (!block) throw new Error('No molecule provided');
         if (cancelled) return;
@@ -75,11 +80,16 @@ export function Molecule3DViewer({
         });
         viewerRef.current = viewer;
 
-        viewer.addModel(block, 'mol');
+        viewer.addModel(block, format);
         applyStyle(viewer, showHs);
         viewer.zoomTo();
         viewer.render();
         viewer.zoom(1.1, 400);
+
+        if (!is3D) {
+          // Surface a soft note in the console — UI will still render
+          console.info('[Molecule3DViewer] Using 2D coordinates (offline fallback) for', smiles);
+        }
 
         if (!cancelled) setLoading(false);
       } catch (e) {
