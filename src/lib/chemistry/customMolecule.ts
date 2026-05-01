@@ -4,6 +4,7 @@
 
 import { MoleculeData, Atom, Bond } from './moleculeData';
 import { ELEMENTS, ElementData, getElementBySymbol } from './periodicTable';
+import { atomsToSmiles } from './smilesBuilder';
 
 export interface CustomAtomSelection {
   symbol: string;
