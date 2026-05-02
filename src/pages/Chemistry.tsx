@@ -138,12 +138,15 @@ const Chemistry = () => {
       <main className="flex-1">
         <section className="max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 space-y-4">
           <Tabs defaultValue="builder" className="w-full">
-            <TabsList className="grid grid-cols-3 w-full sm:w-[540px]">
+            <TabsList className="grid grid-cols-4 w-full sm:w-[680px]">
               <TabsTrigger value="builder" className="text-xs gap-1">
                 <AtomIcon className="w-3.5 h-3.5" /> Periodic Table
               </TabsTrigger>
               <TabsTrigger value="custom" className="text-xs gap-1">
                 <FlaskConical className="w-3.5 h-3.5" /> Custom Molecules
+              </TabsTrigger>
+              <TabsTrigger value="dft" className="text-xs gap-1">
+                <Zap className="w-3.5 h-3.5" /> DFT
               </TabsTrigger>
               <TabsTrigger value="library" className="text-xs gap-1">
                 <Sparkles className="w-3.5 h-3.5" /> Templates
