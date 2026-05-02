@@ -20,6 +20,9 @@ import { DockingResults } from './DockingResults';
 import { TargetSelector } from './TargetSelector';
 import { AIAssistantPanel } from './AIAssistantPanel';
 import { CustomMoleculeInput } from './CustomMoleculeInput';
+import { ToxicityPanel } from './ToxicityPanel';
+import { SelectivityProfiler } from './SelectivityProfiler';
+import { BindingFreeEnergy } from './BindingFreeEnergy';
 import { RunOnHardwareButton } from '@/components/shared/RunOnHardwareButton';
 import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
 
@@ -305,13 +308,14 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
 
       {/* Results Tabs */}
       <Tabs defaultValue="ai" className="flex-1">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="ai">
             <Brain className="w-3 h-3 mr-1" />
             AI Predict
           </TabsTrigger>
           <TabsTrigger value="analysis">Analysis</TabsTrigger>
           <TabsTrigger value="admet">ADMET</TabsTrigger>
+          <TabsTrigger value="toxicity">Toxicity</TabsTrigger>
           <TabsTrigger value="docking" disabled={!dockingResult}>
             Docking
           </TabsTrigger>
@@ -329,9 +333,17 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
           <ADMETPanel profile={admetProfile} />
         </TabsContent>
 
-        <TabsContent value="docking" className="mt-4">
+        <TabsContent value="toxicity" className="mt-4">
+          <ToxicityPanel drug={drug} />
+        </TabsContent>
+
+        <TabsContent value="docking" className="mt-4 space-y-3">
           {dockingResult && (
-            <DockingResults result={dockingResult} drug={drug} target={target} />
+            <>
+              <DockingResults result={dockingResult} drug={drug} target={target} />
+              <BindingFreeEnergy drug={drug} target={target} result={dockingResult} />
+              <SelectivityProfiler drug={drug} />
+            </>
           )}
         </TabsContent>
       </Tabs>

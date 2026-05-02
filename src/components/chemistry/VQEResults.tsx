@@ -36,22 +36,35 @@ export function VQEResults({
             <Zap className="w-4 h-4 text-primary" />
             VQE Results
           </div>
-          {result && (
-            <Badge 
-              variant={result.converged ? "default" : "secondary"}
-              className="text-[10px]"
-            >
-              {result.converged ? (
-                <span className="flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> Converged
-                </span>
-              ) : (
-                <span className="flex items-center gap-1">
-                  <XCircle className="w-3 h-3" /> Max Iterations
-                </span>
-              )}
-            </Badge>
-          )}
+          {result && (() => {
+            const suspicious =
+              result.finalEnergy < molecule.expectedGroundStateEnergy - 0.5;
+            if (suspicious) {
+              return (
+                <Badge variant="destructive" className="text-[10px]">
+                  <span className="flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> Warning: Check Parameters
+                  </span>
+                </Badge>
+              );
+            }
+            return (
+              <Badge
+                variant={result.converged ? 'default' : 'secondary'}
+                className={`text-[10px] ${!result.converged ? 'bg-amber-500/20 text-amber-500 border border-amber-500/40 hover:bg-amber-500/30' : ''}`}
+              >
+                {result.converged ? (
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Converged
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <XCircle className="w-3 h-3" /> Max Iterations
+                  </span>
+                )}
+              </Badge>
+            );
+          })()}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0 space-y-4">

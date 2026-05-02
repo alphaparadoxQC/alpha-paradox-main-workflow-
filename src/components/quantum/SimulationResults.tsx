@@ -6,6 +6,7 @@ import { PhaseWheel, phaseToColor } from './PhaseWheel';
 import { HardwareResults } from './HardwareResults';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIBMQuantum } from '@/hooks/useIBMQuantum';
+import { CircuitMetricsPanel } from './CircuitMetricsPanel';
 
 export const SimulationResults = () => {
   const { simulationResult, isSimulating, qubitCount, gates } = useQuantumCircuitStore();
@@ -305,6 +306,9 @@ export const SimulationResults = () => {
                 </p>
               )}
             </motion.div>
+
+            {/* Circuit Metrics Panel */}
+            <CircuitMetricsPanel />
 
             {/* Summary */}
             <motion.div

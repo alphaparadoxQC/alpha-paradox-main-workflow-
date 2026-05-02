@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FlaskConical, Loader2, Atom as AtomIcon, Sparkles, Info } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Loader2, Atom as AtomIcon, Sparkles, Info, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import { MoleculeViewer3D } from '@/components/chemistry/MoleculeViewer3D';
 import { VQEControls } from '@/components/chemistry/VQEControls';
 import { VQEProgressChart } from '@/components/chemistry/VQEProgressChart';
 import { VQEResults } from '@/components/chemistry/VQEResults';
+import { ElectronicProperties } from '@/components/chemistry/ElectronicProperties';
+import { DFTPanel } from '@/components/chemistry/DFTPanel';
 import { buildCustomMolecule } from '@/lib/chemistry/customMolecule';
 import { useVQE } from '@/hooks/useVQE';
 import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
@@ -60,7 +62,7 @@ const Chemistry = () => {
   }, [customMolecule.id]);
 
   const handleAdd = useCallback((sym: string) => {
-    setSelectedAtoms(prev => (prev.length >= 8 ? prev : [...prev, sym]));
+    setSelectedAtoms(prev => (prev.length >= 30 ? prev : [...prev, sym]));
   }, []);
 
   const handleRemoveAt = useCallback((index: number) => {
@@ -136,12 +138,15 @@ const Chemistry = () => {
       <main className="flex-1">
         <section className="max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 space-y-4">
           <Tabs defaultValue="builder" className="w-full">
-            <TabsList className="grid grid-cols-3 w-full sm:w-[540px]">
+            <TabsList className="grid grid-cols-4 w-full sm:w-[680px]">
               <TabsTrigger value="builder" className="text-xs gap-1">
                 <AtomIcon className="w-3.5 h-3.5" /> Periodic Table
               </TabsTrigger>
               <TabsTrigger value="custom" className="text-xs gap-1">
                 <FlaskConical className="w-3.5 h-3.5" /> Custom Molecules
+              </TabsTrigger>
+              <TabsTrigger value="dft" className="text-xs gap-1">
+                <Zap className="w-3.5 h-3.5" /> DFT
               </TabsTrigger>
               <TabsTrigger value="library" className="text-xs gap-1">
                 <Sparkles className="w-3.5 h-3.5" /> Templates
@@ -174,6 +179,8 @@ const Chemistry = () => {
                     <MoleculeViewer3D molecule={customMolecule} />
                   </CardContent>
                 </Card>
+
+                <ElectronicProperties />
 
                 <Card className="bg-card/50 backdrop-blur-sm border-border">
                   <CardHeader className="py-3">
@@ -223,6 +230,11 @@ const Chemistry = () => {
             {/* CUSTOM MOLECULES LIBRARY */}
             <TabsContent value="custom" className="mt-4">
               <CustomMoleculeLibrary />
+            </TabsContent>
+
+            {/* DFT */}
+            <TabsContent value="dft" className="mt-4">
+              <DFTPanel molecule={customMolecule} />
             </TabsContent>
 
             {/* TEMPLATES */}

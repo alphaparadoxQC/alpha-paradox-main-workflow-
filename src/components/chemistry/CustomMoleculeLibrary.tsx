@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Atom as AtomIcon, FlaskConical, Plus, Trash2, Sparkles, Send, BookMarked } from 'lucide-react';
+import { Atom as AtomIcon, FlaskConical, Plus, Trash2, Sparkles, Send, BookMarked, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ELEMENTS } from '@/lib/chemistry/periodicTable';
 import { FAMOUS_MOLECULES, CATEGORY_LABELS, FamousMolecule } from '@/lib/chemistry/famousMolecules';
 import { buildCustomMolecule } from '@/lib/chemistry/customMolecule';
@@ -36,8 +37,8 @@ export function CustomMoleculeLibrary() {
   }, [atoms, presetSmiles]);
 
   const addAtom = (sym: string) => {
-    if (atoms.length >= 8) {
-      toast.warning('Max 8 atoms — keeps VQE responsive in browser.');
+    if (atoms.length >= 30) {
+      toast.warning('Max 30 atoms reached for the custom builder.');
       return;
     }
     setAtoms(prev => [...prev, sym]);
@@ -241,6 +242,23 @@ export function CustomMoleculeLibrary() {
               })
             )}
           </div>
+
+          {atoms.length >= 10 && atoms.length < 20 && (
+            <Alert className="border-amber-500/40 bg-amber-500/10 [&>svg]:text-amber-500">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs text-amber-500">
+                Molecule too large for VQE. Docking and toxicity analysis will still work.
+              </AlertDescription>
+            </Alert>
+          )}
+          {atoms.length >= 20 && (
+            <Alert className="border-amber-500/40 bg-amber-500/10 [&>svg]:text-amber-500">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs text-amber-500">
+                Large molecule — 3D rendering may take a moment.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {molecule && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

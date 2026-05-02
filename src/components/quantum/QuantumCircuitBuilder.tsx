@@ -7,6 +7,7 @@ import { StatusBar } from './StatusBar';
 import { AnonymousUserBanner } from './AnonymousUserBanner';
 import { QuantumAssistant } from './QuantumAssistant';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
+import { QubitWarningBanner } from './QubitWarningBanner';
 
 export const QuantumCircuitBuilder = () => {
   return (
@@ -20,6 +21,9 @@ export const QuantumCircuitBuilder = () => {
       
       {/* Anonymous user banner */}
       <AnonymousUserBanner />
+
+      {/* Qubit count warning banner */}
+      <QubitWarningBanner />
 
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
