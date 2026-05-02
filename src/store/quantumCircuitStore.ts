@@ -15,7 +15,7 @@ import { CircuitTemplate, createGatesFromTemplate } from '@/lib/quantum/template
 export const QUBIT_LIMITS = {
   MIN: 2,
   DEFAULT: 5,
-  STATE_VECTOR_MAX: 15,
+  STATE_VECTOR_MAX: 25,
   MPS_MAX: 25,
   TENSOR_NETWORK_MAX: 210, // Extended limit with tensor network (+90)
 };
