@@ -12,8 +12,8 @@ export const CircuitMetricsPanel = () => {
   const depth = getCircuitDepth();
 
   const metrics = useMemo(() => {
-    const tCount = gates.filter((g) => g.type === 'T' || g.type === 'Tdg').length;
-    const cnotCount = gates.filter((g) => g.type === 'CNOT' || g.type === 'CX').length;
+    const tCount = gates.filter((g) => (g.type as string) === 'T' || (g.type as string) === 'Tdg').length;
+    const cnotCount = gates.filter((g) => (g.type as string) === 'CNOT' || (g.type as string) === 'CX').length;
     const total = gates.length;
     const cliffordCount = gates.filter((g) => CLIFFORD_GATES.has(g.type as string)).length;
     const cliffordFrac = total > 0 ? (cliffordCount / total) * 100 : 0;
