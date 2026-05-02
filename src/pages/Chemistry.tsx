@@ -62,7 +62,7 @@ const Chemistry = () => {
   }, [customMolecule.id]);
 
   const handleAdd = useCallback((sym: string) => {
-    setSelectedAtoms(prev => (prev.length >= 8 ? prev : [...prev, sym]));
+    setSelectedAtoms(prev => (prev.length >= 30 ? prev : [...prev, sym]));
   }, []);
 
   const handleRemoveAt = useCallback((index: number) => {
