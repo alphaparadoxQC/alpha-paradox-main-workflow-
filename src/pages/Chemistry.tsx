@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FlaskConical, Loader2, Atom as AtomIcon, Sparkles, Info } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Loader2, Atom as AtomIcon, Sparkles, Info, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,8 @@ import { MoleculeViewer3D } from '@/components/chemistry/MoleculeViewer3D';
 import { VQEControls } from '@/components/chemistry/VQEControls';
 import { VQEProgressChart } from '@/components/chemistry/VQEProgressChart';
 import { VQEResults } from '@/components/chemistry/VQEResults';
+import { ElectronicProperties } from '@/components/chemistry/ElectronicProperties';
+import { DFTPanel } from '@/components/chemistry/DFTPanel';
 import { buildCustomMolecule } from '@/lib/chemistry/customMolecule';
 import { useVQE } from '@/hooks/useVQE';
 import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
