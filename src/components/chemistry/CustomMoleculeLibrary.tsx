@@ -243,6 +243,23 @@ export function CustomMoleculeLibrary() {
             )}
           </div>
 
+          {atoms.length >= 10 && atoms.length < 20 && (
+            <Alert className="border-amber-500/40 bg-amber-500/10 [&>svg]:text-amber-500">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs text-amber-500">
+                Molecule too large for VQE. Docking and toxicity analysis will still work.
+              </AlertDescription>
+            </Alert>
+          )}
+          {atoms.length >= 20 && (
+            <Alert className="border-amber-500/40 bg-amber-500/10 [&>svg]:text-amber-500">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs text-amber-500">
+                Large molecule — 3D rendering may take a moment.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {molecule && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="rounded-lg border border-border bg-background/40 overflow-hidden">
