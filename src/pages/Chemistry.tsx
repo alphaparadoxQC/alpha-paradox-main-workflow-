@@ -232,6 +232,11 @@ const Chemistry = () => {
               <CustomMoleculeLibrary />
             </TabsContent>
 
+            {/* DFT */}
+            <TabsContent value="dft" className="mt-4">
+              <DFTPanel molecule={customMolecule} />
+            </TabsContent>
+
             {/* TEMPLATES */}
             <TabsContent value="library" className="mt-4">
               <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
