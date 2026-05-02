@@ -180,6 +180,8 @@ const Chemistry = () => {
                   </CardContent>
                 </Card>
 
+                <ElectronicProperties />
+
                 <Card className="bg-card/50 backdrop-blur-sm border-border">
                   <CardHeader className="py-3">
                     <CardTitle className="text-sm flex items-center gap-2">
