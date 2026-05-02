@@ -20,6 +20,9 @@ import { DockingResults } from './DockingResults';
 import { TargetSelector } from './TargetSelector';
 import { AIAssistantPanel } from './AIAssistantPanel';
 import { CustomMoleculeInput } from './CustomMoleculeInput';
+import { ToxicityPanel } from './ToxicityPanel';
+import { SelectivityProfiler } from './SelectivityProfiler';
+import { BindingFreeEnergy } from './BindingFreeEnergy';
 import { RunOnHardwareButton } from '@/components/shared/RunOnHardwareButton';
 import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
 
