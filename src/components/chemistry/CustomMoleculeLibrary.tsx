@@ -36,8 +36,8 @@ export function CustomMoleculeLibrary() {
   }, [atoms, presetSmiles]);
 
   const addAtom = (sym: string) => {
-    if (atoms.length >= 8) {
-      toast.warning('Max 8 atoms — keeps VQE responsive in browser.');
+    if (atoms.length >= 30) {
+      toast.warning('Max 30 atoms reached for the custom builder.');
       return;
     }
     setAtoms(prev => [...prev, sym]);
