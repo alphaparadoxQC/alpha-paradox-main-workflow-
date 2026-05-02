@@ -217,6 +217,10 @@ export const runVQEOptimization = async (
   let prevEnergy = Infinity;
   let converged = false;
   let iteration = 0;
+  let stableSteps = 0;
+  // Stricter convergence: require |ΔE| < 0.005 Ha for 3 consecutive iterations
+  const STABILITY_WINDOW = 3;
+  const STABILITY_THRESHOLD = Math.max(cfg.convergenceThreshold, 0.005);
   
   for (iteration = 0; iteration < cfg.maxIterations; iteration++) {
     // Generate circuit with current parameters
@@ -232,10 +236,15 @@ export const runVQEOptimization = async (
     iterations.push(iterationData);
     onIteration?.(iterationData);
     
-    // Check convergence
-    if (Math.abs(energy - prevEnergy) < cfg.convergenceThreshold) {
-      converged = true;
-      break;
+    // Check convergence — needs sustained stability
+    if (Math.abs(energy - prevEnergy) < STABILITY_THRESHOLD) {
+      stableSteps++;
+      if (stableSteps >= STABILITY_WINDOW) {
+        converged = true;
+        break;
+      }
+    } else {
+      stableSteps = 0;
     }
     prevEnergy = energy;
     
