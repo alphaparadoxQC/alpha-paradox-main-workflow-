@@ -307,6 +307,9 @@ export const SimulationResults = () => {
               )}
             </motion.div>
 
+            {/* Circuit Metrics Panel */}
+            <CircuitMetricsPanel />
+
             {/* Summary */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
