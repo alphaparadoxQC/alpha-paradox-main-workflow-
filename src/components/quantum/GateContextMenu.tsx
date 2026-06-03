@@ -35,7 +35,7 @@
  } from '@/components/ui/dialog';
  import { Slider } from '@/components/ui/slider';
  import { Label } from '@/components/ui/label';
- import { Trash2, Copy, Settings } from 'lucide-react';
+ import { Trash2, Copy, Settings, Info } from 'lucide-react';
 import { QuantumGate, GATE_INFO, GateType } from '@/types/quantum';
 import { EXTENDED_GATE_INFO } from '@/types/quantum-extended';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
@@ -63,6 +63,7 @@ const getGateInfo = (type: string) =>
  export const GateContextMenu = ({ gate, children }: GateContextMenuProps) => {
    const { removeGate, duplicateGate, updateGate } = useQuantumCircuitStore();
    const [showProperties, setShowProperties] = useState(false);
+   const [showInfo, setShowInfo] = useState(false);
    
    const gateInfo = getGateInfo(gate.type);
    const isRotationGate = ROTATION_GATES.includes(gate.type);
@@ -138,6 +139,16 @@ const getGateInfo = (type: string) =>
              Delete
            </ContextMenuItem>
            
+           <ContextMenuItem onClick={() => setShowInfo(true)}>
+             <Info className="w-4 h-4 mr-2" />
+             Info
+           </ContextMenuItem>
+
+                      <ContextMenuItem onClick={() => setShowInfo(true)}>
+             <Info className="w-4 h-4 mr-2" />
+             Info
+           </ContextMenuItem>
+
            {/* ============================================================
                DUPLICATE OPTION
                ============================================================

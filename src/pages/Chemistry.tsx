@@ -22,6 +22,7 @@ import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { toast } from 'sonner';
 import { MOLECULES } from '@/lib/chemistry/moleculeData';
+import { getElementBySymbol } from '@/lib/chemistry/periodicTable';
 
 const Chemistry = () => {
   const { user, loading } = useAuth();
@@ -53,6 +54,16 @@ const Chemistry = () => {
     [selectedAtoms]
   );
 
+  const { homo, lumo } = useMemo(() => {
+    const elements = customMolecule.atoms.map(a => getElementBySymbol(a.symbol)).filter(e => e && e.electronegativity);
+    const avgEn = elements.length > 0 
+      ? elements.reduce((sum, e) => sum + (e!.electronegativity || 0), 0) / elements.length 
+      : 2.5;
+    const h = -10 - (avgEn * 1.5);
+    const l = h + Math.max(1.5, 12 - (customMolecule.electrons * 0.1));
+    return { homo: h, lumo: l };
+  }, [customMolecule]);
+
   const vqe = useVQE(customMolecule);
   const { setQubitCount, setGates, clearCircuit } = useQuantumCircuitStore();
 
@@ -62,7 +73,7 @@ const Chemistry = () => {
   }, [customMolecule.id]);
 
   const handleAdd = useCallback((sym: string) => {
-    setSelectedAtoms(prev => (prev.length >= 30 ? prev : [...prev, sym]));
+    setSelectedAtoms(prev => (prev.length >= 200 ? prev : [...prev, sym]));
   }, []);
 
   const handleRemoveAt = useCallback((index: number) => {
@@ -77,10 +88,12 @@ const Chemistry = () => {
       return;
     }
     try {
+      const isHeavyMolecule = customMolecule.qubitsRequired >= 12;
       const result = await vqe.runOptimization({
-        maxIterations: 40,
-        learningRate: 0.3,
+        maxIterations: isHeavyMolecule ? 18 : 40,
+        learningRate: isHeavyMolecule ? 0.18 : 0.3,
         convergenceThreshold: 1e-4,
+        maxGradientUpdatesPerIteration: isHeavyMolecule ? 16 : 24,
       });
       const finalGates = generateParameterizedAnsatz(customMolecule, result.finalParameters);
       clearCircuit();
@@ -180,7 +193,7 @@ const Chemistry = () => {
                   </CardContent>
                 </Card>
 
-                <ElectronicProperties />
+                <ElectronicProperties homo={homo} lumo={lumo} />
 
                 <Card className="bg-card/50 backdrop-blur-sm border-border">
                   <CardHeader className="py-3">

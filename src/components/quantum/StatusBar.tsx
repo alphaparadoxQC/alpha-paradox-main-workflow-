@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
-import { Layers, Hash, Activity, Plus, Minus, Clock, Cpu, MousePointer2, Target } from 'lucide-react';
+import { Layers, Hash, Activity, Plus, Minus, Clock, Cpu, MousePointer2, Target, Binary } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QUBIT_LIMITS } from '@/store/quantumCircuitStore';
 import { GATE_INFO } from '@/types/quantum';
@@ -15,6 +15,7 @@ import {
 export const StatusBar = () => {
   const { 
     qubitCount, 
+    classicalBitCount,
     getGateCount, 
     getCircuitDepth, 
     isSimulating,
@@ -22,19 +23,22 @@ export const StatusBar = () => {
     executionTimeMs,
     incrementQubits,
     decrementQubits,
+    incrementClassicalBits,
+    decrementClassicalBits,
     setSimulationMethod,
     selectionVibeGate,
     selectionVibeStep,
     selectionVibeControlQubit,
     cancelSelectionVibe,
+    gpuAccelerated,
   } = useQuantumCircuitStore();
   
   const gateCount = getGateCount();
   const depth = getCircuitDepth();
   
-  const maxQubits = simulationMethod === 'mps' 
-    ? QUBIT_LIMITS.MPS_MAX 
-    : QUBIT_LIMITS.STATE_VECTOR_MAX;
+  const maxQubits = simulationMethod === 'stateVector' 
+    ? QUBIT_LIMITS.STATE_VECTOR_MAX 
+    : QUBIT_LIMITS.MPS_MAX;   // Both 'mps' and 'auto' allow up to 100
 
   const stats = [
     { 
@@ -110,6 +114,58 @@ export const StatusBar = () => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Add qubit (max {maxQubits})</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+
+        <div className="w-px h-5 bg-border" />
+
+        {/* Classical Bit controls */}
+        <div className="flex items-center gap-1">
+          <Binary className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">C-Bits:</span>
+          <div className="flex items-center gap-0.5 ml-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={decrementClassicalBits}
+                    disabled={classicalBitCount <= 0}
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Remove classical bit</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <motion.span 
+              key={`cbit-${classicalBitCount}`}
+              initial={{ scale: 1.3 }}
+              animate={{ scale: 1 }}
+              className="text-sm font-mono font-bold text-muted-foreground min-w-[1.5rem] text-center"
+            >
+              {classicalBitCount}
+            </motion.span>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={incrementClassicalBits}
+                    disabled={classicalBitCount >= 32}
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Add classical bit (max 32)</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
@@ -261,7 +317,19 @@ export const StatusBar = () => {
         
         <div className="w-px h-4 bg-border" />
         
-        <span>2^{qubitCount} = {Math.pow(2, qubitCount)} states</span>
+        <span>
+          {qubitCount <= 53 
+            ? `2^${qubitCount} = ${Math.pow(2, qubitCount).toLocaleString()} states`
+            : `2^${qubitCount} states (MPS sampling)`}
+        </span>
+        <div className="w-px h-4 bg-border" />
+        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+          gpuAccelerated 
+            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+            : 'bg-muted text-muted-foreground'
+        }`}>
+          {gpuAccelerated ? '⚡ GPU' : '🔧 CPU'}
+        </span>
         <div className="w-px h-4 bg-border" />
         <span className="font-mono">v2.0.0</span>
       </div>

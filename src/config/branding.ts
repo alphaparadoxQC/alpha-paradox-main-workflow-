@@ -37,8 +37,8 @@ export const BRANDING: BrandingConfig = {
   hardwareServiceName: 'Quantum Cloud',
   hardwareServiceShortName: 'QC',
   
-  docsUrl: 'https://docs.lovable.dev',
-  supportEmail: 'support@lovable.dev',
+  docsUrl: '',
+  supportEmail: '',
   
   showPoweredBy: false,
 };

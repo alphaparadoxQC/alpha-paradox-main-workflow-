@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { QuantumGate, SimulationResult, GateType } from '@/types/quantum';
-import { simulateCircuit } from '@/lib/quantum/simulator';
 import { CircuitTemplate, createGatesFromTemplate } from '@/lib/quantum/templates';
+import QuantumWorker from '@/lib/quantum/workers/quantumWorker?worker';
+
+// Module-level reference to the active Web Worker to allow cancellation
+let activeWorker: Worker | null = null;
 
 /**
  * ============================================================
@@ -16,8 +19,8 @@ export const QUBIT_LIMITS = {
   MIN: 2,
   DEFAULT: 5,
   STATE_VECTOR_MAX: 25,
-  MPS_MAX: 25,
-  TENSOR_NETWORK_MAX: 210, // Extended limit with tensor network (+90)
+  MPS_MAX: 100, // Increased for larger scale simulation
+  TENSOR_NETWORK_MAX: 1000, // Extended limit for 100+ qubits
 };
 
  /**
@@ -64,11 +67,13 @@ interface QuantumCircuitStore {
   // Circuit state
   gates: QuantumGate[];
   qubitCount: number;
+  classicalBitCount: number;
   simulationMethod: 'stateVector' | 'mps' | 'auto';
   executionTimeMs: number | null;
   
   // Simulation
   isSimulating: boolean;
+  gpuAccelerated: boolean;
   simulationResult: SimulationResult | null;
   
   // Drag state
@@ -76,6 +81,9 @@ interface QuantumCircuitStore {
   
   // Template state
   activeTemplate: CircuitTemplate | null;
+  
+  // Bit order convention
+  bitOrder: 'MSB' | 'LSB';
   
    // Selection state
    selectedGateId: string | null;
@@ -97,6 +105,7 @@ interface QuantumCircuitStore {
   setDraggedGate: (gateType: string | null) => void;
   simulate: () => void;
   loadTemplate: (template: CircuitTemplate) => void;
+  setBitOrder: (order: 'MSB' | 'LSB') => void;
    
    // Selection actions
    selectGate: (gateId: string | null) => void;
@@ -120,24 +129,33 @@ interface QuantumCircuitStore {
    // Direct setters (for loading from gallery/storage)
    setGates: (gates: QuantumGate[]) => void;
    setQubitCount: (count: number) => void;
+   setClassicalBitCount: (count: number) => void;
    setSimulationMethod: (method: 'stateVector' | 'mps' | 'auto') => void;
    incrementQubits: () => void;
    decrementQubits: () => void;
+   incrementClassicalBits: () => void;
+   decrementClassicalBits: () => void;
   
   // Computed
   getCircuitDepth: () => number;
   getGateCount: () => number;
+  getQASM: () => string;
+  setFromQASM: (qasm: string) => void;
 }
 
 export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => ({
   gates: [],
   qubitCount: QUBIT_LIMITS.DEFAULT,
+  classicalBitCount: QUBIT_LIMITS.DEFAULT,
   simulationMethod: 'auto',
   executionTimeMs: null,
   isSimulating: false,
+  gpuAccelerated: false,
   simulationResult: null,
   draggedGate: null,
   activeTemplate: null,
+  bitOrder: 'MSB',
+  
    selectedGateId: null,
    selectionVibeGate: null,
    selectionVibeStep: 'idle',
@@ -327,6 +345,8 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
    })),
  
    setQubitCount: (qubitCount) => set({ qubitCount }),
+   
+   setClassicalBitCount: (classicalBitCount) => set({ classicalBitCount }),
 
    setSimulationMethod: (simulationMethod) => set({ simulationMethod }),
    
@@ -336,42 +356,108 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
         : state.simulationMethod === 'auto'
         ? QUBIT_LIMITS.MPS_MAX
         : QUBIT_LIMITS.STATE_VECTOR_MAX;
+      const newCount = Math.min(state.qubitCount + 1, maxQubits);
+      if (newCount === state.qubitCount) return state;
       return {
-        qubitCount: Math.min(state.qubitCount + 1, maxQubits),
+        past: saveToHistory(state.gates, state.past),
+        future: [],
+        qubitCount: newCount,
+        simulationResult: null, // Invalidate — qubit space changed
       };
     }),
    
-   decrementQubits: () => set((state) => ({
-     qubitCount: Math.max(state.qubitCount - 1, QUBIT_LIMITS.MIN),
+   decrementQubits: () => set((state) => {
+     const newCount = Math.max(state.qubitCount - 1, QUBIT_LIMITS.MIN);
+     if (newCount === state.qubitCount) return state; // no change
+     
+     // Remove gates that reference the removed qubit
+     const filteredGates = state.gates.filter(g => 
+       g.qubit < newCount &&
+       (g.controlQubit === undefined || g.controlQubit < newCount) &&
+       (g.targetQubit === undefined || g.targetQubit < newCount)
+     );
+     
+     return {
+       past: saveToHistory(state.gates, state.past),
+       future: [],
+       qubitCount: newCount,
+       gates: filteredGates,
+       activeTemplate: null,
+       simulationResult: null, // Invalidate — qubit space changed
+     };
+   }),
+
+   incrementClassicalBits: () => set((state) => ({
+     classicalBitCount: Math.min(state.classicalBitCount + 1, 32)
    })),
+
+   decrementClassicalBits: () => set((state) => ({
+     classicalBitCount: Math.max(state.classicalBitCount - 1, 0)
+   })),
+
+  setBitOrder: (order) => {
+    set({ bitOrder: order });
+    get().simulate(); // Re-simulate to update bit strings
+  },
 
   simulate: () => {
     set({ isSimulating: true });
     
-    // Use setTimeout to allow UI to update before running simulation
-    setTimeout(() => {
-      const { gates, qubitCount } = get();
-      const startTime = performance.now();
+    // Terminate any currently running simulation
+    if (activeWorker) {
+      activeWorker.terminate();
+      activeWorker = null;
+    }
+
+    const { gates, qubitCount, bitOrder } = get();
+    const startTime = performance.now();
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H2',location:'src/store/quantumCircuitStore.ts:360',message:'simulate invoked',data:{gateCount:gates.length,qubitCount},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    // Start a new Web Worker
+    activeWorker = new QuantumWorker();
+    
+    activeWorker.onmessage = (event) => {
+      const { success, result, executionTimeMs, error } = event.data;
       
-      // Run the real quantum simulation
-      const result = simulateCircuit(gates, qubitCount);
+      if (success) {
+        // #region agent log
+        fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H2',location:'src/store/quantumCircuitStore.ts:370',message:'simulate success',data:{executionMs:executionTimeMs,probabilities:result.probabilities.length,amplitudes:result.amplitudes?.length},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        set({
+          isSimulating: false,
+          executionTimeMs,
+          simulationResult: result,
+          gpuAccelerated: result.gpuAccelerated || false,
+        });
+      } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H2',location:'src/store/quantumCircuitStore.ts:386',message:'simulate failed',data:{error,qubitCount,gateCount:gates.length},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        console.error("Simulation Worker Error:", error);
+        set({ isSimulating: false });
+      }
       
-      const endTime = performance.now();
-      
-      set({
-        isSimulating: false,
-        executionTimeMs: endTime - startTime,
-        simulationResult: {
-          probabilities: result.probabilities,
-          blochVectors: result.blochVectors,
-          isEntangled: result.isEntangled,
-          entangledPairs: result.entangledPairs,
-          amplitudes: result.amplitudes,
-          circuitDepth: result.circuitDepth,
-          hasMeasurement: result.hasMeasurement
-        }
-      });
-    }, 500); // Small delay for visual feedback
+      // Clean up worker after it finishes
+      if (activeWorker) {
+        activeWorker.terminate();
+        activeWorker = null;
+      }
+    };
+
+    activeWorker.onerror = (error) => {
+      console.error("Simulation Worker Fatal Error:", error);
+      set({ isSimulating: false });
+      if (activeWorker) {
+        activeWorker.terminate();
+        activeWorker = null;
+      }
+    };
+
+    // Post data to the worker to begin simulation
+    activeWorker.postMessage({ gates, qubitCount, bitOrder });
   },
 
   getCircuitDepth: () => {
@@ -381,4 +467,128 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   },
 
   getGateCount: () => get().gates.length,
+
+  getQASM: () => {
+    const { gates, qubitCount, classicalBitCount } = get();
+    let qasm = `OPENQASM 2.0;\ninclude "qelib1.inc";\n\nqreg q[${qubitCount}];\ncreg c[${classicalBitCount}];\n\n`;
+    
+    const sortedGates = [...gates].sort((a, b) => a.position - b.position);
+    
+    sortedGates.forEach(gate => {
+      // Convert internal gate representation to QASM
+      const type = gate.type.toLowerCase();
+      if (gate.controlQubit !== undefined && gate.targetQubit !== undefined) {
+        if (type === 'cnot') {
+          qasm += `cx q[${gate.controlQubit}], q[${gate.targetQubit}];\n`;
+        } else if (type === 'cz') {
+          qasm += `cz q[${gate.controlQubit}], q[${gate.targetQubit}];\n`;
+        } else if (type === 'cp' && gate.angle !== undefined) {
+          qasm += `cp(${gate.angle}) q[${gate.controlQubit}], q[${gate.targetQubit}];\n`;
+        }
+      } else if (type === 'm') {
+        qasm += `measure q[${gate.qubit}] -> c[${gate.qubit % classicalBitCount}];\n`;
+      } else if (gate.angle !== undefined && ['rx', 'ry', 'rz', 'p'].includes(type)) {
+        qasm += `${type}(${gate.angle}) q[${gate.qubit}];\n`;
+      } else {
+        qasm += `${type} q[${gate.qubit}];\n`;
+      }
+    });
+    
+    return qasm;
+  },
+
+  setFromQASM: (qasm: string) => {
+    const lines = qasm.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//') && !l.startsWith('OPENQASM') && !l.startsWith('include'));
+    const newGates: QuantumGate[] = [];
+    let currentPosition = 0;
+    let unmatchedLines = 0;
+    
+    // Quick regex patterns
+    const qregRegex = /qreg\s+[a-zA-Z]+\[(\d+)\];/;
+    const cregRegex = /creg\s+[a-zA-Z]+\[(\d+)\];/;
+    const measureRegex = /measure\s+q\[(\d+)\]\s*->\s*c\[(\d+)\];/;
+    const twoQubitRegex = /(cx|cz|swap)\s+q\[(\d+)\],\s*q\[(\d+)\];/;
+    const oneQubitRegex = /([a-z]+)\s+q\[(\d+)\];/;
+    const rotationRegex = /([a-z]+)\(([^)]+)\)\s+q\[(\d+)\];/;
+
+    lines.forEach(line => {
+      let match = line.match(qregRegex);
+      if (match) {
+        get().setQubitCount(Math.min(parseInt(match[1]), QUBIT_LIMITS.TENSOR_NETWORK_MAX));
+        return;
+      }
+      
+      match = line.match(cregRegex);
+      if (match) {
+        get().setClassicalBitCount(parseInt(match[1]));
+        return;
+      }
+
+      match = line.match(measureRegex);
+      if (match) {
+        newGates.push({
+          id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: 'M',
+          qubit: parseInt(match[1]),
+          position: currentPosition++
+        });
+        return;
+      }
+
+      match = line.match(twoQubitRegex);
+      if (match) {
+        const typeStr = match[1].toUpperCase() === 'CX' ? 'CNOT' : match[1].toUpperCase();
+        newGates.push({
+          id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: typeStr as GateType,
+          qubit: parseInt(match[2]),
+          controlQubit: parseInt(match[2]),
+          targetQubit: parseInt(match[3]),
+          position: currentPosition++
+        });
+        return;
+      }
+
+      match = line.match(rotationRegex);
+      if (match) {
+        let typeStr = match[1];
+        typeStr = typeStr.charAt(0).toUpperCase() + typeStr.slice(1); // Rx, Ry, Rz
+        let angle = 0;
+        try { angle = parseFloat(match[2].replace('pi', Math.PI.toString())); } catch(e){ /* ignore */ }
+        
+        newGates.push({
+          id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: typeStr as GateType,
+          qubit: parseInt(match[3]),
+          position: currentPosition++,
+          angle
+        });
+        return;
+      }
+
+      match = line.match(oneQubitRegex);
+      if (match) {
+        newGates.push({
+          id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: match[1].toUpperCase() as GateType,
+          qubit: parseInt(match[2]),
+          position: currentPosition++
+        });
+        return;
+      }
+      unmatchedLines++;
+    });
+
+    // #region agent log
+    fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H3',location:'src/store/quantumCircuitStore.ts:507',message:'setFromQASM parsed',data:{inputLines:lines.length,parsedGates:newGates.length,unmatchedLines},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    set((state) => ({
+      past: saveToHistory(state.gates, state.past),
+      future: [],
+      gates: newGates,
+      activeTemplate: null,
+      selectedGateId: null,
+    }));
+  }
 }));

@@ -8,17 +8,7 @@ export interface ElementData {
   mass: number;
   group: number;   // 1-18
   period: number;  // 1-7
-  category:
-    | 'alkali-metal'
-    | 'alkaline-earth'
-    | 'transition-metal'
-    | 'post-transition'
-    | 'metalloid'
-    | 'nonmetal'
-    | 'halogen'
-    | 'noble-gas'
-    | 'lanthanide'
-    | 'actinide';
+  category: string;
   electronegativity: number | null;
   valence: number;        // typical valence electrons used for bonding
   covalentRadius: number; // Å
@@ -26,45 +16,127 @@ export interface ElementData {
 }
 
 export const ELEMENTS: ElementData[] = [
-  // Period 1
-  { symbol: 'H',  name: 'Hydrogen',   number: 1,  mass: 1.008,  group: 1,  period: 1, category: 'nonmetal',         electronegativity: 2.20, valence: 1, covalentRadius: 0.31, color: '#FFFFFF' },
-  { symbol: 'He', name: 'Helium',     number: 2,  mass: 4.0026, group: 18, period: 1, category: 'noble-gas',        electronegativity: null, valence: 0, covalentRadius: 0.28, color: '#D9FFFF' },
-
-  // Period 2
-  { symbol: 'Li', name: 'Lithium',    number: 3,  mass: 6.94,   group: 1,  period: 2, category: 'alkali-metal',     electronegativity: 0.98, valence: 1, covalentRadius: 1.28, color: '#CC80FF' },
-  { symbol: 'Be', name: 'Beryllium',  number: 4,  mass: 9.0122, group: 2,  period: 2, category: 'alkaline-earth',   electronegativity: 1.57, valence: 2, covalentRadius: 0.96, color: '#C2FF00' },
-  { symbol: 'B',  name: 'Boron',      number: 5,  mass: 10.81,  group: 13, period: 2, category: 'metalloid',        electronegativity: 2.04, valence: 3, covalentRadius: 0.84, color: '#FFB5B5' },
-  { symbol: 'C',  name: 'Carbon',     number: 6,  mass: 12.011, group: 14, period: 2, category: 'nonmetal',         electronegativity: 2.55, valence: 4, covalentRadius: 0.76, color: '#909090' },
-  { symbol: 'N',  name: 'Nitrogen',   number: 7,  mass: 14.007, group: 15, period: 2, category: 'nonmetal',         electronegativity: 3.04, valence: 3, covalentRadius: 0.71, color: '#3050F8' },
-  { symbol: 'O',  name: 'Oxygen',     number: 8,  mass: 15.999, group: 16, period: 2, category: 'nonmetal',         electronegativity: 3.44, valence: 2, covalentRadius: 0.66, color: '#FF0D0D' },
-  { symbol: 'F',  name: 'Fluorine',   number: 9,  mass: 18.998, group: 17, period: 2, category: 'halogen',          electronegativity: 3.98, valence: 1, covalentRadius: 0.57, color: '#90E050' },
-  { symbol: 'Ne', name: 'Neon',       number: 10, mass: 20.180, group: 18, period: 2, category: 'noble-gas',        electronegativity: null, valence: 0, covalentRadius: 0.58, color: '#B3E3F5' },
-
-  // Period 3
-  { symbol: 'Na', name: 'Sodium',     number: 11, mass: 22.990, group: 1,  period: 3, category: 'alkali-metal',     electronegativity: 0.93, valence: 1, covalentRadius: 1.66, color: '#AB5CF2' },
-  { symbol: 'Mg', name: 'Magnesium',  number: 12, mass: 24.305, group: 2,  period: 3, category: 'alkaline-earth',   electronegativity: 1.31, valence: 2, covalentRadius: 1.41, color: '#8AFF00' },
-  { symbol: 'Al', name: 'Aluminium',  number: 13, mass: 26.982, group: 13, period: 3, category: 'post-transition',  electronegativity: 1.61, valence: 3, covalentRadius: 1.21, color: '#BFA6A6' },
-  { symbol: 'Si', name: 'Silicon',    number: 14, mass: 28.085, group: 14, period: 3, category: 'metalloid',        electronegativity: 1.90, valence: 4, covalentRadius: 1.11, color: '#F0C8A0' },
-  { symbol: 'P',  name: 'Phosphorus', number: 15, mass: 30.974, group: 15, period: 3, category: 'nonmetal',         electronegativity: 2.19, valence: 3, covalentRadius: 1.07, color: '#FF8000' },
-  { symbol: 'S',  name: 'Sulfur',     number: 16, mass: 32.06,  group: 16, period: 3, category: 'nonmetal',         electronegativity: 2.58, valence: 2, covalentRadius: 1.05, color: '#FFFF30' },
-  { symbol: 'Cl', name: 'Chlorine',   number: 17, mass: 35.45,  group: 17, period: 3, category: 'halogen',          electronegativity: 3.16, valence: 1, covalentRadius: 1.02, color: '#1FF01F' },
-  { symbol: 'Ar', name: 'Argon',      number: 18, mass: 39.948, group: 18, period: 3, category: 'noble-gas',        electronegativity: null, valence: 0, covalentRadius: 1.06, color: '#80D1E3' },
-
-  // Period 4 (selected — main group + most-used transition metals for chemistry simulations)
-  { symbol: 'K',  name: 'Potassium',  number: 19, mass: 39.098, group: 1,  period: 4, category: 'alkali-metal',     electronegativity: 0.82, valence: 1, covalentRadius: 2.03, color: '#8F40D4' },
-  { symbol: 'Ca', name: 'Calcium',    number: 20, mass: 40.078, group: 2,  period: 4, category: 'alkaline-earth',   electronegativity: 1.00, valence: 2, covalentRadius: 1.76, color: '#3DFF00' },
-  { symbol: 'Fe', name: 'Iron',       number: 26, mass: 55.845, group: 8,  period: 4, category: 'transition-metal', electronegativity: 1.83, valence: 2, covalentRadius: 1.32, color: '#E06633' },
-  { symbol: 'Cu', name: 'Copper',     number: 29, mass: 63.546, group: 11, period: 4, category: 'transition-metal', electronegativity: 1.90, valence: 1, covalentRadius: 1.32, color: '#C88033' },
-  { symbol: 'Zn', name: 'Zinc',       number: 30, mass: 65.38,  group: 12, period: 4, category: 'transition-metal', electronegativity: 1.65, valence: 2, covalentRadius: 1.22, color: '#7D80B0' },
-  { symbol: 'Br', name: 'Bromine',    number: 35, mass: 79.904, group: 17, period: 4, category: 'halogen',          electronegativity: 2.96, valence: 1, covalentRadius: 1.20, color: '#A62929' },
-  { symbol: 'Kr', name: 'Krypton',    number: 36, mass: 83.798, group: 18, period: 4, category: 'noble-gas',        electronegativity: 3.00, valence: 0, covalentRadius: 1.16, color: '#5CB8D1' },
-
-  // Period 5 (selected)
-  { symbol: 'I',  name: 'Iodine',     number: 53, mass: 126.90, group: 17, period: 5, category: 'halogen',          electronegativity: 2.66, valence: 1, covalentRadius: 1.39, color: '#940094' },
-  { symbol: 'Xe', name: 'Xenon',      number: 54, mass: 131.29, group: 18, period: 5, category: 'noble-gas',        electronegativity: 2.60, valence: 0, covalentRadius: 1.40, color: '#429EB0' },
+  { symbol: 'H', name: 'Hydrogen', number: 1, mass: 1.008, group: 1, period: 1, category: 'nonmetal', electronegativity: 2.2, valence: 1, covalentRadius: 0.31, color: '#FFFFFF' },
+  { symbol: 'He', name: 'Helium', number: 2, mass: 4.0026022, group: 18, period: 1, category: 'noble-gas', electronegativity: null, valence: 0, covalentRadius: 0.28, color: '#D9FFFF' },
+  { symbol: 'Li', name: 'Lithium', number: 3, mass: 6.94, group: 1, period: 2, category: 'alkali-metal', electronegativity: 0.98, valence: 1, covalentRadius: 1.28, color: '#CC80FF' },
+  { symbol: 'Be', name: 'Beryllium', number: 4, mass: 9.01218315, group: 2, period: 2, category: 'alkaline-earth', electronegativity: 1.57, valence: 2, covalentRadius: 0.96, color: '#C2FF00' },
+  { symbol: 'B', name: 'Boron', number: 5, mass: 10.81, group: 13, period: 2, category: 'metalloid', electronegativity: 2.04, valence: 3, covalentRadius: 0.84, color: '#FFB5B5' },
+  { symbol: 'C', name: 'Carbon', number: 6, mass: 12.011, group: 14, period: 2, category: 'nonmetal', electronegativity: 2.55, valence: 4, covalentRadius: 0.76, color: '#909090' },
+  { symbol: 'N', name: 'Nitrogen', number: 7, mass: 14.007, group: 15, period: 2, category: 'nonmetal', electronegativity: 3.04, valence: 3, covalentRadius: 0.71, color: '#3050F8' },
+  { symbol: 'O', name: 'Oxygen', number: 8, mass: 15.999, group: 16, period: 2, category: 'nonmetal', electronegativity: 3.44, valence: 2, covalentRadius: 0.66, color: '#FF0D0D' },
+  { symbol: 'F', name: 'Fluorine', number: 9, mass: 18.9984031636, group: 17, period: 2, category: 'nonmetal', electronegativity: 3.98, valence: 1, covalentRadius: 0.57, color: '#90E050' },
+  { symbol: 'Ne', name: 'Neon', number: 10, mass: 20.17976, group: 18, period: 2, category: 'noble-gas', electronegativity: null, valence: 0, covalentRadius: 0.58, color: '#B3E3F5' },
+  { symbol: 'Na', name: 'Sodium', number: 11, mass: 22.989769282, group: 1, period: 3, category: 'alkali-metal', electronegativity: 0.93, valence: 1, covalentRadius: 1.66, color: '#AB5CF2' },
+  { symbol: 'Mg', name: 'Magnesium', number: 12, mass: 24.305, group: 2, period: 3, category: 'alkaline-earth', electronegativity: 1.31, valence: 2, covalentRadius: 1.41, color: '#8AFF00' },
+  { symbol: 'Al', name: 'Aluminium', number: 13, mass: 26.98153857, group: 13, period: 3, category: 'transition-metal', electronegativity: 1.61, valence: 3, covalentRadius: 1.21, color: '#BFA6A6' },
+  { symbol: 'Si', name: 'Silicon', number: 14, mass: 28.085, group: 14, period: 3, category: 'metalloid', electronegativity: 1.9, valence: 4, covalentRadius: 1.11, color: '#F0C8A0' },
+  { symbol: 'P', name: 'Phosphorus', number: 15, mass: 30.9737619985, group: 15, period: 3, category: 'nonmetal', electronegativity: 2.19, valence: 3, covalentRadius: 1.07, color: '#FF8000' },
+  { symbol: 'S', name: 'Sulfur', number: 16, mass: 32.06, group: 16, period: 3, category: 'nonmetal', electronegativity: 2.58, valence: 2, covalentRadius: 1.05, color: '#FFFF30' },
+  { symbol: 'Cl', name: 'Chlorine', number: 17, mass: 35.45, group: 17, period: 3, category: 'nonmetal', electronegativity: 3.16, valence: 1, covalentRadius: 1.02, color: '#1FF01F' },
+  { symbol: 'Ar', name: 'Argon', number: 18, mass: 39.9481, group: 18, period: 3, category: 'noble-gas', electronegativity: null, valence: 0, covalentRadius: 1.06, color: '#80D1E3' },
+  { symbol: 'K', name: 'Potassium', number: 19, mass: 39.09831, group: 1, period: 4, category: 'alkali-metal', electronegativity: 0.82, valence: 1, covalentRadius: 2.03, color: '#8F40D4' },
+  { symbol: 'Ca', name: 'Calcium', number: 20, mass: 40.0784, group: 2, period: 4, category: 'alkaline-earth', electronegativity: 1, valence: 2, covalentRadius: 1.76, color: '#3DFF00' },
+  { symbol: 'Sc', name: 'Scandium', number: 21, mass: 44.9559085, group: 3, period: 4, category: 'transition-metal', electronegativity: 1.36, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ti', name: 'Titanium', number: 22, mass: 47.8671, group: 4, period: 4, category: 'transition-metal', electronegativity: 1.54, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'V', name: 'Vanadium', number: 23, mass: 50.94151, group: 5, period: 4, category: 'transition-metal', electronegativity: 1.63, valence: 5, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Cr', name: 'Chromium', number: 24, mass: 51.99616, group: 6, period: 4, category: 'transition-metal', electronegativity: 1.66, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Mn', name: 'Manganese', number: 25, mass: 54.9380443, group: 7, period: 4, category: 'transition-metal', electronegativity: 1.55, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Fe', name: 'Iron', number: 26, mass: 55.8452, group: 8, period: 4, category: 'transition-metal', electronegativity: 1.83, valence: 2, covalentRadius: 1.32, color: '#E06633' },
+  { symbol: 'Co', name: 'Cobalt', number: 27, mass: 58.9331944, group: 9, period: 4, category: 'transition-metal', electronegativity: 1.88, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ni', name: 'Nickel', number: 28, mass: 58.69344, group: 10, period: 4, category: 'transition-metal', electronegativity: 1.91, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Cu', name: 'Copper', number: 29, mass: 63.5463, group: 11, period: 4, category: 'transition-metal', electronegativity: 1.9, valence: 1, covalentRadius: 1.32, color: '#C88033' },
+  { symbol: 'Zn', name: 'Zinc', number: 30, mass: 65.382, group: 12, period: 4, category: 'transition-metal', electronegativity: 1.65, valence: 2, covalentRadius: 1.22, color: '#7D80B0' },
+  { symbol: 'Ga', name: 'Gallium', number: 31, mass: 69.7231, group: 13, period: 4, category: 'transition-metal', electronegativity: 1.81, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ge', name: 'Germanium', number: 32, mass: 72.6308, group: 14, period: 4, category: 'metalloid', electronegativity: 2.01, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'As', name: 'Arsenic', number: 33, mass: 74.9215956, group: 15, period: 4, category: 'metalloid', electronegativity: 2.18, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Se', name: 'Selenium', number: 34, mass: 78.9718, group: 16, period: 4, category: 'nonmetal', electronegativity: 2.55, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Br', name: 'Bromine', number: 35, mass: 79.904, group: 17, period: 4, category: 'nonmetal', electronegativity: 2.96, valence: 1, covalentRadius: 1.2, color: '#A62929' },
+  { symbol: 'Kr', name: 'Krypton', number: 36, mass: 83.7982, group: 18, period: 4, category: 'noble-gas', electronegativity: 3, valence: 0, covalentRadius: 1.16, color: '#5CB8D1' },
+  { symbol: 'Rb', name: 'Rubidium', number: 37, mass: 85.46783, group: 1, period: 5, category: 'alkali-metal', electronegativity: 0.82, valence: 1, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Sr', name: 'Strontium', number: 38, mass: 87.621, group: 2, period: 5, category: 'alkaline-earth', electronegativity: 0.95, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Y', name: 'Yttrium', number: 39, mass: 88.905842, group: 3, period: 5, category: 'transition-metal', electronegativity: 1.22, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Zr', name: 'Zirconium', number: 40, mass: 91.2242, group: 4, period: 5, category: 'transition-metal', electronegativity: 1.33, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Nb', name: 'Niobium', number: 41, mass: 92.906372, group: 5, period: 5, category: 'transition-metal', electronegativity: 1.6, valence: 5, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Mo', name: 'Molybdenum', number: 42, mass: 95.951, group: 6, period: 5, category: 'transition-metal', electronegativity: 2.16, valence: 6, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Tc', name: 'Technetium', number: 43, mass: 98, group: 7, period: 5, category: 'transition-metal', electronegativity: 1.9, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ru', name: 'Ruthenium', number: 44, mass: 101.072, group: 8, period: 5, category: 'transition-metal', electronegativity: 2.2, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Rh', name: 'Rhodium', number: 45, mass: 102.905502, group: 9, period: 5, category: 'transition-metal', electronegativity: 2.28, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Pd', name: 'Palladium', number: 46, mass: 106.421, group: 10, period: 5, category: 'transition-metal', electronegativity: 2.2, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ag', name: 'Silver', number: 47, mass: 107.86822, group: 11, period: 5, category: 'transition-metal', electronegativity: 1.93, valence: 1, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Cd', name: 'Cadmium', number: 48, mass: 112.4144, group: 12, period: 5, category: 'transition-metal', electronegativity: 1.69, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'In', name: 'Indium', number: 49, mass: 114.8181, group: 13, period: 5, category: 'transition-metal', electronegativity: 1.78, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Sn', name: 'Tin', number: 50, mass: 118.7107, group: 14, period: 5, category: 'transition-metal', electronegativity: 1.96, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Sb', name: 'Antimony', number: 51, mass: 121.7601, group: 15, period: 5, category: 'metalloid', electronegativity: 2.05, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Te', name: 'Tellurium', number: 52, mass: 127.603, group: 16, period: 5, category: 'metalloid', electronegativity: 2.1, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'I', name: 'Iodine', number: 53, mass: 126.904473, group: 17, period: 5, category: 'nonmetal', electronegativity: 2.66, valence: 1, covalentRadius: 1.39, color: '#940094' },
+  { symbol: 'Xe', name: 'Xenon', number: 54, mass: 131.2936, group: 18, period: 5, category: 'noble-gas', electronegativity: 2.6, valence: 0, covalentRadius: 1.4, color: '#429EB0' },
+  { symbol: 'Cs', name: 'Cesium', number: 55, mass: 132.905451966, group: 1, period: 6, category: 'alkali-metal', electronegativity: 0.79, valence: 1, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ba', name: 'Barium', number: 56, mass: 137.3277, group: 2, period: 6, category: 'alkaline-earth', electronegativity: 0.89, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'La', name: 'Lanthanum', number: 57, mass: 138.905477, group: 3, period: 9, category: 'lanthanide', electronegativity: 1.1, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ce', name: 'Cerium', number: 58, mass: 140.1161, group: 4, period: 9, category: 'lanthanide', electronegativity: 1.12, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Pr', name: 'Praseodymium', number: 59, mass: 140.907662, group: 5, period: 9, category: 'lanthanide', electronegativity: 1.13, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Nd', name: 'Neodymium', number: 60, mass: 144.2423, group: 6, period: 9, category: 'lanthanide', electronegativity: 1.14, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Pm', name: 'Promethium', number: 61, mass: 145, group: 7, period: 9, category: 'lanthanide', electronegativity: 1.13, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Sm', name: 'Samarium', number: 62, mass: 150.362, group: 8, period: 9, category: 'lanthanide', electronegativity: 1.17, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Eu', name: 'Europium', number: 63, mass: 151.9641, group: 9, period: 9, category: 'lanthanide', electronegativity: 1.2, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Gd', name: 'Gadolinium', number: 64, mass: 157.253, group: 10, period: 9, category: 'lanthanide', electronegativity: 1.2, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Tb', name: 'Terbium', number: 65, mass: 158.925352, group: 11, period: 9, category: 'lanthanide', electronegativity: 1.1, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Dy', name: 'Dysprosium', number: 66, mass: 162.5001, group: 12, period: 9, category: 'lanthanide', electronegativity: 1.22, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ho', name: 'Holmium', number: 67, mass: 164.930332, group: 13, period: 9, category: 'lanthanide', electronegativity: 1.23, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Er', name: 'Erbium', number: 68, mass: 167.2593, group: 14, period: 9, category: 'lanthanide', electronegativity: 1.24, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Tm', name: 'Thulium', number: 69, mass: 168.934222, group: 15, period: 9, category: 'lanthanide', electronegativity: 1.25, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Yb', name: 'Ytterbium', number: 70, mass: 173.0451, group: 16, period: 9, category: 'lanthanide', electronegativity: 1.1, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Lu', name: 'Lutetium', number: 71, mass: 174.96681, group: 17, period: 9, category: 'lanthanide', electronegativity: 1.27, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Hf', name: 'Hafnium', number: 72, mass: 178.492, group: 4, period: 6, category: 'transition-metal', electronegativity: 1.3, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ta', name: 'Tantalum', number: 73, mass: 180.947882, group: 5, period: 6, category: 'transition-metal', electronegativity: 1.5, valence: 5, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'W', name: 'Tungsten', number: 74, mass: 183.841, group: 6, period: 6, category: 'transition-metal', electronegativity: 2.36, valence: 6, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Re', name: 'Rhenium', number: 75, mass: 186.2071, group: 7, period: 6, category: 'transition-metal', electronegativity: 1.9, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Os', name: 'Osmium', number: 76, mass: 190.233, group: 8, period: 6, category: 'transition-metal', electronegativity: 2.2, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ir', name: 'Iridium', number: 77, mass: 192.2173, group: 9, period: 6, category: 'transition-metal', electronegativity: 2.2, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Pt', name: 'Platinum', number: 78, mass: 195.0849, group: 10, period: 6, category: 'transition-metal', electronegativity: 2.28, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Au', name: 'Gold', number: 79, mass: 196.9665695, group: 11, period: 6, category: 'transition-metal', electronegativity: 2.54, valence: 1, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Hg', name: 'Mercury', number: 80, mass: 200.5923, group: 12, period: 6, category: 'transition-metal', electronegativity: 2, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Tl', name: 'Thallium', number: 81, mass: 204.38, group: 13, period: 6, category: 'transition-metal', electronegativity: 1.62, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Pb', name: 'Lead', number: 82, mass: 207.21, group: 14, period: 6, category: 'transition-metal', electronegativity: 1.87, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Bi', name: 'Bismuth', number: 83, mass: 208.980401, group: 15, period: 6, category: 'transition-metal', electronegativity: 2.02, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Po', name: 'Polonium', number: 84, mass: 209, group: 16, period: 6, category: 'transition-metal', electronegativity: 2, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'At', name: 'Astatine', number: 85, mass: 210, group: 17, period: 6, category: 'metalloid', electronegativity: 2.2, valence: 1, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Rn', name: 'Radon', number: 86, mass: 222, group: 18, period: 6, category: 'noble-gas', electronegativity: 2.2, valence: 0, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Fr', name: 'Francium', number: 87, mass: 223, group: 1, period: 7, category: 'alkali-metal', electronegativity: 0.79, valence: 1, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ra', name: 'Radium', number: 88, mass: 226, group: 2, period: 7, category: 'alkaline-earth', electronegativity: 0.9, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ac', name: 'Actinium', number: 89, mass: 227, group: 3, period: 10, category: 'actinide', electronegativity: 1.1, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Th', name: 'Thorium', number: 90, mass: 232.03774, group: 4, period: 10, category: 'actinide', electronegativity: 1.3, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Pa', name: 'Protactinium', number: 91, mass: 231.035882, group: 5, period: 10, category: 'actinide', electronegativity: 1.5, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'U', name: 'Uranium', number: 92, mass: 238.028913, group: 6, period: 10, category: 'actinide', electronegativity: 1.38, valence: 6, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Np', name: 'Neptunium', number: 93, mass: 237, group: 7, period: 10, category: 'actinide', electronegativity: 1.36, valence: 5, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Pu', name: 'Plutonium', number: 94, mass: 244, group: 8, period: 10, category: 'actinide', electronegativity: 1.28, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Am', name: 'Americium', number: 95, mass: 243, group: 9, period: 10, category: 'actinide', electronegativity: 1.13, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Cm', name: 'Curium', number: 96, mass: 247, group: 10, period: 10, category: 'actinide', electronegativity: 1.28, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Bk', name: 'Berkelium', number: 97, mass: 247, group: 11, period: 10, category: 'actinide', electronegativity: 1.3, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Cf', name: 'Californium', number: 98, mass: 251, group: 12, period: 10, category: 'actinide', electronegativity: 1.3, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Es', name: 'Einsteinium', number: 99, mass: 252, group: 13, period: 10, category: 'actinide', electronegativity: 1.3, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Fm', name: 'Fermium', number: 100, mass: 257, group: 14, period: 10, category: 'actinide', electronegativity: 1.3, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Md', name: 'Mendelevium', number: 101, mass: 258, group: 15, period: 10, category: 'actinide', electronegativity: 1.3, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'No', name: 'Nobelium', number: 102, mass: 259, group: 16, period: 10, category: 'actinide', electronegativity: 1.3, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Lr', name: 'Lawrencium', number: 103, mass: 266, group: 17, period: 10, category: 'actinide', electronegativity: 1.3, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Rf', name: 'Rutherfordium', number: 104, mass: 267, group: 4, period: 7, category: 'transition-metal', electronegativity: null, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Db', name: 'Dubnium', number: 105, mass: 268, group: 5, period: 7, category: 'transition-metal', electronegativity: null, valence: 5, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Sg', name: 'Seaborgium', number: 106, mass: 269, group: 6, period: 7, category: 'transition-metal', electronegativity: null, valence: 6, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Bh', name: 'Bohrium', number: 107, mass: 270, group: 7, period: 7, category: 'transition-metal', electronegativity: null, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Hs', name: 'Hassium', number: 108, mass: 269, group: 8, period: 7, category: 'transition-metal', electronegativity: null, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Mt', name: 'Meitnerium', number: 109, mass: 278, group: 9, period: 7, category: 'transition-metal', electronegativity: null, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ds', name: 'Darmstadtium', number: 110, mass: 281, group: 10, period: 7, category: 'transition-metal', electronegativity: null, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Rg', name: 'Roentgenium', number: 111, mass: 282, group: 11, period: 7, category: 'transition-metal', electronegativity: null, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Cn', name: 'Copernicium', number: 112, mass: 285, group: 12, period: 7, category: 'transition-metal', electronegativity: null, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Nh', name: 'Nihonium', number: 113, mass: 286, group: 13, period: 7, category: 'transition-metal', electronegativity: null, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Fl', name: 'Flerovium', number: 114, mass: 289, group: 14, period: 7, category: 'transition-metal', electronegativity: null, valence: 4, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Mc', name: 'Moscovium', number: 115, mass: 289, group: 15, period: 7, category: 'transition-metal', electronegativity: null, valence: 3, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Lv', name: 'Livermorium', number: 116, mass: 293, group: 16, period: 7, category: 'transition-metal', electronegativity: null, valence: 2, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Ts', name: 'Tennessine', number: 117, mass: 294, group: 17, period: 7, category: 'metalloid', electronegativity: null, valence: 1, covalentRadius: 1.5, color: '#AAAAAA' },
+  { symbol: 'Og', name: 'Oganesson', number: 118, mass: 294, group: 18, period: 7, category: 'noble-gas', electronegativity: null, valence: 0, covalentRadius: 1.5, color: '#AAAAAA' },
 ];
 
-export const CATEGORY_COLORS: Record<ElementData['category'], string> = {
+export const CATEGORY_COLORS: Record<string, string> = {
   'alkali-metal':     'hsl(var(--chart-1))',
   'alkaline-earth':   'hsl(var(--chart-2))',
   'transition-metal': 'hsl(var(--chart-3))',

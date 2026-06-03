@@ -60,42 +60,102 @@ export function CustomMoleculeInput({ onAddMolecule }: CustomMoleculeInputProps)
   };
 
   const estimateProperties = useCallback(() => {
-    // Simple estimation based on SMILES string length and character composition
     const smiles = formData.smiles;
     if (!smiles) return;
 
     setIsCalculating(true);
     
-    // Simulate calculation delay
     setTimeout(() => {
-      // Very rough estimates based on SMILES parsing
-      const carbonCount = (smiles.match(/C/g) || []).length;
-      const oxygenCount = (smiles.match(/O/g) || []).length;
-      const nitrogenCount = (smiles.match(/N/g) || []).length;
-      const ringCount = (smiles.match(/[0-9]/g) || []).length / 2;
+      const atoms = parseSmilesAtoms(smiles);
+      const counts: Record<string, number> = {};
+      for (const a of atoms) counts[a] = (counts[a] || 0) + 1;
       
-      const estimatedMW = carbonCount * 12 + oxygenCount * 16 + nitrogenCount * 14 + (smiles.length - carbonCount - oxygenCount - nitrogenCount) * 1.5;
-      const estimatedLogP = (carbonCount - oxygenCount * 0.5 - nitrogenCount * 0.3) * 0.5;
-      const estimatedHBD = Math.min(oxygenCount, 3);
-      const estimatedHBA = oxygenCount + nitrogenCount;
-      const estimatedRB = Math.max(0, carbonCount / 4 - ringCount);
-      const estimatedPSA = oxygenCount * 20 + nitrogenCount * 25;
+      const C = counts['C'] || 0;
+      const O = counts['O'] || 0;
+      const N = counts['N'] || 0;
+      const S = counts['S'] || 0;
+      const F = counts['F'] || 0;
+      const Cl = counts['Cl'] || 0;
+      const Br = counts['Br'] || 0;
+      const I = counts['I'] || 0;
+      const P = counts['P'] || 0;
+      const explicitH = counts['H'] || 0;
+      
+      const heavyAtoms = atoms.filter(a => a !== 'H').length;
+      
+      // Count rings from ring-closure digits (each digit appears twice)
+      const ringDigits = smiles.match(/(?<=[^%])([0-9])/g) || [];
+      const percentRings = smiles.match(/%\d{2}/g) || [];
+      const ringCount = Math.floor(ringDigits.length / 2) + Math.floor(percentRings.length / 2);
+      
+      // Count bonds for degree-of-unsaturation (DoU) calculation
+      const doubleBonds = (smiles.match(/=/g) || []).length;
+      const tripleBonds = (smiles.match(/#/g) || []).length;
+      
+      // Implicit hydrogen estimation using standard valences
+      // Standard valences: C=4, N=3, O=2, S=2, P=3, F=1, Cl=1, Br=1, I=1
+      // For aromatic atoms (lowercase in SMILES), valence may differ
+      const aromaticAtoms = (smiles.match(/[cnos]/g) || []).length;
+      
+      // Degree of Unsaturation = (2C + 2 + N - H - Halogens) / 2
+      // Use this to estimate H count more reliably
+      const halogens = F + Cl + Br + I;
+      
+      // Better H estimation: sum of (default_valence - bonds_formed) for each heavy atom
+      // Simplified: use molecular formula H count = 2*C + 2 + N - 2*DoU - halogens
+      // where DoU = ringCount + doubleBonds + 2*tripleBonds
+      const degreesOfUnsaturation = ringCount + doubleBonds + 2 * tripleBonds;
+      const estimatedH = Math.max(0, 2 * C + 2 + N - 2 * degreesOfUnsaturation - halogens + explicitH);
+      const totalH = Math.max(explicitH, Math.round(estimatedH));
+      
+      // Molecular weight using IUPAC atomic masses
+      const MW = C * 12.011 + totalH * 1.008 + O * 15.999 + N * 14.007 
+        + S * 32.065 + F * 18.998 + Cl * 35.453 + Br * 79.904 + I * 126.904 + P * 30.974;
+      
+      // LogP via Wildman-Crippen atom-type contributions (simplified)
+      // Reference: Wildman & Crippen, J. Chem. Inf. Comput. Sci. 1999
+      const logP = C * 0.1441 + totalH * 0.1230 - O * 0.2783 - N * 0.4157 
+        + S * 0.6865 + F * 0.4118 + Cl * 0.6895 + Br * 0.8813 + I * 1.050 
+        - ringCount * 0.15 + aromaticAtoms * 0.13;
+      
+      // H-bond donors: count N-H and O-H groups
+      // From SMILES: bracket atoms with H ([NH], [OH]) and bare O/N not in C=O
+      const nhPattern = smiles.match(/\[N[^]]*H/gi) || [];
+      const bareNH = N - (smiles.match(/n/g) || []).length; // non-aromatic N likely has H
+      const HBD = Math.min(
+        Math.max(nhPattern.length, Math.min(bareNH, N)) + Math.min(O, 2),
+        totalH
+      );
+      
+      // H-bond acceptors: O and N atoms
+      const HBA = O + N;
+      
+      // Rotatable bonds: single bonds between heavy atoms, excluding ring bonds and terminal groups
+      const singleBondsEstimate = heavyAtoms - 1 - doubleBonds - tripleBonds * 2 - ringCount;
+      const RB = Math.max(0, Math.min(singleBondsEstimate, heavyAtoms - ringCount * 2));
+      
+      // Polar Surface Area using Ertl's fragment contributions
+      // Reference: Ertl et al., J. Med. Chem. 2000, 43, 3714
+      // N: ~26.0 Å², O: ~20.2 Å², S: ~25.3 Å², P: ~34.1 Å²
+      // Each H on N/O adds ~2-9 Å²
+      const PSA = O * 17.07 + N * 23.85 + S * 25.30 + P * 34.14 
+        + Math.min(HBD, O + N) * 7.0; // donor H contribution
 
       setFormData(prev => ({
         ...prev,
-        molecularWeight: estimatedMW.toFixed(1),
-        logP: estimatedLogP.toFixed(2),
-        hBondDonors: estimatedHBD.toString(),
-        hBondAcceptors: estimatedHBA.toString(),
-        rotableBonds: Math.round(estimatedRB).toString(),
-        polarSurfaceArea: estimatedPSA.toFixed(1),
+        molecularWeight: MW.toFixed(2),
+        logP: logP.toFixed(2),
+        hBondDonors: Math.min(HBD, 10).toString(),
+        hBondAcceptors: Math.min(HBA, 15).toString(),
+        rotableBonds: RB.toString(),
+        polarSurfaceArea: PSA.toFixed(1),
       }));
 
       setIsCalculating(false);
-      toast.info('Properties estimated', {
-        description: 'These are rough estimates. Enter exact values if known.',
+      toast.info('Properties estimated from SMILES', {
+        description: `${heavyAtoms} heavy atoms, ~${totalH} H, MW ≈ ${MW.toFixed(0)} Da, ${ringCount} ring(s)`,
       });
-    }, 500);
+    }, 400);
   }, [formData.smiles]);
 
   const handleSubmit = () => {
@@ -315,22 +375,91 @@ export function CustomMoleculeInput({ onAddMolecule }: CustomMoleculeInputProps)
   );
 }
 
-// Helper functions
-function generateFormula(smiles: string): string {
-  const carbonCount = (smiles.match(/C/g) || []).length;
-  const oxygenCount = (smiles.match(/O/g) || []).length;
-  const nitrogenCount = (smiles.match(/N/g) || []).length;
-  const sulfurCount = (smiles.match(/S/g) || []).length;
-  
-  let formula = '';
-  if (carbonCount) formula += `C${carbonCount > 1 ? '₀₁₂₃₄₅₆₇₈₉'.split('').slice(0, carbonCount.toString().length).map((_, i) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(carbonCount.toString()[i])]).join('') : ''}`;
-  if (nitrogenCount) formula += `N${nitrogenCount > 1 ? '₀₁₂₃₄₅₆₇₈₉'.split('').slice(0, nitrogenCount.toString().length).map((_, i) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(nitrogenCount.toString()[i])]).join('') : ''}`;
-  if (oxygenCount) formula += `O${oxygenCount > 1 ? '₀₁₂₃₄₅₆₇₈₉'.split('').slice(0, oxygenCount.toString().length).map((_, i) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(oxygenCount.toString()[i])]).join('') : ''}`;
-  if (sulfurCount) formula += `S${sulfurCount > 1 ? '₀₁₂₃₄₅₆₇₈₉'.split('').slice(0, sulfurCount.toString().length).map((_, i) => '₀₁₂₃₄₅₆₇₈₉'[parseInt(sulfurCount.toString()[i])]).join('') : ''}`;
-  
-  return formula || 'C₁₀H₁₂O₂';
+// ─── Proper SMILES atom parser ──────────────────────────────────────────────
+
+/**
+ * Parse a SMILES string into a list of explicit atom symbols.
+ * Handles bracket atoms [NH], organic subset (B,C,N,O,P,S,F,Cl,Br,I),
+ * ring digits, branch parens, and bond symbols.
+ */
+function parseSmilesAtoms(smiles: string): string[] {
+  const atoms: string[] = [];
+  let i = 0;
+  const organic = new Set(['B', 'C', 'N', 'O', 'P', 'S', 'F', 'I']);
+  const twoLetter: Record<string, string> = { Cl: 'Cl', Br: 'Br', Si: 'Si' };
+
+  while (i < smiles.length) {
+    const ch = smiles[i];
+
+    // Bracket atom: [...]
+    if (ch === '[') {
+      const close = smiles.indexOf(']', i);
+      if (close === -1) break;
+      const inner = smiles.substring(i + 1, close);
+      // Extract element symbol: optional charge/mass/H count inside
+      const match = inner.match(/^(\d*)([A-Z][a-z]?)/);
+      if (match) atoms.push(match[2]);
+      i = close + 1;
+      continue;
+    }
+
+    // Skip bond symbols, ring digits, dots, parens
+    if ('=-#:./\\()%+'.includes(ch) || (ch >= '0' && ch <= '9')) {
+      i++;
+      continue;
+    }
+
+    // Two-letter atoms (Cl, Br, Si)
+    if (i + 1 < smiles.length) {
+      const pair = smiles.substring(i, i + 2);
+      if (twoLetter[pair]) {
+        atoms.push(twoLetter[pair]);
+        i += 2;
+        continue;
+      }
+    }
+
+    // Single-letter organic atom
+    if (organic.has(ch) || ch === 'c' || ch === 'n' || ch === 'o' || ch === 's') {
+      atoms.push(ch.toUpperCase());
+      i++;
+      continue;
+    }
+
+    // Lowercase aromatic (already handled above), or unknown
+    i++;
+  }
+  return atoms;
 }
 
+/**
+ * Generate a proper molecular formula from SMILES
+ */
+function generateFormula(smiles: string): string {
+  const atoms = parseSmilesAtoms(smiles);
+  const counts: Record<string, number> = {};
+  for (const a of atoms) counts[a] = (counts[a] || 0) + 1;
+
+  const subscripts: Record<string, string> = {
+    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',
+    '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+  };
+  const sub = (n: number) => n === 1 ? '' : String(n).split('').map(d => subscripts[d]).join('');
+
+  // Hill system: C first, H second, then alphabetical
+  const parts: string[] = [];
+  if (counts['C']) { parts.push('C' + sub(counts['C'])); delete counts['C']; }
+  if (counts['H']) { parts.push('H' + sub(counts['H'])); delete counts['H']; }
+  for (const sym of Object.keys(counts).sort()) {
+    parts.push(sym + sub(counts[sym]));
+  }
+  return parts.join('') || 'Unknown';
+}
+
+/**
+ * Generate atoms array from SMILES — used only for atom count metadata.
+ * Actual 3D rendering is handled by RDKit/3Dmol.
+ */
 function generateAtoms(smiles: string) {
   const ATOM_COLORS: Record<string, { color: string; radius: number }> = {
     C: { color: '#909090', radius: 0.77 },
@@ -338,23 +467,27 @@ function generateAtoms(smiles: string) {
     O: { color: '#FF0D0D', radius: 0.73 },
     N: { color: '#3050F8', radius: 0.75 },
     S: { color: '#FFFF30', radius: 1.02 },
+    F: { color: '#90E050', radius: 0.57 },
+    Cl: { color: '#1FF01F', radius: 1.02 },
+    Br: { color: '#A62929', radius: 1.20 },
+    I: { color: '#940094', radius: 1.39 },
+    P: { color: '#FF8000', radius: 1.07 },
   };
 
-  const atoms: any[] = [];
-  let x = 0;
-  
-  for (const char of smiles) {
-    if ('CHONS'.includes(char.toUpperCase())) {
-      const symbol = char.toUpperCase();
-      atoms.push({
-        symbol,
-        position: [x * 1.4, Math.sin(x) * 0.5, Math.cos(x) * 0.3] as [number, number, number],
-        charge: 0,
-        ...ATOM_COLORS[symbol] || ATOM_COLORS.C,
-      });
-      x++;
-    }
-  }
-  
-  return atoms;
+  const parsed = parseSmilesAtoms(smiles);
+  return parsed.map((symbol, idx) => {
+    // Simple 3D spiral layout — only used as metadata, not for rendering
+    const angle = idx * 2.39996; // golden angle
+    const r = 1.5 + idx * 0.2;
+    const x = r * Math.cos(angle);
+    const y = r * Math.sin(angle);
+    const z = idx * 0.15;
+    return {
+      symbol,
+      position: [x, y, z] as [number, number, number],
+      charge: 0,
+      ...(ATOM_COLORS[symbol] || ATOM_COLORS.C),
+    };
+  });
 }
+

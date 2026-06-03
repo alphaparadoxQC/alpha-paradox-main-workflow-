@@ -8,7 +8,9 @@ export const QubitWarningBanner = () => {
   if (qubitCount < 16) return null;
 
   const message =
-    qubitCount >= 21
+    qubitCount >= 50
+      ? `${qubitCount}-qubit MPS simulation — may take 10-60s depending on circuit depth`
+      : qubitCount >= 21
       ? 'Very large circuit — QPU submission recommended for accuracy'
       : 'Large circuit — simulation may be slow';
 

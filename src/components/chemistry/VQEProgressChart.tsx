@@ -138,10 +138,10 @@ export function VQEProgressChart({
           <div className="p-2 rounded-lg bg-background/50">
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
               <Target className="w-3 h-3" />
-              Target Energy
+              Target Energy (FCI)
             </div>
             <div className="text-sm font-mono font-semibold text-accent">
-              {targetEnergy.toFixed(4)} Ha
+              {targetEnergy.toFixed(6)} Ha
             </div>
           </div>
           <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
@@ -149,10 +149,26 @@ export function VQEProgressChart({
               Current Energy
             </div>
             <div className="text-sm font-mono font-semibold text-primary">
-              {currentEnergy !== null ? `${currentEnergy.toFixed(4)} Ha` : '—'}
+              {currentEnergy !== null ? `${currentEnergy.toFixed(6)} Ha` : '—'}
             </div>
           </div>
         </div>
+        {currentEnergy !== null && (
+          <div className="mt-2 p-2 rounded-lg bg-background/30 border border-border">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                ΔE (Current − Target)
+              </span>
+              <span className={`text-xs font-mono font-bold ${
+                Math.abs(currentEnergy - targetEnergy) < 0.01 ? 'text-green-500' :
+                Math.abs(currentEnergy - targetEnergy) < 0.05 ? 'text-yellow-500' :
+                'text-red-400'
+              }`}>
+                {(currentEnergy - targetEnergy) >= 0 ? '+' : ''}{((currentEnergy - targetEnergy) * 1000).toFixed(2)} mHa
+              </span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

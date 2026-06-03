@@ -104,8 +104,8 @@
        });
  
        // Fetch user's likes if logged in
-       let userLikes = new Set<string>();
-       if (user) {
+      const userLikes = new Set<string>();
+      if (user) {
          const { data: userLikesData } = await supabase
            .from('circuit_likes')
            .select('circuit_id')
@@ -196,8 +196,8 @@
    };
  
    const filteredCircuits = useMemo(() => {
-     let result = circuits.filter(circuit => {
-       const matchesSearch = circuit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const result = circuits.filter(circuit => {
+      const matchesSearch = circuit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
          (circuit.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
        const matchesCategory = selectedCategory === 'All' || circuit.category === selectedCategory;
        return matchesSearch && matchesCategory;

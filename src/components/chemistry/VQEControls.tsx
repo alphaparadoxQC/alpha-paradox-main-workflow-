@@ -28,6 +28,7 @@ export function VQEControls({
   onResetParameters,
 }: VQEControlsProps) {
   const labels = getParameterLabels(molecule);
+  const shouldCompactDuringRun = isRunning && parameters.length > 80;
   
   // Group parameters by layer
   const qubits = molecule.qubitsRequired;
@@ -114,34 +115,41 @@ export function VQEControls({
         {/* Parameter Sliders */}
         <ScrollArea className="h-48">
           <div className="space-y-4 pr-4">
-            {layers.map((layer, layerIdx) => (
-              <div key={layerIdx} className="space-y-2">
-                <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {layer.label}
-                </div>
-                {layer.params.map((param) => (
-                  <div key={param.index} className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {param.label}
-                      </span>
-                      <span className="text-[10px] text-foreground font-mono">
-                        {param.value.toFixed(3)}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[param.value]}
-                      onValueChange={([v]) => onParameterChange(param.index, v)}
-                      min={-Math.PI}
-                      max={Math.PI}
-                      step={0.01}
-                      disabled={isRunning}
-                      className="w-full"
-                    />
-                  </div>
-                ))}
+            {shouldCompactDuringRun ? (
+              <div className="rounded-lg border border-border bg-background/30 p-3 text-xs text-muted-foreground">
+                Live parameter sliders are paused during heavy optimization to keep UI responsive.
+                Optimization still runs with full parameter updates in the solver.
               </div>
-            ))}
+            ) : (
+              layers.map((layer, layerIdx) => (
+                <div key={layerIdx} className="space-y-2">
+                  <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    {layer.label}
+                  </div>
+                  {layer.params.map((param) => (
+                    <div key={param.index} className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {param.label}
+                        </span>
+                        <span className="text-[10px] text-foreground font-mono">
+                          {param.value.toFixed(3)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[param.value]}
+                        onValueChange={([v]) => onParameterChange(param.index, v)}
+                        min={-Math.PI}
+                        max={Math.PI}
+                        step={0.01}
+                        disabled={isRunning}
+                        className="w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))
+            )}
           </div>
         </ScrollArea>
       </CardContent>

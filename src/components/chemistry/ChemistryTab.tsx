@@ -38,7 +38,7 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
   const molecule = getMoleculeById(selectedMoleculeId) || MOLECULES[0];
   const vqe = useVQE(molecule);
   
-  const { setQubitCount, setGates, clearCircuit } = useQuantumCircuitStore();
+  const { setQubitCount, setGates, clearCircuit, bitOrder } = useQuantumCircuitStore();
   
   // Reset VQE when molecule changes
   useEffect(() => {
@@ -73,13 +73,10 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
 
   const handleParameterChange = useCallback((index: number, value: number) => {
     vqe.setParameter(index, value);
-    
-    // Update circuit preview
-    const gates = generateParameterizedAnsatz(molecule, vqe.parameters);
-    clearCircuit();
-    setQubitCount(molecule.qubitsRequired);
-    setGates(gates);
-  }, [vqe, molecule, clearCircuit, setQubitCount, setGates]);
+    // Removed global circuit store updates here. The circuit is only loaded 
+    // to the main simulator when VQE optimization completes or when "Run on Hardware" is clicked,
+    // otherwise the main app triggers heavy simulations dozens of times per second while dragging.
+  }, [vqe]);
 
   return (
     <div className="h-full flex flex-col gap-3 p-3 overflow-auto">
@@ -247,7 +244,7 @@ export function ChemistryTab({ onGenerateCircuit }: ChemistryTabProps) {
       <RunOnHardwareButton
         gates={vqe.result ? generateParameterizedAnsatz(molecule, vqe.result.finalParameters) : []}
         qubitCount={molecule.qubitsRequired}
-        localResults={vqe.result ? simulateCircuit(generateParameterizedAnsatz(molecule, vqe.result.finalParameters), molecule.qubitsRequired) : null}
+        localResults={vqe.result ? simulateCircuit(generateParameterizedAnsatz(molecule, vqe.result.finalParameters), molecule.qubitsRequired, bitOrder) : null}
         contextLabel="VQE Circuit"
         disabled={!vqe.result}
       />

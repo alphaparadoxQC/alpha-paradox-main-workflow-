@@ -20,7 +20,8 @@ export type GateCategory =
   | 'multiControl'  // Multi-controlled operations
   | 'classical'     // Classical operations (measure, reset)
   | 'oracle'        // Custom quantum oracles
-  | 'utility';      // Utility gates (barrier, identity)
+  | 'utility'       // Utility gates (barrier, identity)
+  | 'displays';     // Visual state analyzers
 
 // Extended gate type union
 export type ExtendedGateType = 
@@ -84,7 +85,10 @@ export type ExtendedGateType =
   | 'IQFT'    // Inverse QFT
   | 'Grover'  // Grover diffusion operator
   | 'Oracle'  // Custom oracle (user-defined)
-  | 'UnitaryBox'; // User-defined unitary
+  | 'UnitaryBox' // User-defined unitary
+  
+  // Displays
+  | 'DISPLAY'; // Phase disk amplitude display
 
 // Extended gate interface with additional properties
 export interface ExtendedQuantumGate {
@@ -289,8 +293,8 @@ export const EXTENDED_GATE_INFO: Record<ExtendedGateType, ExtendedGateInfo> = {
   },
   P: {
     type: 'P',
-    name: 'Phase',
-    description: 'Phase gate P(θ)',
+    name: 'Phase Disk',
+    description: 'Phase Disk P(θ)',
     color: 'hsl(260, 75%, 55%)',
     symbol: 'P',
     category: 'parametric',
@@ -474,8 +478,8 @@ export const EXTENDED_GATE_INFO: Record<ExtendedGateType, ExtendedGateInfo> = {
   },
   CP: {
     type: 'CP',
-    name: 'CP',
-    description: 'Controlled Phase',
+    name: 'Ctrl Phase Disk',
+    description: 'Controlled Phase Disk',
     color: 'hsl(260, 65%, 55%)',
     symbol: 'CP',
     category: 'twoQubit',
@@ -714,6 +718,19 @@ export const EXTENDED_GATE_INFO: Record<ExtendedGateType, ExtendedGateInfo> = {
     qubitCount: 1,
     isParametric: false,
   },
+  
+  // Displays
+  DISPLAY: {
+    type: 'DISPLAY',
+    name: 'Amplitude Display',
+    description: 'Phase Disk Amplitude Display',
+    color: 'hsl(210, 100%, 60%)',
+    symbol: 'Display',
+    category: 'displays',
+    parameterCount: 0,
+    qubitCount: 1,
+    isParametric: false,
+  },
 };
 
 // Get gates by category
@@ -727,6 +744,7 @@ export const GATE_CATEGORIES: { id: GateCategory; name: string; description: str
   { id: 'standard', name: 'Standard', description: 'Basic single-qubit gates' },
   { id: 'parametric', name: 'Parametric', description: 'Rotation gates with angles' },
   { id: 'twoQubit', name: 'Two-Qubit', description: 'Entangling gates' },
+  { id: 'displays', name: 'Displays', description: 'Visual state analyzers' },
   { id: 'multiControl', name: 'Multi-Control', description: 'Multi-controlled operations' },
   { id: 'classical', name: 'Classical', description: 'Measurement and reset' },
   { id: 'oracle', name: 'Oracles', description: 'Custom quantum oracles' },

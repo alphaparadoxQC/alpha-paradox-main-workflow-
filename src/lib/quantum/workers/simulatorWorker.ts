@@ -157,11 +157,12 @@
        case 'CZ':
          state = applyCZ(state, gate.qubit, gate.targetQubit ?? (gate.qubit + 1) % qubitCount);
          break;
-       case 'CCX':
-         const c2 = gate.controlQubit2 ?? (gate.qubit + 1) % qubitCount;
-         const t = gate.targetQubit ?? (gate.qubit + 2) % qubitCount;
-         state = applyToffoli(state, gate.qubit, c2, t);
-         break;
+       case 'CCX': {
+        const c2 = gate.controlQubit2 ?? (gate.qubit + 1) % qubitCount;
+        const t = gate.targetQubit ?? (gate.qubit + 2) % qubitCount;
+        state = applyToffoli(state, gate.qubit, c2, t);
+        break;
+      }
      }
    }
    

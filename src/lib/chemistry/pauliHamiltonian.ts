@@ -11,6 +11,9 @@
  * computer" (2023). arXiv:2106.10162
  */
 
+import { BitOrder, getBitPosition } from '@/lib/quantum/bitOrder';
+import { mpsPauliExpectation } from '@/lib/quantum/tensor/mps';
+
 export interface PauliTerm {
   /** Pauli string e.g. "IIZZ", "XXYY". Length = number of qubits */
   pauliString: string;
@@ -319,7 +322,8 @@ export function getHamiltonian(moleculeId: string): MolecularHamiltonian | undef
  */
 export function calculatePauliExpectation(
   stateVector: { re: number; im: number }[],
-  hamiltonian: MolecularHamiltonian
+  hamiltonian: MolecularHamiltonian,
+  bitOrder: BitOrder = 'MSB'
 ): number {
   let totalEnergy = 0;
 
@@ -330,7 +334,33 @@ export function calculatePauliExpectation(
       continue;
     }
 
-    const expectation = evaluatePauliTerm(stateVector, term.pauliString, hamiltonian.numQubits);
+    const expectation = evaluatePauliTerm(stateVector, term.pauliString, hamiltonian.numQubits, bitOrder);
+    totalEnergy += term.coefficient * expectation;
+  }
+
+  return totalEnergy;
+}
+
+/**
+ * Calculate the expectation value ⟨ψ|H|ψ⟩ directly from an MPS
+ * using tensor network contraction for O(n*chi^2) efficiency.
+ * Bypasses dense state vectors for 20+ qubit systems.
+ */
+export function calculatePauliExpectationMPS(
+  mps: any,
+  hamiltonian: MolecularHamiltonian,
+  bitOrder: BitOrder = 'MSB'
+): number {
+  let totalEnergy = 0;
+
+  for (const term of hamiltonian.terms) {
+    if (term.pauliString.replace(/I/g, '').length === 0) {
+      // Pure identity term
+      totalEnergy += term.coefficient;
+      continue;
+    }
+
+    const expectation = mpsPauliExpectation(mps, term.pauliString, bitOrder);
     totalEnergy += term.coefficient * expectation;
   }
 
@@ -346,18 +376,19 @@ export function calculatePauliExpectation(
 function evaluatePauliTerm(
   stateVector: { re: number; im: number }[],
   pauliString: string,
-  numQubits: number
+  numQubits: number,
+  bitOrder: BitOrder = 'MSB'
 ): number {
   const n = Math.min(pauliString.length, numQubits);
   const hasXY = pauliString.includes('X') || pauliString.includes('Y');
 
   if (!hasXY) {
     // Pure Z/I string - fast path using diagonal evaluation
-    return evaluateZString(stateVector, pauliString, n);
+    return evaluateZString(stateVector, pauliString, n, bitOrder);
   }
 
   // For X/Y terms, apply Pauli operator to state vector and compute inner product
-  return evaluateGeneralPauli(stateVector, pauliString, n);
+  return evaluateGeneralPauli(stateVector, pauliString, n, bitOrder);
 }
 
 /**
@@ -366,26 +397,34 @@ function evaluatePauliTerm(
 function evaluateZString(
   stateVector: { re: number; im: number }[],
   pauliString: string,
-  numQubits: number
+  numQubits: number,
+  bitOrder: BitOrder = 'MSB'
 ): number {
   let expectation = 0;
   const dim = Math.min(stateVector.length, 1 << numQubits);
+
+  // Precompute sign mask
+  let signMask = 0;
+  for (let q = 0; q < numQubits; q++) {
+    if (pauliString[q] === 'Z') {
+      signMask |= (1 << getBitPosition(numQubits, q, bitOrder));
+    }
+  }
 
   for (let state = 0; state < dim; state++) {
     const amp = stateVector[state];
     const prob = amp.re * amp.re + amp.im * amp.im;
     if (prob < 1e-15) continue;
 
-    // Calculate eigenvalue: product of (-1)^bit for each Z position
-    let eigenvalue = 1;
-    for (let q = 0; q < numQubits; q++) {
-      if (pauliString[q] === 'Z') {
-        // Qubit q has bit at position (numQubits - 1 - q) in big-endian
-        const bit = (state >> (numQubits - 1 - q)) & 1;
-        eigenvalue *= (1 - 2 * bit); // (-1)^bit
-      }
-    }
-
+    // Fast parity check: number of 1s in (state & signMask) determines sign
+    let parity = state & signMask;
+    parity ^= parity >>> 16;
+    parity ^= parity >>> 8;
+    parity ^= parity >>> 4;
+    parity ^= parity >>> 2;
+    parity ^= parity >>> 1;
+    
+    const eigenvalue = (parity & 1) ? -1 : 1;
     expectation += prob * eigenvalue;
   }
 
@@ -395,58 +434,95 @@ function evaluateZString(
 /**
  * General Pauli string evaluation using state vector manipulation
  * Computes ⟨ψ|P|ψ⟩ = Re(Σ_i conj(ψ_i) × (Pψ)_i)
+ * Optimized with bitwise operations and O(1) inner loop.
  */
 function evaluateGeneralPauli(
   stateVector: { re: number; im: number }[],
   pauliString: string,
-  numQubits: number
+  numQubits: number,
+  bitOrder: BitOrder = 'MSB'
 ): number {
   const dim = Math.min(stateVector.length, 1 << numQubits);
   let expectation = 0;
 
-  for (let state = 0; state < dim; state++) {
-    // Apply Pauli string to basis state |state⟩
-    let targetState = state;
-    let phaseRe = 1;
-    let phaseIm = 0;
+  let flipMask = 0;
+  let signMask = 0;
+  let numY = 0;
 
-    for (let q = 0; q < numQubits; q++) {
-      const bit = (state >> (numQubits - 1 - q)) & 1;
-      const op = pauliString[q];
+  // Precompute masks and global phase from Y operators
+  for (let q = 0; q < numQubits; q++) {
+    const bitPos = getBitPosition(numQubits, q, bitOrder);
+    const op = pauliString[q];
 
-      if (op === 'X') {
-        // X flips the bit
-        targetState ^= (1 << (numQubits - 1 - q));
-      } else if (op === 'Y') {
-        // Y flips the bit and multiplies by i(-1)^bit
-        targetState ^= (1 << (numQubits - 1 - q));
-        // Y|0⟩ = i|1⟩, Y|1⟩ = -i|0⟩
-        // Phase factor: i * (-1)^bit
-        const newPhaseRe = -phaseIm * (bit === 0 ? 1 : -1);
-        const newPhaseIm = phaseRe * (bit === 0 ? 1 : -1);
-        phaseRe = newPhaseRe;
-        phaseIm = newPhaseIm;
-      } else if (op === 'Z') {
-        // Z gives (-1)^bit
-        if (bit === 1) {
-          phaseRe = -phaseRe;
-          phaseIm = -phaseIm;
-        }
-      }
-      // I: no change
+    if (op === 'X') {
+      flipMask |= (1 << bitPos);
+    } else if (op === 'Y') {
+      flipMask |= (1 << bitPos);
+      signMask |= (1 << bitPos);
+      numY++;
+    } else if (op === 'Z') {
+      signMask |= (1 << bitPos);
     }
+  }
 
+  // global phase = i^(numY)
+  // i^0 = 1, i^1 = i, i^2 = -1, i^3 = -i
+  let globalPhaseRe = 0;
+  let globalPhaseIm = 0;
+  switch (numY % 4) {
+    case 0: globalPhaseRe = 1; break;
+    case 1: globalPhaseIm = 1; break;
+    case 2: globalPhaseRe = -1; break;
+    case 3: globalPhaseIm = -1; break;
+  }
+
+  for (let state = 0; state < dim; state++) {
+    const targetState = state ^ flipMask;
     if (targetState >= dim) continue;
+    if (state > targetState) continue; // Calculate pairs at once to save half the loop? Wait, need to handle diagonal!
 
-    // ⟨state|P|state⟩ contribution = conj(ψ[state]) × phase × ψ[targetState]
-    const psiStar = stateVector[state];
-    const psiTarget = stateVector[targetState];
+    // Fast parity check for sign
+    let parity = state & signMask;
+    parity ^= parity >>> 16;
+    parity ^= parity >>> 8;
+    parity ^= parity >>> 4;
+    parity ^= parity >>> 2;
+    parity ^= parity >>> 1;
+    
+    const sign = (parity & 1) ? -1 : 1;
+    const phaseRe = globalPhaseRe * sign;
+    const phaseIm = globalPhaseIm * sign;
 
-    // conj(a) * phase * b = (aRe - i*aIm) * (phaseRe + i*phaseIm) * (bRe + i*bIm)
-    const productRe = (psiStar.re * phaseRe + psiStar.im * phaseIm) * psiTarget.re
-                    - (psiStar.re * phaseIm - psiStar.im * phaseRe) * psiTarget.im;
+    const psiA = stateVector[state];
+    const psiB = stateVector[targetState];
 
-    expectation += productRe;
+    if (state === targetState) {
+      // Diagonal term
+      const productRe = (psiA.re * phaseRe + psiA.im * phaseIm) * psiB.re
+                      - (psiA.re * phaseIm - psiA.im * phaseRe) * psiB.im;
+      expectation += productRe;
+    } else {
+      // Off-diagonal: compute ⟨a|P|b⟩ + ⟨b|P|a⟩ together
+      // ⟨a|P|a_target⟩ = conj(a) * phase_a * b
+      const productReA = (psiA.re * phaseRe + psiA.im * phaseIm) * psiB.re
+                       - (psiA.re * phaseIm - psiA.im * phaseRe) * psiB.im;
+      
+      // For state B, the target is A.
+      // B's sign is parity(B & signMask).
+      // Note: B = A ^ flipMask. So parity(B & signMask) = parity(A & signMask) ^ parity(flipMask & signMask).
+      // Since signMask has 1 for Y and Z, and flipMask has 1 for X and Y,
+      // flipMask & signMask has 1 only for Y!
+      // So parity(flipMask & signMask) = numY % 2.
+      // So sign_B = sign_A * (-1)^numY.
+      const signB = sign * ((numY % 2 === 1) ? -1 : 1);
+      const phaseReB = globalPhaseRe * signB;
+      const phaseImB = globalPhaseIm * signB;
+      
+      const productReB = (psiB.re * phaseReB + psiB.im * phaseImB) * psiA.re
+                       - (psiB.re * phaseImB - psiB.im * phaseReB) * psiA.im;
+                       
+      expectation += productReA + productReB;
+    }
   }
 
   return expectation;

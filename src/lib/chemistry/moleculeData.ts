@@ -14,6 +14,13 @@ export interface Bond {
   length: number; // in Angstroms
 }
 
+export interface ActiveSpace {
+  activeElectrons: number;
+  activeOrbitals: number;
+  frozenCore: number;
+  description: string;
+}
+
 export interface MoleculeData {
   id: string;
   name: string;
@@ -28,6 +35,18 @@ export interface MoleculeData {
   orbitals: OrbitalInfo[];
   qubitsRequired: number;
   vqeDepth: number;
+  /** Molecular charge (default: 0 for neutral) */
+  charge?: number;
+  /** Spin multiplicity (default: 1 for singlet) */
+  multiplicity?: number;
+  /** Active space definition for VQE */
+  activeSpace?: ActiveSpace;
+  /**
+   * If true, `expectedGroundStateEnergy` is a heuristic estimate
+   * (e.g. for custom molecules) and should not be treated as a
+   * validated reference value.
+   */
+  isEnergyEstimated?: boolean;
 }
 
 export interface OrbitalInfo {
@@ -46,6 +65,7 @@ const ATOM_PROPS: Record<string, { color: string; radius: number }> = {
   C: { color: '#909090', radius: 0.76 },
   N: { color: '#3050F8', radius: 0.71 },
   O: { color: '#FF0D0D', radius: 0.66 },
+  Bk: { color: '#8A2BE2', radius: 1.70 }, // Actinide color/radius approximation
 };
 
 export const MOLECULES: MoleculeData[] = [
@@ -68,6 +88,9 @@ export const MOLECULES: MoleculeData[] = [
     ],
     qubitsRequired: 4,
     vqeDepth: 2,
+    charge: 0,
+    multiplicity: 1,
+    activeSpace: { activeElectrons: 2, activeOrbitals: 2, frozenCore: 0, description: 'Full space CAS(2,2)' },
   },
   {
     id: 'lih',
@@ -89,6 +112,9 @@ export const MOLECULES: MoleculeData[] = [
     ],
     qubitsRequired: 6,
     vqeDepth: 4,
+    charge: 0,
+    multiplicity: 1,
+    activeSpace: { activeElectrons: 2, activeOrbitals: 3, frozenCore: 1, description: 'CAS(2,3) — Li 1s frozen' },
   },
   {
     id: 'h2o',
@@ -115,8 +141,11 @@ export const MOLECULES: MoleculeData[] = [
       { name: '1b₁', energy: -13.8, electrons: 2, type: 'nonbonding' },
       { name: '4a₁*', energy: 4.2, electrons: 0, type: 'antibonding' },
     ],
-    qubitsRequired: 14,
+    qubitsRequired: 8, // Active space approximation (frozen core)
     vqeDepth: 8,
+    charge: 0,
+    multiplicity: 1,
+    activeSpace: { activeElectrons: 6, activeOrbitals: 4, frozenCore: 1, description: 'CAS(6,4) — O 1s frozen' },
   },
   {
     id: 'beh2',
@@ -143,6 +172,9 @@ export const MOLECULES: MoleculeData[] = [
     ],
     qubitsRequired: 8,
     vqeDepth: 5,
+    charge: 0,
+    multiplicity: 1,
+    activeSpace: { activeElectrons: 4, activeOrbitals: 4, frozenCore: 1, description: 'CAS(4,4) — Be 1s frozen' },
   },
   {
     id: 'nh3',
@@ -174,8 +206,41 @@ export const MOLECULES: MoleculeData[] = [
       { name: '3a₁', energy: -11.0, electrons: 2, type: 'nonbonding' },
       { name: '4a₁*', energy: 4.8, electrons: 0, type: 'antibonding' },
     ],
-    qubitsRequired: 12,
+    qubitsRequired: 8, // Active space approximation (frozen core)
     vqeDepth: 7,
+    charge: 0,
+    multiplicity: 1,
+    activeSpace: { activeElectrons: 6, activeOrbitals: 4, frozenCore: 2, description: 'CAS(6,4) — N 1s,2s frozen' },
+  },
+  {
+    id: 'h2bk',
+    name: 'Berkelium Dihydride',
+    formula: 'H₂Bk',
+    smiles: '[BkH2]',
+    atoms: [
+      { symbol: 'Bk', position: [0, 0, 0], ...ATOM_PROPS.Bk },
+      { symbol: 'H', position: [-1.9, 0, 0], ...ATOM_PROPS.H },
+      { symbol: 'H', position: [1.9, 0, 0], ...ATOM_PROPS.H },
+    ],
+    bonds: [
+      { atom1Index: 0, atom2Index: 1, order: 1, length: 1.9 },
+      { atom1Index: 0, atom2Index: 2, order: 1, length: 1.9 },
+    ],
+    angles: [{ atoms: [1, 0, 2], value: 180.0 }],
+    electrons: 99, // Bk has 97, H has 1 each. 99 total.
+    expectedGroundStateEnergy: -27532.1, // Approximate large core energy for Bk
+    orbitals: [
+      { name: '5f', energy: -8.2, electrons: 8, type: 'nonbonding' },
+      { name: '6d', energy: -4.1, electrons: 1, type: 'bonding' },
+      { name: '7s', energy: -5.0, electrons: 2, type: 'bonding' },
+      { name: 'LUMO+', energy: -2.1, electrons: 0, type: 'antibonding' },
+    ],
+    qubitsRequired: 8, // Active space approximation CAS(4,8)
+    vqeDepth: 10,
+    charge: 0,
+    multiplicity: 1,
+    activeSpace: { activeElectrons: 4, activeOrbitals: 4, frozenCore: 47, description: 'CAS(4,4) — large frozen core' },
+    isEnergyEstimated: true,
   },
 ];
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Atom, Play, Loader2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,12 +18,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  runDFT, type DFTResult, type DFTFunctional, type DFTBasis,
-  FUNCTIONALS, BASES, getFunctionalDescription, getBasisInfo,
-  reactivityFromGap,
+  runDFT, type DFTResult, type DFTFunctional, type DFTBasis, type RelativisticTreatment,
+  FUNCTIONALS, BASES, RELATIVISTIC_TREATMENTS,
+  getFunctionalDescription, getBasisInfo, getRelativisticDescription,
+  reactivityFromGap, validateBasisSet
 } from '@/lib/chemistry/dftCalculator';
 import type { MoleculeData } from '@/lib/chemistry/moleculeData';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface DFTPanelProps {
   molecule: MoleculeData;
@@ -32,14 +33,19 @@ interface DFTPanelProps {
 export function DFTPanel({ molecule }: DFTPanelProps) {
   const [functional, setFunctional] = useState<DFTFunctional>('B3LYP');
   const [basis, setBasis] = useState<DFTBasis>('STO-3G');
+  const [relativistic, setRelativistic] = useState<RelativisticTreatment>('None');
   const [result, setResult] = useState<DFTResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
 
+  const validation = validateBasisSet(molecule, basis);
+
   const handleRun = async () => {
+    if (!validation.valid) return;
     setIsRunning(true);
     setResult(null);
+    const start = performance.now();
     try {
-      const r = await runDFT(molecule, functional, basis);
+      const r = await runDFT(molecule, functional, basis, relativistic);
       setResult(r);
     } finally {
       setIsRunning(false);
@@ -47,6 +53,9 @@ export function DFTPanel({ molecule }: DFTPanelProps) {
   };
 
   const reactivity = result ? reactivityFromGap(result.gap) : null;
+  useEffect(() => {
+    if (!result) return;
+  }, [result, molecule.id]);
 
   return (
     <div className="space-y-4">
@@ -113,7 +122,43 @@ export function DFTPanel({ molecule }: DFTPanelProps) {
             <p className="text-[10px] text-muted-foreground mt-1">{getBasisInfo(basis).desc}</p>
           </div>
 
-          <Button onClick={handleRun} disabled={isRunning} className="w-full">
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              Relativistic Treatment
+            </label>
+            <Select value={relativistic} onValueChange={(v) => setRelativistic(v as RelativisticTreatment)} disabled={isRunning}>
+              <SelectTrigger className="w-full bg-background/50 mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <TooltipProvider>
+                  {RELATIVISTIC_TREATMENTS.map((r) => (
+                    <Tooltip key={r}>
+                      <TooltipTrigger asChild>
+                        <SelectItem value={r}>
+                          <span className="font-mono text-primary">{r}</span>
+                        </SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-[260px]">
+                        {getRelativisticDescription(r)}
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {!validation.valid && (
+            <div className="flex items-start gap-2 p-2 mt-2 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+              <p className="text-[10px] text-destructive leading-relaxed">
+                {validation.message}
+              </p>
+            </div>
+          )}
+
+          <Button onClick={handleRun} disabled={isRunning || !validation.valid} className="w-full mt-2">
             {isRunning ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Running DFT...
@@ -197,11 +242,11 @@ export function DFTPanel({ molecule }: DFTPanelProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <Row method={`DFT (${result.functional}/${result.basis})`} energy={result.groundStateEnergy} ref={molecule.expectedGroundStateEnergy} highlight />
-                  <Row method="Hartree-Fock" energy={molecule.expectedGroundStateEnergy * 1.02} ref={molecule.expectedGroundStateEnergy} />
-                  <Row method="Full CI" energy={molecule.expectedGroundStateEnergy * 0.999} ref={molecule.expectedGroundStateEnergy} />
-                  <Row method="VQE" energy={molecule.expectedGroundStateEnergy * 1.001} ref={molecule.expectedGroundStateEnergy} />
-                  <Row method="Experimental" energy={molecule.expectedGroundStateEnergy} ref={molecule.expectedGroundStateEnergy} isReference />
+                  <Row method={`DFT (${result.functional}/${result.basis})`} energy={result.groundStateEnergy} referenceEnergy={molecule.expectedGroundStateEnergy} highlight />
+                  <Row method="Hartree-Fock" energy={molecule.expectedGroundStateEnergy * 1.02} referenceEnergy={molecule.expectedGroundStateEnergy} />
+                  <Row method="Full CI" energy={molecule.expectedGroundStateEnergy * 0.999} referenceEnergy={molecule.expectedGroundStateEnergy} />
+                  <Row method="VQE" energy={molecule.expectedGroundStateEnergy * 1.001} referenceEnergy={molecule.expectedGroundStateEnergy} />
+                  <Row method="Experimental" energy={molecule.expectedGroundStateEnergy} referenceEnergy={molecule.expectedGroundStateEnergy} isReference />
                 </TableBody>
               </Table>
             </CardContent>
@@ -239,10 +284,10 @@ function ResultBox({
   );
 }
 
-function Row({ method, energy, ref: refE, highlight, isReference }: {
-  method: string; energy: number; ref: number; highlight?: boolean; isReference?: boolean;
+function Row({ method, energy, referenceEnergy, highlight, isReference }: {
+  method: string; energy: number; referenceEnergy: number; highlight?: boolean; isReference?: boolean;
 }) {
-  const err = (energy - refE) * 1000;
+  const err = (energy - referenceEnergy) * 1000;
   return (
     <TableRow className={highlight ? 'bg-primary/5' : ''}>
       <TableCell className={`text-xs ${highlight ? 'font-semibold text-primary' : ''}`}>

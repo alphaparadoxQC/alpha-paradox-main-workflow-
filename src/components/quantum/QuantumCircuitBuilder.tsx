@@ -8,6 +8,12 @@ import { AnonymousUserBanner } from './AnonymousUserBanner';
 import { QuantumAssistant } from './QuantumAssistant';
 import { KeyboardShortcutsDialog } from './KeyboardShortcutsDialog';
 import { QubitWarningBanner } from './QubitWarningBanner';
+import { QasmEditor } from './QasmEditor';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 export const QuantumCircuitBuilder = () => {
   return (
@@ -30,8 +36,16 @@ export const QuantumCircuitBuilder = () => {
         {/* Left Sidebar - Gates Palette */}
         <GatesPalette />
 
-        {/* Center - Circuit Canvas */}
-        <QuantumCanvas />
+        {/* Center - Circuit Canvas & QASM Editor */}
+        <ResizablePanelGroup direction="vertical" className="flex-1 border-x border-border">
+          <ResizablePanel defaultSize={75} minSize={30}>
+            <QuantumCanvas />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={25} minSize={10}>
+            <QasmEditor />
+          </ResizablePanel>
+        </ResizablePanelGroup>
 
         {/* Right Sidebar - Results */}
         <SimulationResults />

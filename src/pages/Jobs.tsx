@@ -52,6 +52,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SimulationResult } from '@/types/quantum';
 import { BRANDING } from '@/config/branding';
+import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
+import { convertBitStringOrder } from '@/lib/quantum/bitOrder';
 
 interface QuantumJob {
   id: string;
@@ -78,6 +80,7 @@ type StatusFilter = 'all' | 'completed' | 'failed' | 'running' | 'queued';
 const Jobs = () => {
   const { user, session } = useAuth();
   const navigate = useNavigate();
+  const { bitOrder } = useQuantumCircuitStore();
   const [jobs, setJobs] = useState<QuantumJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -514,13 +517,18 @@ const Jobs = () => {
                                       Hardware Results
                                     </h4>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                      {job.hardware_results.slice(0, 8).map((result) => (
+                                      {job.hardware_results.slice(0, 8).map((result) => {
+                                        // Hardware results (e.g. from IBM) are typically LSB natively.
+                                        // If our UI is MSB, we reverse the state bitstring for consistency.
+                                        // If the user selects LSB, we leave it as is.
+                                        const displayState = convertBitStringOrder(result.state, 'LSB', bitOrder);
+                                        return (
                                         <div 
                                           key={result.state}
                                           className="bg-card rounded p-2 border border-border"
                                         >
                                           <div className="flex items-center justify-between">
-                                            <span className="font-mono text-xs">{result.state}</span>
+                                            <span className="font-mono text-xs">{displayState}</span>
                                             <span className="text-xs text-accent font-medium">
                                               {(result.probability * 100).toFixed(1)}%
                                             </span>
@@ -532,7 +540,7 @@ const Jobs = () => {
                                             />
                                           </div>
                                         </div>
-                                      ))}
+                                      )})}
                                     </div>
                                   </div>
                                 )}

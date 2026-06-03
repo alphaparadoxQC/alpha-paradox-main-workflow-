@@ -75,6 +75,24 @@ export const T_GATE: GateMatrix = [
   [ZERO, complex(Math.cos(PI/4), Math.sin(PI/4))]
 ];
 
+/**
+ * SX gate (√X)
+ * Matrix: 0.5 * [[1+i, 1-i], [1-i, 1+i]]
+ */
+export const SX_GATE: GateMatrix = [
+  [complex(0.5, 0.5), complex(0.5, -0.5)],
+  [complex(0.5, -0.5), complex(0.5, 0.5)]
+];
+
+/**
+ * SXdg gate (√X dagger)
+ * Matrix: 0.5 * [[1-i, 1+i], [1+i, 1-i]]
+ */
+export const SXDG_GATE: GateMatrix = [
+  [complex(0.5, -0.5), complex(0.5, 0.5)],
+  [complex(0.5, 0.5), complex(0.5, -0.5)]
+];
+
  /**
   * ============================================================
   * ROTATION GATE GENERATORS
@@ -145,7 +163,7 @@ export const T_GATE: GateMatrix = [
 /**
  * Get gate matrix by type
  */
- export const getGateMatrix = (gateType: string, angle?: number): GateMatrix => {
+export const getGateMatrix = (gateType: string, angle?: number): GateMatrix => {
   switch (gateType) {
     case 'H': return H_GATE;
     case 'X': return X_GATE;
@@ -153,10 +171,25 @@ export const T_GATE: GateMatrix = [
     case 'Z': return Z_GATE;
     case 'S': return S_GATE;
     case 'T': return T_GATE;
-     // Rotation gates use the provided angle (default π/2)
-     case 'Rx': return createRxGate(angle ?? Math.PI / 2);
-     case 'Ry': return createRyGate(angle ?? Math.PI / 2);
-     case 'Rz': return createRzGate(angle ?? Math.PI / 2);
+    // S-dagger: conjugate transpose of S → [[1,0],[0,-i]]
+    case 'Sdg':
+    case 'S†': return [
+      [ONE, ZERO],
+      [ZERO, complex(0, -1)]
+    ] as GateMatrix;
+    // T-dagger: conjugate transpose of T → [[1,0],[0,e^(-iπ/4)]]
+    case 'Tdg':
+    case 'T†': return [
+      [ONE, ZERO],
+      [ZERO, complex(Math.cos(PI/4), -Math.sin(PI/4))]
+    ] as GateMatrix;
+    case 'SX': return SX_GATE;
+    case 'SXdg':
+    case 'SX†': return SXDG_GATE;
+    // Rotation gates use the provided angle (default π/2)
+    case 'Rx': return createRxGate(angle ?? Math.PI / 2);
+    case 'Ry': return createRyGate(angle ?? Math.PI / 2);
+    case 'Rz': return createRzGate(angle ?? Math.PI / 2);
     default: return I_GATE;
   }
 };
@@ -195,11 +228,13 @@ export const stateToBlochVector = (
   alpha: Complex, 
   beta: Complex
 ): { x: number; y: number; z: number } => {
-  // α*conj(β)
+  // α*conj(β) = ρ_{01}
+  // Bloch convention: ρ_{01} = (r_x - i·r_y)/2
+  // So r_x = 2 Re(ρ_{01}), r_y = -2 Im(ρ_{01})
   const product = multiply(alpha, { re: beta.re, im: -beta.im });
   
   const x = 2 * product.re;
-  const y = 2 * product.im;
+  const y = -2 * product.im;  // FIX: negative sign per Bloch convention
   const z = (alpha.re * alpha.re + alpha.im * alpha.im) - 
             (beta.re * beta.re + beta.im * beta.im);
   

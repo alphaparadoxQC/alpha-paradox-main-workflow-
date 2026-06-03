@@ -19,6 +19,7 @@ import { MPS, MPSTensor, MPSConfig, DEFAULT_MPS_CONFIG, getAdaptiveMPSConfig } f
 import { truncatedSVD, matMul, reshape2D, conjugateTranspose } from './svd';
 import { getGateMatrix } from '../gates';
 import { QuantumGate } from '@/types/quantum';
+import { BitOrder, formatBasisStateLabel, getTensorIndex } from '../bitOrder';
 
 // ─── Initialization ─────────────────────────────────────────
 
@@ -50,10 +51,12 @@ export const applySingleQubitGateMPS = (
   gateType: string,
   qubit: number,
   angle?: number,
-  _config: MPSConfig = DEFAULT_MPS_CONFIG
+  _config: MPSConfig = DEFAULT_MPS_CONFIG,
+  bitOrder: BitOrder = 'MSB'
 ): MPS => {
   const gate = getGateMatrix(gateType, angle);
-  const tensor = mps.tensors[qubit];
+  const tensorIndex = getTensorIndex(mps.qubitCount, qubit, bitOrder);
+  const tensor = mps.tensors[tensorIndex];
   const { leftBond, rightBond, data } = tensor;
   
   const newData: Complex[][][] = new Array(leftBond);
@@ -75,7 +78,7 @@ export const applySingleQubitGateMPS = (
   }
   
   const newTensors = [...mps.tensors];
-  newTensors[qubit] = { data: newData, leftBond, rightBond };
+  newTensors[tensorIndex] = { data: newData, leftBond, rightBond };
   
   return { ...mps, tensors: newTensors };
 };
@@ -91,25 +94,32 @@ export const applyTwoQubitGateMPS = (
   gateType: string,
   control: number,
   target: number,
-  config: MPSConfig = DEFAULT_MPS_CONFIG
+  config: MPSConfig = DEFAULT_MPS_CONFIG,
+  bitOrder: BitOrder = 'MSB'
 ): MPS => {
-  if (Math.abs(control - target) > 1) {
+  const internalControl = getTensorIndex(mps.qubitCount, control, bitOrder);
+  const internalTarget = getTensorIndex(mps.qubitCount, target, bitOrder);
+
+  const isReversed = internalControl > internalTarget;
+  const effectiveGateType = (isReversed && gateType === 'CNOT') ? 'CNOT_REVERSE' : gateType;
+
+  if (Math.abs(internalControl - internalTarget) > 1) {
     // SWAP chain to make qubits adjacent
     let currentMPS = mps;
     const swaps: number[] = [];
     
-    if (control < target) {
-      for (let i = control; i < target - 1; i++) {
+    if (internalControl < internalTarget) {
+      for (let i = internalControl; i < internalTarget - 1; i++) {
         currentMPS = applyAdjacentTwoQubitGate(currentMPS, 'SWAP', i, i + 1, config);
         swaps.push(i);
       }
-      currentMPS = applyAdjacentTwoQubitGate(currentMPS, gateType, target - 1, target, config);
+      currentMPS = applyAdjacentTwoQubitGate(currentMPS, effectiveGateType, internalTarget - 1, internalTarget, config);
     } else {
-      for (let i = control; i > target + 1; i--) {
+      for (let i = internalControl; i > internalTarget + 1; i--) {
         currentMPS = applyAdjacentTwoQubitGate(currentMPS, 'SWAP', i - 1, i, config);
         swaps.push(i - 1);
       }
-      currentMPS = applyAdjacentTwoQubitGate(currentMPS, gateType, target, target + 1, config);
+      currentMPS = applyAdjacentTwoQubitGate(currentMPS, effectiveGateType, internalTarget, internalTarget + 1, config);
     }
     
     // Swap back
@@ -120,7 +130,13 @@ export const applyTwoQubitGateMPS = (
     return currentMPS;
   }
   
-  return applyAdjacentTwoQubitGate(mps, gateType, Math.min(control, target), Math.max(control, target), config);
+  return applyAdjacentTwoQubitGate(
+    mps,
+    effectiveGateType,
+    Math.min(internalControl, internalTarget),
+    Math.max(internalControl, internalTarget),
+    config
+  );
 };
 
 /**
@@ -211,6 +227,14 @@ const getTwoQubitGateMatrix = (gateType: string): Complex[][] => {
         [O, I, O, O],
         [O, O, O, I],
         [O, O, I, O],
+      ];
+      break;
+    case 'CNOT_REVERSE':
+      result = [
+        [I, O, O, O],
+        [O, O, O, I],
+        [O, O, I, O],
+        [O, I, O, O],
       ];
       break;
     case 'SWAP':
@@ -318,11 +342,6 @@ const splitTensorSVD = (
 export const mpsToStateVector = (mps: MPS): Complex[] => {
   const { tensors, qubitCount } = mps;
   
-  if (qubitCount > 25) {
-    console.warn(`mpsToStateVector called with ${qubitCount} qubits — using sampling instead`);
-    return sampleToSparseVector(mps, 1024);
-  }
-  
   const numStates = 1 << qubitCount;
   const amplitudes: Complex[] = new Array(numStates);
   
@@ -406,56 +425,56 @@ const sampleBitstring = (mps: MPS): { bits: number[]; probability: number } => {
   return { bits, probability: prob };
 };
 
-/**
- * Build a sparse state vector from samples (for compatibility with existing code)
- * Returns a vector with non-zero entries only for sampled states
- */
-const sampleToSparseVector = (mps: MPS, numSamples: number): Complex[] => {
-  const { qubitCount } = mps;
-  const counts = new Map<number, number>();
-  
-  for (let i = 0; i < numSamples; i++) {
-    const { bits } = sampleBitstring(mps);
-    let stateIdx = 0;
-    for (let q = 0; q < qubitCount; q++) {
-      stateIdx = (stateIdx << 1) | bits[q];
-    }
-    counts.set(stateIdx, (counts.get(stateIdx) || 0) + 1);
-  }
-  
-  // Build sparse vector — only allocate entries we need
-  // Return empty array (sparse representation handled by callers)
-  const maxIdx = Math.max(...Array.from(counts.keys()), 0);
-  const vec: Complex[] = new Array(maxIdx + 1).fill(null).map(() => ({ re: 0, im: 0 }));
-  
-  for (const [idx, count] of counts) {
-    const amplitude = Math.sqrt(count / numSamples);
-    vec[idx] = { re: amplitude, im: 0 };
-  }
-  
-  return vec;
-};
+
 
 // ─── Probability Computation ────────────────────────────────
+
+export const extractSingleAmplitudeMPS = (mps: MPS, tensorBits: number[]): Complex => {
+  let currentMatrix: Complex[][] = [[{ re: 1, im: 0 }]];
+  for (let i = 0; i < mps.qubitCount; i++) {
+    const bit = tensorBits[i];
+    const tensorSlice = mps.tensors[i].data.map(l => l[bit]);
+    currentMatrix = matMul(currentMatrix, tensorSlice);
+  }
+  return currentMatrix[0][0];
+};
 
 /**
  * Calculate probabilities from MPS efficiently
  * For small circuits: exact computation
  * For large circuits (>25 qubits): sampling-based
  */
-export const mpsProbabilities = (mps: MPS, numSamples: number = 4096): { state: string; probability: number }[] => {
+export const mpsProbabilities = (
+  mps: MPS, 
+  numSamples: number = 4096, 
+  _bitOrder: BitOrder = 'MSB'
+): { 
+  outcomes: { state: string; probability: number; amplitude?: Complex }[]; 
+  metadata: { top1000Mass: number; isSampled: boolean; totalShots?: number } 
+} => {
   const { qubitCount } = mps;
   
-  if (qubitCount <= 25) {
+  if (qubitCount <= 15) {
     // Exact: enumerate all states
     const amplitudes = mpsToStateVector(mps);
-    return amplitudes
-      .map((amp, index) => ({
-        state: `|${index.toString(2).padStart(qubitCount, '0')}⟩`,
-        probability: amp.re * amp.re + amp.im * amp.im,
-      }))
+    const outcomes = amplitudes
+      .map((amp, index) => {
+        return {
+          state: formatBasisStateLabel(index, qubitCount),
+          probability: amp.re * amp.re + amp.im * amp.im,
+        };
+      })
       .filter(p => p.probability > 1e-10)
       .sort((a, b) => b.probability - a.probability);
+      
+    // Exact enum never exceeds 32K states, but we cap at 1000 as requested
+    const top1000 = outcomes.slice(0, 1000);
+    const top1000Mass = top1000.reduce((sum, o) => sum + o.probability, 0);
+    
+    return {
+      outcomes: top1000,
+      metadata: { top1000Mass, isSampled: false }
+    };
   }
   
   // Sampling-based for large circuits
@@ -467,13 +486,31 @@ export const mpsProbabilities = (mps: MPS, numSamples: number = 4096): { state: 
     counts.set(key, (counts.get(key) || 0) + 1);
   }
   
-  return Array.from(counts.entries())
-    .map(([bits, count]) => ({
-      state: `|${bits}⟩`,
-      probability: count / numSamples,
-    }))
+  const top1000 = Array.from(counts.entries())
+    .map(([bitsStr, count]) => {
+      const tensorBits = bitsStr.split('').map(Number);
+      const amplitude = extractSingleAmplitudeMPS(mps, tensorBits);
+      
+      let displayStr = bitsStr;
+      if (_bitOrder === 'LSB') {
+        displayStr = displayStr.split('').reverse().join('');
+      }
+      
+      return {
+        state: `|${displayStr}⟩`,
+        probability: count / numSamples,
+        amplitude
+      };
+    })
     .sort((a, b) => b.probability - a.probability)
-    .slice(0, 64); // Top 64 outcomes
+    .slice(0, 1000); // Top 1000 outcomes
+    
+  const top1000Mass = top1000.reduce((sum, o) => sum + o.probability, 0);
+  
+  return {
+    outcomes: top1000,
+    metadata: { top1000Mass, isSampled: true, totalShots: numSamples }
+  };
 };
 
 /**
@@ -594,16 +631,20 @@ export const mpsBlochVector = (mps: MPS, qubit: number): { x: number; y: number;
     }
   }
   
-  // Bloch vector from density matrix: x = 2·Re(ρ01), y = 2·Im(ρ01), z = ρ00 - ρ11
+  // Bloch vector from density matrix: x = 2·Re(ρ01), y = -2·Im(ρ01), z = ρ00 - ρ11
   const x = 2 * rho[0][1].re;
   const y = -2 * rho[0][1].im;
   const z = rho[0][0].re - rho[1][1].re;
   
+  // DO NOT normalize — for mixed/entangled states the Bloch vector
+  // lies INSIDE the sphere (|r⃗| < 1). Only pure separable qubits
+  // sit on the surface (|r⃗| = 1). Clamp to unit sphere for safety.
   const mag = Math.sqrt(x * x + y * y + z * z);
-  if (mag > 0.01) {
+  if (mag > 1.001) {
+    // Numerical noise pushed it outside — clamp to unit sphere
     return { x: x / mag, y: y / mag, z: z / mag };
   }
-  return { x: 0, y: 0, z: 1 };
+  return { x, y, z };
 };
 
 // ─── Main Simulation Entry Point ────────────────────────────
@@ -614,10 +655,19 @@ export const mpsBlochVector = (mps: MPS, qubit: number): { x: number; y: number;
 export const simulateCircuitMPS = (
   gates: QuantumGate[],
   qubitCount: number,
-  config?: MPSConfig
-): { amplitudes: Complex[]; maxBond: number; probabilities: { state: string; probability: number }[] } => {
+  config?: MPSConfig,
+  bitOrder: BitOrder = 'MSB'
+): { 
+  amplitudes: Complex[]; 
+  maxBond: number; 
+  probabilities: { state: string; probability: number; amplitude?: Complex }[]; 
+  displays: Record<string, { x: number; y: number; z: number }>; 
+  mps: MPS;
+  metadata?: { top1000Mass: number; isSampled: boolean; totalShots?: number };
+} => {
   const effectiveConfig = config || getAdaptiveMPSConfig(qubitCount, gates.length);
   let mps = initializeMPS(qubitCount);
+  const displays: Record<string, { x: number; y: number; z: number }> = {};
   
   // Sort gates by position
   const sortedGates = [...gates].sort((a, b) => a.position - b.position);
@@ -630,36 +680,155 @@ export const simulateCircuitMPS = (
       case 'Z':
       case 'S':
       case 'T':
-        mps = applySingleQubitGateMPS(mps, gate.type, gate.qubit, undefined, effectiveConfig);
+      case 'Sdg':
+      case 'S†':
+      case 'Tdg':
+      case 'T†':
+      case 'SX':
+      case 'SXdg':
+      case 'SX†':
+        mps = applySingleQubitGateMPS(mps, gate.type, gate.qubit, undefined, effectiveConfig, bitOrder);
         break;
       case 'Rx':
       case 'Ry':
       case 'Rz':
-        mps = applySingleQubitGateMPS(mps, gate.type, gate.qubit, gate.angle, effectiveConfig);
+      case 'P':
+        mps = applySingleQubitGateMPS(mps, gate.type, gate.qubit, gate.angle, effectiveConfig, bitOrder);
         break;
       case 'CNOT':
-        mps = applyTwoQubitGateMPS(mps, 'CNOT', gate.qubit, gate.targetQubit ?? (gate.qubit + 1) % qubitCount, effectiveConfig);
+        mps = applyTwoQubitGateMPS(mps, 'CNOT', gate.qubit, gate.targetQubit ?? (gate.qubit + 1) % qubitCount, effectiveConfig, bitOrder);
         break;
       case 'SWAP':
-        mps = applyTwoQubitGateMPS(mps, 'SWAP', gate.qubit, gate.targetQubit ?? (gate.qubit + 1) % qubitCount, effectiveConfig);
+        mps = applyTwoQubitGateMPS(mps, 'SWAP', gate.qubit, gate.targetQubit ?? (gate.qubit + 1) % qubitCount, effectiveConfig, bitOrder);
         break;
       case 'CZ':
-        mps = applyTwoQubitGateMPS(mps, 'CZ', gate.qubit, gate.targetQubit ?? (gate.qubit + 1) % qubitCount, effectiveConfig);
+        mps = applyTwoQubitGateMPS(mps, 'CZ', gate.qubit, gate.targetQubit ?? (gate.qubit + 1) % qubitCount, effectiveConfig, bitOrder);
         break;
+            case 'DISPLAY':
+        displays[gate.id] = mpsBlochVector(mps, gate.qubit);
+        break;
+
+      case 'FUSED': {
+        // Apply compiler-fused gate using the pre-computed matrix directly on MPS tensor
+        if (gate.fusedMatrix) {
+          const fm = gate.fusedMatrix;
+          const tensorIndex = getTensorIndex(mps.qubitCount, gate.qubit, bitOrder);
+          const tensor = mps.tensors[tensorIndex];
+          const { leftBond, rightBond, data } = tensor;
+          
+          const newData: Complex[][][] = new Array(leftBond);
+          for (let l = 0; l < leftBond; l++) {
+            newData[l] = new Array(2);
+            for (let p = 0; p < 2; p++) {
+              newData[l][p] = new Array(rightBond);
+              for (let r = 0; r < rightBond; r++) {
+                const g0 = fm[p][0], g1 = fm[p][1];
+                const d0 = data[l][0][r], d1 = data[l][1][r];
+                newData[l][p][r] = {
+                  re: g0.re * d0.re - g0.im * d0.im + g1.re * d1.re - g1.im * d1.im,
+                  im: g0.re * d0.im + g0.im * d0.re + g1.re * d1.im + g1.im * d1.re,
+                };
+              }
+            }
+          }
+          
+          const newTensors = [...mps.tensors];
+          newTensors[tensorIndex] = { data: newData, leftBond, rightBond };
+          mps = { ...mps, tensors: newTensors };
+        }
+        break;
+      }
+
       case 'M':
         break;
     }
   }
   
-  // Get probabilities efficiently
-  const probabilities = mpsProbabilities(mps, qubitCount > 50 ? 8192 : 4096);
+  // Scale sample count based on circuit size to prevent worker timeouts
+  // More qubits → each sample is more expensive (O(n·χ²)) → use fewer samples
+  const sampleCount = qubitCount > 80 ? 512 : qubitCount > 24 ? 1024 : qubitCount > 16 ? 2048 : 4096;
+  const probResult = mpsProbabilities(mps, sampleCount, bitOrder);
   
   // Only build full state vector for small circuits
-  const amplitudes = qubitCount <= 20 ? mpsToStateVector(mps) : [];
+  const amplitudes = qubitCount <= 15 ? mpsToStateVector(mps) : [];
   
   return {
     amplitudes,
     maxBond: mps.maxBondDimension,
-    probabilities,
+    probabilities: probResult.outcomes,
+    displays,
+    mps,
+    metadata: probResult.metadata
   };
+};
+
+/**
+ * Computes the expectation value ⟨ψ|P|ψ⟩ of a Pauli string P for an MPS.
+ * Contraction is done sequentially from left to right in O(n · χ²) time.
+ */
+export const mpsPauliExpectation = (mps: MPS, pauliString: string, bitOrder: BitOrder = 'MSB'): number => {
+  const { tensors, qubitCount } = mps;
+  
+  // Left environment: 1x1 matrix initialized to 1
+  let leftEnv: Complex[][] = [[{ re: 1, im: 0 }]];
+
+  for (let i = 0; i < qubitCount; i++) {
+    const t = tensors[i];
+    // Find the logical qubit this tensor corresponds to
+    const q = bitOrder === 'MSB' ? i : qubitCount - 1 - i;
+    const op = pauliString[q] || 'I';
+    const gate = getGateMatrix(op);
+
+    const newDim = t.rightBond;
+    const oldDim = leftEnv.length;
+    
+    // Initialize new left environment
+    const newEnv: Complex[][] = new Array(newDim);
+    for (let r = 0; r < newDim; r++) {
+      newEnv[r] = new Array(newDim).fill(null).map(() => ({ re: 0, im: 0 }));
+    }
+
+    // Contract: L'[r1, r2] = Σ_{l1,l2,p1,p2} L[l1, l2] * conj(T[l1, p1, r1]) * gate[p1, p2] * T[l2, p2, r2]
+    for (let l1 = 0; l1 < oldDim; l1++) {
+      for (let l2 = 0; l2 < oldDim; l2++) {
+        const rho = leftEnv[l1][l2];
+        if (Math.abs(rho.re) < 1e-15 && Math.abs(rho.im) < 1e-15) continue;
+
+        for (let p1 = 0; p1 < 2; p1++) {
+          for (let p2 = 0; p2 < 2; p2++) {
+            const g = gate[p1][p2];
+            if (g.re === 0 && g.im === 0) continue;
+
+            for (let r1 = 0; r1 < newDim; r1++) {
+              const tv1 = t.data[l1][p1]?.[r1];
+              if (!tv1) continue;
+              
+              // rho * g * conj(tv1)
+              // (rhoRe + i*rhoIm) * (gRe + i*gIm)
+              const tmpRe = rho.re * g.re - rho.im * g.im;
+              const tmpIm = rho.re * g.im + rho.im * g.re;
+              
+              // conj(tv1) = tv1Re - i*tv1Im
+              // (tmpRe + i*tmpIm) * (tv1Re - i*tv1Im)
+              const rv1Re = tmpRe * tv1.re + tmpIm * tv1.im;
+              const rv1Im = tmpIm * tv1.re - tmpRe * tv1.im;
+
+              for (let r2 = 0; r2 < newDim; r2++) {
+                const tv2 = t.data[l2][p2]?.[r2];
+                if (!tv2) continue;
+
+                // rv1 * tv2
+                newEnv[r1][r2].re += rv1Re * tv2.re - rv1Im * tv2.im;
+                newEnv[r1][r2].im += rv1Re * tv2.im + rv1Im * tv2.re;
+              }
+            }
+          }
+        }
+      }
+    }
+    leftEnv = newEnv;
+  }
+  
+  // The final scalar is the expectation value (should be strictly real)
+  return leftEnv[0][0].re;
 };

@@ -41,19 +41,21 @@ export const Toolbar = () => {
     * ============================================================
     */
    const { 
-     simulate, 
-     clearCircuit, 
-     isSimulating, 
-     gates, 
-     loadTemplate, 
-     activeTemplate,
-     undo,
-     redo,
-     canUndo,
-     canRedo,
-      setGates,
-      setQubitCount,
-   } = useQuantumCircuitStore();
+    simulate, 
+    clearCircuit, 
+    isSimulating, 
+    gates, 
+    loadTemplate, 
+    activeTemplate,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    setGates,
+    setQubitCount,
+    bitOrder,
+    setBitOrder
+  } = useQuantumCircuitStore();
 
   const { user } = useAuth();
   const { saveCircuit } = useCircuits();
@@ -302,6 +304,19 @@ export const Toolbar = () => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <div className="h-6 w-px bg-border/50 hidden md:block" />
+
+        {/* Bit Order Toggle */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setBitOrder(bitOrder === 'MSB' ? 'LSB' : 'MSB')}
+          className="font-mono text-xs hidden md:flex"
+          title={`Currently using ${bitOrder} (Qubit 0 is ${bitOrder === 'MSB' ? 'leftmost' : 'rightmost'}). Click to toggle.`}
+        >
+          {bitOrder}
+        </Button>
 
         {/* More Actions Dropdown */}
         <DropdownMenu>

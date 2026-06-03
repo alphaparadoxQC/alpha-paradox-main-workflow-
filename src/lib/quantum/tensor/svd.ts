@@ -151,7 +151,7 @@ const powerIteration = (
   const n = AtA.length;
   
   // Use deterministic seed based on index for reproducibility
-  let v: Complex[] = new Array(n);
+  const v: Complex[] = new Array(n);
   for (let i = 0; i < n; i++) {
     v[i] = { re: (i % 3 === 0 ? 0.7 : -0.3), im: (i % 2 === 0 ? 0.2 : -0.5) };
   }

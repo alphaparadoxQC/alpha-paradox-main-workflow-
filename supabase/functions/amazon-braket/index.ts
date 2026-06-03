@@ -197,18 +197,21 @@ function generateOpenQASM3(gates: QuantumGate[], qubitCount: number): string {
           lines.push(`ccnot q[${gate.controlQubit}], q[${gate.controlQubit2}], q[${gate.qubit}];`);
         }
         break;
-      case "Rx":
+      case "Rx": {
         const rxAngle = gate.angle ?? Math.PI / 2;
         lines.push(`rx(${rxAngle}) q[${gate.qubit}];`);
         break;
-      case "Ry":
+      }
+      case "Ry": {
         const ryAngle = gate.angle ?? Math.PI / 2;
         lines.push(`ry(${ryAngle}) q[${gate.qubit}];`);
         break;
-      case "Rz":
+      }
+      case "Rz": {
         const rzAngle = gate.angle ?? Math.PI / 2;
         lines.push(`rz(${rzAngle}) q[${gate.qubit}];`);
         break;
+      }
     }
   }
 

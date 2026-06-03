@@ -29,11 +29,18 @@ function classifyDg(dG: number): { label: string; tone: 'good' | 'warn' | 'bad' 
 
 export function BindingFreeEnergy({ drug, result }: BindingFreeEnergyProps) {
   const profile: Profile =
-    PROFILES[drug.id] ?? {
-      dG: result.bindingEnergy,
-      dH: result.bindingEnergy - 1.7,
-      mTdS: 1.7,
-    };
+    PROFILES[drug.id] ?? (() => {
+      // Compute thermodynamic decomposition from molecular properties
+      // ΔG = ΔH - TΔS (Gibbs free energy)
+      // Approximate ΔH from binding energy + hydrogen bond contribution
+      const hBondContrib = (drug.hBondDonors + drug.hBondAcceptors) * 0.3;
+      const hydrophobicContrib = drug.logP * 0.25;
+      const sizeEntropy = Math.log(drug.molecularWeight / 100) * 0.8;
+      const dG = result.bindingEnergy;
+      const dH = dG - sizeEntropy - hydrophobicContrib + hBondContrib;
+      const mTdS = dH - dG; // -TΔS = ΔH - ΔG
+      return { dG, dH, mTdS };
+    })();
 
   const cls = classifyDg(profile.dG);
 

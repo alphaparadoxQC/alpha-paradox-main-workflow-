@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, FlaskConical, Atom, Pill, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronRight, FlaskConical, Atom, Pill, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { 
   ExtendedGateType, 
   EXTENDED_GATE_INFO, 
@@ -27,6 +28,7 @@ const BASIC_GATES: GateType[] = [
 
 export const GatesPalette = () => {
   const { setDraggedGate, draggedGate, addGate, gates, qubitCount, startSelectionVibe, selectionVibeStep } = useQuantumCircuitStore();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<GateCategory>>(
     new Set(['standard', 'twoQubit'])
   );
@@ -146,7 +148,21 @@ export const GatesPalette = () => {
   };
 
   return (
-    <div className="w-72 max-w-[40vw] bg-sidebar border-r border-sidebar-border flex flex-col h-full overflow-hidden">
+        <motion.div 
+      initial={false}
+      animate={{ width: isCollapsed ? 48 : 288 }}
+      className="bg-sidebar border-r border-sidebar-border flex flex-col h-full overflow-hidden relative shrink-0"
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 z-10 h-6 w-6 text-muted-foreground hover:text-foreground"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+      >
+        {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+      </Button>
+
+      <div className={`flex flex-col h-full w-72 transition-opacity duration-200 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <Tabs defaultValue="gates" className="flex flex-col h-full">
         <div className="p-3 border-b border-sidebar-border">
           <TabsList className="w-full grid grid-cols-3">
@@ -236,8 +252,6 @@ export const GatesPalette = () => {
             </div>
             <Link
               to="/chemistry"
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
             >
               Open Chemistry Workspace
@@ -259,8 +273,6 @@ export const GatesPalette = () => {
             </div>
             <Link
               to="/pharma"
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
             >
               Open Pharma Workspace
@@ -269,6 +281,7 @@ export const GatesPalette = () => {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </motion.div>
   );
 };

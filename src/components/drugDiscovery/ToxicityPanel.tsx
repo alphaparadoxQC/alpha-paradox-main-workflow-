@@ -84,21 +84,59 @@ const PROFILES: Record<string, ToxProfile> = {
 };
 
 function defaultProfile(drug: DrugCandidate): ToxProfile {
-  // Heuristic from molecular weight & logP
+  const smiles = drug.smiles || '';
   const heavy = drug.molecularWeight > 500;
   const lipophilic = drug.logP > 5;
-  const overall = Math.max(35, Math.min(90, 80 - (heavy ? 12 : 0) - (lipophilic ? 10 : 0)));
+  
+  // SMILES-based structural alerts (simplified PAINS/Brenk filters)
+  const hasNitro = /\[N\+\]\(=O\)\[O-\]|N\(=O\)=O/i.test(smiles);
+  const hasAzide = /N=N=N|n=n=n/i.test(smiles);
+  const hasEpoxide = /C1OC1/i.test(smiles);
+  const hasAldehyde = /C=O(?!\))|CHO/i.test(smiles) && !(/C\(=O\)O/i.test(smiles));
+  const hasMichael = /C=CC\(=O\)/i.test(smiles); // Michael acceptor
+  const hasAniline = /c1.*N/i.test(smiles) && smiles.includes('c');
+  const hasThiol = /SH|\[SH\]/i.test(smiles);
+  const structuralAlertCount = [hasNitro, hasAzide, hasEpoxide, hasAldehyde, hasMichael, hasAniline, hasThiol].filter(Boolean).length;
+  
+  // hERG risk increases with lipophilicity and basicity
+  const hasBasicN = /N(?![a-z])/i.test(smiles) && !(/\[N\+\]/i.test(smiles));
+  const hergRisk: Risk = lipophilic && hasBasicN ? 'Risk' : lipophilic ? 'Caution' : 'Safe';
+  const hergValue = lipophilic && hasBasicN ? 'IC50 < 10 μM (predicted)' : 
+                    lipophilic ? 'IC50 ~ 10–30 μM' : 'IC50 > 100 μM';
+  
+  // CYP3A4 risk from MW and complexity
+  const cyp3a4Risk: Risk = heavy ? 'Caution' : 'Safe';
+  
+  // Ames mutagenicity from structural alerts
+  const amesRisk: Risk = (hasNitro || hasAzide || hasAniline) ? 'Risk' : 
+                          structuralAlertCount > 0 ? 'Caution' : 'Safe';
+  const amesValue = (hasNitro || hasAzide) ? 'Structural alert (nitro/azide)' : 
+                    hasAniline ? 'Aniline substructure detected' : 'No mutagenic alerts';
+  
+  // Acute oral toxicity from LogP and PSA
+  const ld50Estimate = Math.max(50, Math.round(500 - drug.logP * 40 - structuralAlertCount * 60));
+  const acuteRisk: Risk = ld50Estimate < 100 ? 'Risk' : ld50Estimate < 300 ? 'Caution' : 'Safe';
+  
+  // BBB penetration from PSA and MW
+  const bbbPenetrates = drug.polarSurfaceArea < 90 && drug.molecularWeight < 450 && drug.logP > 0;
+  const bbbRisk: Risk = bbbPenetrates ? 'Caution' : 'Safe';
+  
+  const overall = Math.max(20, Math.min(95, 
+    85 - (heavy ? 10 : 0) - (lipophilic ? 8 : 0) - structuralAlertCount * 7
+    - (hergRisk === 'Risk' ? 10 : 0) - (amesRisk === 'Risk' ? 12 : 0)
+  ));
+  
   return {
     rows: [
-      { name: 'hERG Inhibition', description: 'Cardiac ion channel safety', value: lipophilic ? 'IC50 ~ 10 μM' : 'IC50 > 100 μM', risk: lipophilic ? 'Caution' : 'Safe', icon: Heart },
-      { name: 'CYP3A4 Inhibition', description: 'Liver enzyme metabolism', value: heavy ? 'Moderate' : 'Weak', risk: heavy ? 'Caution' : 'Safe', icon: FlaskConical },
-      { name: 'CYP2D6 Inhibition', description: 'Drug-drug interaction risk', value: 'Non-inhibitor', risk: 'Safe', icon: Pill },
-      { name: 'Ames Mutagenicity', description: 'DNA mutation risk', value: 'Non-mutagen', risk: 'Safe', icon: Dna },
-      { name: 'Acute Oral Toxicity', description: 'Estimated lethal dose in rats', value: `LD50 ~ ${Math.round(500 - drug.logP * 30)} mg/kg`, risk: 'Caution', icon: AlertTriangle },
-      { name: 'BBB Penetration', description: 'Blood-brain barrier crossing ability', value: lipophilic ? 'High' : 'Low', risk: lipophilic ? 'Caution' : 'Caution', icon: Brain },
+      { name: 'hERG Inhibition', description: 'Cardiac ion channel safety', value: hergValue, risk: hergRisk, icon: Heart },
+      { name: 'CYP3A4 Inhibition', description: 'Liver enzyme metabolism', value: heavy ? 'Moderate substrate' : 'Weak / non-inhibitor', risk: cyp3a4Risk, icon: FlaskConical },
+      { name: 'CYP2D6 Inhibition', description: 'Drug-drug interaction risk', value: hasBasicN ? 'Possible substrate' : 'Non-inhibitor', risk: hasBasicN ? 'Caution' : 'Safe', icon: Pill },
+      { name: 'Ames Mutagenicity', description: 'DNA mutation risk', value: amesValue, risk: amesRisk, icon: Dna },
+      { name: 'Acute Oral Toxicity', description: 'Estimated lethal dose in rats', value: `LD50 ≈ ${ld50Estimate} mg/kg`, risk: acuteRisk, icon: AlertTriangle },
+      { name: 'BBB Penetration', description: 'Blood-brain barrier crossing ability', value: bbbPenetrates ? 'Penetrant (PSA < 90 Å²)' : 'Non-penetrant', risk: bbbRisk, icon: Brain },
     ],
     overall,
-    label: overall >= 75 ? 'Generally Safe' : overall >= 60 ? 'Use with caution' : 'High risk',
+    label: overall >= 75 ? 'Generally Safe' : overall >= 55 ? 'Use with caution' : 'High risk — structural alerts detected',
   };
 }
 

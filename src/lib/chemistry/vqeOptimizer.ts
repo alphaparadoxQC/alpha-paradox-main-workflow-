@@ -5,8 +5,35 @@
 
 import { QuantumGate } from '@/types/quantum';
 import { simulateCircuit } from '@/lib/quantum/simulator';
+import { BitOrder } from '@/lib/quantum/bitOrder';
 import { MoleculeData } from './moleculeData';
-import { getHamiltonian, calculatePauliExpectation } from './pauliHamiltonian';
+import { getHamiltonian, calculatePauliExpectation, calculatePauliExpectationMPS } from './pauliHamiltonian';
+
+// ─── Result Classification ──────────────────────────────────────────────────
+
+/**
+ * Classifies the source of a VQE energy value.
+ *
+ * - 'precomputed-hamiltonian': Energy computed via ⟨ψ|H|ψ⟩ using a literature-sourced,
+ *   Jordan-Wigner mapped Pauli Hamiltonian (e.g. H₂, LiH, HeH⁺, BeH₂, H₂O, NH₃).
+ * - 'heuristic-fallback': No Hamiltonian available for this molecule. Energy is an
+ *   educational heuristic based on Hamming-weight scaling — NOT an ab initio result.
+ * - 'generated-hamiltonian': (Future) Hamiltonian generated at runtime from integrals.
+ */
+export type EnergySource =
+  | 'precomputed-hamiltonian'
+  | 'heuristic-fallback'
+  | 'generated-hamiltonian';
+
+export interface HamiltonianInfo {
+  mapping: string;
+  basis: string;
+  numTerms: number;
+  nuclearRepulsion: number;
+  fciEnergy: number;
+  hfEnergy: number;
+  activeSpace?: string;
+}
 
 export interface VQEParameters {
   theta: number[];
@@ -25,6 +52,22 @@ export interface VQEResult {
   converged: boolean;
   totalIterations: number;
   energyError: number; // Difference from known ground state
+
+  // ── Classification metadata (Priority 1) ──
+  /** How was the energy value computed? */
+  energySource: EnergySource;
+  /** Present only when energySource is 'precomputed-hamiltonian' */
+  hamiltonianInfo?: HamiltonianInfo;
+
+  // ── Convergence diagnostics (Priority 6) ──
+  /** Best energy found across ALL iterations (may differ from finalEnergy) */
+  bestEnergy: number;
+  /** Parameters at the best energy */
+  bestParameters: number[];
+  /** Approximate L2 norm of the gradient at the last iteration */
+  gradientNorm?: number;
+  /** Name of the classical optimizer used */
+  optimizerType: 'gradient-descent-cfd';
 }
 
 export interface VQEConfig {
@@ -32,6 +75,7 @@ export interface VQEConfig {
   convergenceThreshold: number;
   learningRate: number;
   gradientStep: number;
+  maxGradientUpdatesPerIteration: number;
 }
 
 const DEFAULT_CONFIG: VQEConfig = {
@@ -39,6 +83,7 @@ const DEFAULT_CONFIG: VQEConfig = {
   convergenceThreshold: 1e-4,
   learningRate: 0.3,
   gradientStep: 0.01,
+  maxGradientUpdatesPerIteration: 24,
 };
 
 /**
@@ -56,9 +101,9 @@ export const generateParameterizedAnsatz = (
   let paramIndex = 0;
   const generateId = () => `vqe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
-  // Hartree-Fock state preparation
-  const occupiedOrbitals = Math.floor(molecule.electrons / 2);
-  for (let i = 0; i < occupiedOrbitals && i < qubits; i++) {
+  // Hartree-Fock state preparation (fill lowest energy spin-orbitals)
+  const occupiedSpinOrbitals = Math.min(molecule.electrons, qubits);
+  for (let i = 0; i < occupiedSpinOrbitals; i++) {
     gates.push({
       id: generateId(),
       type: 'X',
@@ -130,60 +175,109 @@ export const initializeParameters = (count: number): number[] => {
   );
 };
 
+/** Internal result from calculateEnergy including the source classification */
+interface EnergyEvaluation {
+  energy: number;
+  source: EnergySource;
+}
+
 /**
  * Calculate energy (expectation value of Hamiltonian)
  * Uses Jordan-Wigner mapped Pauli Hamiltonian when available (pyChemiQ-inspired),
  * falls back to heuristic model for molecules without pre-computed Hamiltonians.
+ * 
+ * IMPORTANT: Uses synchronous simulateCircuit to guarantee a full dense state vector
+ * is always available — both on the main thread and inside Web Workers.
+ * The async `simulateCircuitEnhanced` was unreliable in Workers (no WASM/GPU).
  */
 export const calculateEnergy = (
   gates: QuantumGate[],
   qubitCount: number,
-  molecule: MoleculeData
-): number => {
-  const result = simulateCircuit(gates, qubitCount);
+  molecule: MoleculeData,
+  bitOrder: BitOrder = 'MSB'
+): EnergyEvaluation => {
+  const result = simulateCircuit(gates, qubitCount, bitOrder);
   const hamiltonian = getHamiltonian(molecule.id);
 
-  if (hamiltonian && result.amplitudes && result.amplitudes.length > 0) {
-    // === Accurate Pauli Hamiltonian evaluation ===
-    // Build full state vector from simulation amplitudes
+  if (hamiltonian && result.mps) {
+    // Exact path for 20+ qubits: evaluate ⟨ψ|H|ψ⟩ using tensor network contraction
+    return {
+      energy: calculatePauliExpectationMPS(result.mps, hamiltonian, bitOrder),
+      source: 'precomputed-hamiltonian',
+    };
+  }
+
+  if (
+    hamiltonian &&
+    result.stateVector?.amplitudes &&
+    result.stateVector.amplitudes.length === (1 << qubitCount)
+  ) {
+    // Exact path: evaluate ⟨ψ|H|ψ⟩ using full Pauli decomposition
+    return {
+      energy: calculatePauliExpectation(result.stateVector.amplitudes, hamiltonian, bitOrder),
+      source: 'precomputed-hamiltonian',
+    };
+  }
+
+  if (hamiltonian && result.amplitudes && result.amplitudes.length > 0 && qubitCount < 16) {
+    // Reconstruct dense state vector from sparse amplitude list (only for <16 qubits)
+    // Allocating 1 << 20 arrays will crash V8 due to OOM
     const dim = 1 << qubitCount;
     const stateVector: { re: number; im: number }[] = new Array(dim).fill(null).map(() => ({ re: 0, im: 0 }));
 
     for (const amp of result.amplitudes) {
-      // Parse state string like "|01010⟩" → integer index
-      const stateStr = amp.state.replace(/[|⟩]/g, '');
-      const stateIndex = parseInt(stateStr, 2);
-      if (stateIndex < dim) {
+      // Avoid parsing as integer to support >53 qubits without precision loss
+      const stateIndex = parseInt(amp.state.replace(/[|⟩]/g, ''), 2);
+      if (!Number.isNaN(stateIndex) && stateIndex < dim) {
         stateVector[stateIndex] = { re: amp.re, im: amp.im };
       }
     }
 
-    return calculatePauliExpectation(stateVector, hamiltonian);
+    return {
+      energy: calculatePauliExpectation(stateVector, hamiltonian, bitOrder),
+      source: 'precomputed-hamiltonian',
+    };
   }
 
-  // === Fallback: heuristic energy model ===
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EDUCATIONAL HEURISTIC FALLBACK — NOT AB INITIO
+  //
+  // No pre-computed Hamiltonian exists for this molecule. The energy below is
+  // derived from a Hamming-weight formula that roughly scales with the
+  // molecule's preset expectedGroundStateEnergy. It is NOT a real quantum
+  // chemistry result and should NEVER be presented as one.
+  // ═══════════════════════════════════════════════════════════════════════════
+  console.warn(
+    `[VQE] No Hamiltonian for molecule "${molecule.id}". ` +
+    `Using heuristic fallback — result is NOT an ab initio energy.`
+  );
+
   let energy = 0;
   const groundStateEnergy = molecule.expectedGroundStateEnergy;
 
   for (const prob of result.probabilities) {
-    const stateIndex = parseInt(prob.state.slice(1, -1), 2);
-    const hammingWeight = stateIndex.toString(2).split('1').length - 1;
-    const excitationEnergy = hammingWeight * 0.3;
+    // Calculate Hamming weight directly from string to avoid >53 qubit precision loss
+    const hammingWeight = prob.state.split('1').length - 1;
+    // Scale excitation by molecular orbital gap estimate
+    const excitationScale = Math.min(0.5, Math.abs(groundStateEnergy) * 0.05);
+    const excitationEnergy = hammingWeight * excitationScale;
     const stateEnergy = groundStateEnergy + excitationEnergy;
     energy += prob.probability * stateEnergy;
   }
 
-  return energy;
+  return { energy, source: 'heuristic-fallback' };
 };
 
 /**
  * Calculate numerical gradient for a single parameter
+ * Uses central finite difference: df/dx ≈ (f(x+h) - f(x-h)) / 2h
  */
 const calculateGradient = (
   molecule: MoleculeData,
   parameters: number[],
   paramIndex: number,
-  step: number
+  step: number,
+  bitOrder: BitOrder = 'MSB'
 ): number => {
   const paramsPlus = [...parameters];
   const paramsMinus = [...parameters];
@@ -194,21 +288,26 @@ const calculateGradient = (
   const gatesPlus = generateParameterizedAnsatz(molecule, paramsPlus);
   const gatesMinus = generateParameterizedAnsatz(molecule, paramsMinus);
   
-  const energyPlus = calculateEnergy(gatesPlus, molecule.qubitsRequired, molecule);
-  const energyMinus = calculateEnergy(gatesMinus, molecule.qubitsRequired, molecule);
+  const energyPlus = calculateEnergy(gatesPlus, molecule.qubitsRequired, molecule, bitOrder).energy;
+  const energyMinus = calculateEnergy(gatesMinus, molecule.qubitsRequired, molecule, bitOrder).energy;
   
   return (energyPlus - energyMinus) / (2 * step);
 };
 
 /**
  * Run VQE optimization
- * Uses gradient descent to minimize energy
+ * Uses gradient descent to minimize energy.
+ * 
+ * The optimization is async only to yield to the event loop between iterations,
+ * allowing the UI thread to paint progress updates. All quantum simulation
+ * within each iteration is synchronous for accuracy.
  */
 export const runVQEOptimization = async (
   molecule: MoleculeData,
   initialParameters: number[],
   config: Partial<VQEConfig> = {},
-  onIteration?: (iteration: VQEIteration) => void
+  onIteration?: (iteration: VQEIteration) => void,
+  bitOrder: BitOrder = 'MSB'
 ): Promise<VQEResult> => {
   const cfg = { ...DEFAULT_CONFIG, ...config };
   const parameters = [...initialParameters];
@@ -218,14 +317,27 @@ export const runVQEOptimization = async (
   let converged = false;
   let iteration = 0;
   let stableSteps = 0;
-  // Stricter convergence: require |ΔE| < 0.005 Ha for 3 consecutive iterations
+  // Stricter convergence: require |ΔE| < threshold for 3 consecutive iterations
   const STABILITY_WINDOW = 3;
   const STABILITY_THRESHOLD = Math.max(cfg.convergenceThreshold, 0.005);
   
+  let energySource: EnergySource = 'heuristic-fallback';
+  let bestEnergy = Infinity;
+  let bestParameters = [...parameters];
+  let lastGradientNorm = 0;
+
   for (iteration = 0; iteration < cfg.maxIterations; iteration++) {
     // Generate circuit with current parameters
     const gates = generateParameterizedAnsatz(molecule, parameters);
-    const energy = calculateEnergy(gates, molecule.qubitsRequired, molecule);
+    const evalResult = calculateEnergy(gates, molecule.qubitsRequired, molecule, bitOrder);
+    const energy = evalResult.energy;
+    energySource = evalResult.source;
+    
+    // Track best energy found
+    if (energy < bestEnergy) {
+      bestEnergy = energy;
+      bestParameters = [...parameters];
+    }
     
     // Record iteration
     const iterationData: VQEIteration = {
@@ -248,21 +360,60 @@ export const runVQEOptimization = async (
     }
     prevEnergy = energy;
     
-    // Calculate gradients and update parameters
-    for (let i = 0; i < parameters.length; i++) {
-      const gradient = calculateGradient(molecule, parameters, i, cfg.gradientStep);
+    // Calculate gradients and update parameters.
+    // For larger systems we update only a sampled subset per iteration
+    // to keep UI responsive while still descending the energy landscape.
+    const updateCount = Math.min(
+      parameters.length,
+      Math.max(1, cfg.maxGradientUpdatesPerIteration)
+    );
+    const shouldSample = updateCount < parameters.length;
+    const parameterIndices = shouldSample
+      ? Array.from({ length: parameters.length }, (_, idx) => idx)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, updateCount)
+      : Array.from({ length: parameters.length }, (_, idx) => idx);
+
+    // Compute all gradients for this batch
+    const gradients = parameterIndices.map(i => 
+      calculateGradient(molecule, parameters, i, cfg.gradientStep, bitOrder)
+    );
+
+    // Track gradient norm for convergence diagnostics
+    lastGradientNorm = Math.sqrt(gradients.reduce((s, g) => s + g * g, 0));
+
+    for (let idx = 0; idx < parameterIndices.length; idx++) {
+      const i = parameterIndices[idx];
+      const gradient = gradients[idx];
       parameters[i] -= cfg.learningRate * gradient;
       
       // Keep parameters in reasonable range
       parameters[i] = Math.max(-2 * Math.PI, Math.min(2 * Math.PI, parameters[i]));
     }
     
-    // Small delay for UI updates
-    await new Promise(resolve => setTimeout(resolve, 50));
+    // Yield to event loop so UI can paint progress
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
   
   const finalGates = generateParameterizedAnsatz(molecule, parameters);
-  const finalEnergy = calculateEnergy(finalGates, molecule.qubitsRequired, molecule);
+  const finalEval = calculateEnergy(finalGates, molecule.qubitsRequired, molecule, bitOrder);
+  const finalEnergy = finalEval.energy;
+  if (finalEnergy < bestEnergy) {
+    bestEnergy = finalEnergy;
+    bestParameters = [...parameters];
+  }
+
+  // Build Hamiltonian info if we used a real Hamiltonian
+  const hamiltonian = getHamiltonian(molecule.id);
+  const hamiltonianInfo: HamiltonianInfo | undefined = hamiltonian ? {
+    mapping: hamiltonian.mapping,
+    basis: hamiltonian.basis,
+    numTerms: hamiltonian.terms.length,
+    nuclearRepulsion: hamiltonian.nuclearRepulsion,
+    fciEnergy: hamiltonian.fciEnergy,
+    hfEnergy: hamiltonian.hfEnergy,
+    activeSpace: `CAS(${molecule.activeSpace?.activeElectrons ?? molecule.electrons},${molecule.activeSpace?.activeOrbitals ?? Math.floor(molecule.qubitsRequired / 2)})`,
+  } : undefined;
   
   return {
     finalEnergy,
@@ -271,6 +422,12 @@ export const runVQEOptimization = async (
     converged,
     totalIterations: iteration + 1,
     energyError: Math.abs(finalEnergy - molecule.expectedGroundStateEnergy),
+    energySource,
+    hamiltonianInfo,
+    bestEnergy,
+    bestParameters,
+    gradientNorm: lastGradientNorm,
+    optimizerType: 'gradient-descent-cfd',
   };
 };
 

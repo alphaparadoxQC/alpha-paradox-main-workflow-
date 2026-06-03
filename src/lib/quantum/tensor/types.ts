@@ -111,7 +111,7 @@ export const getAdaptiveMPSConfig = (qubitCount: number, gateCount: number = 0):
   if (qubitCount <= 120) {
     return {
       ...LARGE_SCALE_MPS_CONFIG,
-      maxBondDimension: gateDensity > 3 ? 48 : 64,
+      maxBondDimension: gateDensity > 3 ? 24 : 32,
       truncationThreshold: 1e-8,
     };
   }
@@ -119,7 +119,7 @@ export const getAdaptiveMPSConfig = (qubitCount: number, gateCount: number = 0):
   // 120-210 qubits: ultra-scale
   return {
     ...ULTRA_SCALE_MPS_CONFIG,
-    maxBondDimension: qubitCount > 170 ? 16 : 32,
+    maxBondDimension: qubitCount > 170 ? 12 : 16,
     truncationThreshold: qubitCount > 170 ? 1e-5 : 1e-6,
   };
 };

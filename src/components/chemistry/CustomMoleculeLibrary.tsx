@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 const CATEGORIES: FamousMolecule['category'][] = [
-  'fundamental', 'biological', 'pharmaceutical', 'industrial', 'energy',
+  'fundamental', 'biological', 'pharmaceutical', 'industrial', 'energy', 'macromolecule',
 ];
 
 export function CustomMoleculeLibrary() {
@@ -37,8 +37,8 @@ export function CustomMoleculeLibrary() {
   }, [atoms, presetSmiles]);
 
   const addAtom = (sym: string) => {
-    if (atoms.length >= 30) {
-      toast.warning('Max 30 atoms reached for the custom builder.');
+    if (atoms.length >= 2000) {
+      toast.warning('Max 2000 atoms reached for the custom builder.');
       return;
     }
     setAtoms(prev => [...prev, sym]);
@@ -243,19 +243,19 @@ export function CustomMoleculeLibrary() {
             )}
           </div>
 
-          {atoms.length >= 10 && atoms.length < 20 && (
+          {atoms.length >= 50 && atoms.length < 200 && (
             <Alert className="border-amber-500/40 bg-amber-500/10 [&>svg]:text-amber-500">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-xs text-amber-500">
-                Molecule too large for VQE. Docking and toxicity analysis will still work.
+                Large molecule — 3D rendering may take a moment. VQE scaling automatically enabled.
               </AlertDescription>
             </Alert>
           )}
-          {atoms.length >= 20 && (
+          {atoms.length >= 200 && (
             <Alert className="border-amber-500/40 bg-amber-500/10 [&>svg]:text-amber-500">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-xs text-amber-500">
-                Large molecule — 3D rendering may take a moment.
+                Very large molecule ({atoms.length} atoms) — VQE will utilize high-performance MPS tensor networks.
               </AlertDescription>
             </Alert>
           )}

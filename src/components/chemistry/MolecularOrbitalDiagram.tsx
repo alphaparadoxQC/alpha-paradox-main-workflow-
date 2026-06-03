@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { OrbitalInfo } from '@/lib/chemistry/moleculeData';
 
 interface MolecularOrbitalDiagramProps {
@@ -8,115 +11,167 @@ interface MolecularOrbitalDiagramProps {
 
 export function MolecularOrbitalDiagram({ orbitals, moleculeName }: MolecularOrbitalDiagramProps) {
   // Sort orbitals by energy (lowest first)
-  const sortedOrbitals = [...orbitals].sort((a, b) => a.energy - b.energy);
+  const sortedOrbitals = useMemo(() => 
+    [...orbitals].sort((a, b) => a.energy - b.energy),
+  [orbitals]);
   
-  // Calculate scale for visualization
-  const minEnergy = Math.min(...sortedOrbitals.map(o => o.energy));
-  const maxEnergy = Math.max(...sortedOrbitals.map(o => o.energy));
-  const range = maxEnergy - minEnergy || 1;
+  // Find HOMO and LUMO
+  const { homo, lumo, homoIndex } = useMemo(() => {
+    let lastOccupied = -1;
+    for (let i = 0; i < sortedOrbitals.length; i++) {
+      if (sortedOrbitals[i].electrons > 0) lastOccupied = i;
+    }
+    return {
+      homo: lastOccupied >= 0 ? sortedOrbitals[lastOccupied] : null,
+      lumo: lastOccupied + 1 < sortedOrbitals.length ? sortedOrbitals[lastOccupied + 1] : null,
+      homoIndex: lastOccupied,
+    };
+  }, [sortedOrbitals]);
+
+  const gap = homo && lumo ? lumo.energy - homo.energy : null;
   
-  const getYPosition = (energy: number) => {
-    // Map energy to 0-100% range (inverted so lower energy is at bottom)
-    return 100 - ((energy - minEnergy) / range) * 80 - 10;
-  };
+  // Evenly space orbitals vertically for clarity
+  const totalHeight = 280;
+  const topPadding = 24;
+  const bottomPadding = 24;
+  const usableHeight = totalHeight - topPadding - bottomPadding;
 
   const getOrbitalColor = (type: OrbitalInfo['type']) => {
     switch (type) {
-      case 'bonding': return 'from-green-500 to-emerald-600';
-      case 'antibonding': return 'from-red-500 to-rose-600';
-      case 'nonbonding': return 'from-yellow-500 to-amber-600';
-    }
-  };
-
-  const getOrbitalBorderColor = (type: OrbitalInfo['type']) => {
-    switch (type) {
-      case 'bonding': return 'border-green-500/50';
-      case 'antibonding': return 'border-red-500/50';
-      case 'nonbonding': return 'border-yellow-500/50';
+      case 'bonding': return { gradient: 'from-green-500 to-emerald-600', bg: 'bg-green-500/15', border: 'border-green-500/40', text: 'text-green-500' };
+      case 'antibonding': return { gradient: 'from-red-500 to-rose-600', bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-500' };
+      case 'nonbonding': return { gradient: 'from-yellow-500 to-amber-600', bg: 'bg-yellow-500/15', border: 'border-yellow-500/40', text: 'text-yellow-500' };
     }
   };
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm rounded-lg border border-border p-4">
-      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-        Molecular Orbital Diagram
-      </h3>
-      
-      <div className="relative h-[200px] bg-background/30 rounded-lg border border-border/50 overflow-hidden">
-        {/* Energy axis */}
-        <div className="absolute left-2 top-2 bottom-2 w-px bg-border">
-          <div className="absolute -top-1 -left-1 text-[10px] text-muted-foreground">E</div>
-          <div className="absolute -left-1 top-0 w-2 h-px bg-muted-foreground" />
-          <div className="absolute -left-1 bottom-0 w-2 h-px bg-muted-foreground" />
-          <div className="absolute -left-2 top-1/2 -translate-y-1/2 -rotate-90 text-[8px] text-muted-foreground whitespace-nowrap">
-            Energy (eV)
+    <Card className="bg-card/50 backdrop-blur-sm border-border">
+      <CardHeader className="py-3">
+        <CardTitle className="text-sm flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            Molecular Orbital Diagram
+          </div>
+          {gap !== null && (
+            <Badge variant="outline" className="text-[10px] font-mono">
+              HOMO-LUMO gap: {gap.toFixed(1)} eV
+            </Badge>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="relative bg-background/30 rounded-lg border border-border/50 overflow-hidden" 
+             style={{ height: totalHeight }}>
+          
+          {/* Energy axis */}
+          <div className="absolute left-4 top-4 bottom-4 flex flex-col justify-between items-center">
+            <span className="text-[9px] text-muted-foreground font-medium">E ↑</span>
+            <div className="flex-1 w-px bg-gradient-to-b from-red-500/40 via-border to-green-500/40 my-2" />
+            <span className="text-[8px] text-muted-foreground">Low</span>
+          </div>
+          
+          {/* HOMO-LUMO gap indicator */}
+          {homo && lumo && sortedOrbitals.length > 1 && (
+            <div className="absolute right-3 flex flex-col items-center"
+                 style={{
+                   top: topPadding + (sortedOrbitals.length - 1 - (homoIndex + 1)) * (usableHeight / Math.max(sortedOrbitals.length - 1, 1)),
+                   height: usableHeight / Math.max(sortedOrbitals.length - 1, 1),
+                 }}>
+              <div className="flex-1 w-px border-l-2 border-dashed border-primary/40" />
+              <div className="px-1.5 py-0.5 rounded bg-primary/10 border border-primary/30">
+                <span className="text-[8px] font-mono text-primary font-bold">{gap?.toFixed(1)} eV</span>
+              </div>
+              <div className="flex-1 w-px border-l-2 border-dashed border-primary/40" />
+            </div>
+          )}
+          
+          {/* Orbitals */}
+          <div className="absolute left-16 right-12 top-0 bottom-0">
+            {sortedOrbitals.map((orbital, index) => {
+              const colors = getOrbitalColor(orbital.type);
+              // Position from top: highest energy at top, lowest at bottom
+              const reverseIndex = sortedOrbitals.length - 1 - index;
+              const yPos = sortedOrbitals.length === 1 
+                ? topPadding + usableHeight / 2 
+                : topPadding + reverseIndex * (usableHeight / Math.max(sortedOrbitals.length - 1, 1));
+              
+              const isHomo = homo === orbital;
+              const isLumo = lumo === orbital;
+              
+              return (
+                <motion.div
+                  key={orbital.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.08, duration: 0.3 }}
+                  className="absolute flex items-center gap-2"
+                  style={{ top: yPos - 10, left: 0, right: 0 }}
+                >
+                  {/* Energy level line */}
+                  <div className={`h-[3px] w-20 rounded-full bg-gradient-to-r ${colors.gradient} shadow-sm`} />
+                  
+                  {/* Electron dots on the line */}
+                  <div className="absolute left-2 -top-1 flex gap-1">
+                    {Array.from({ length: Math.min(orbital.electrons, orbital.type === 'nonbonding' ? 4 : 2) }).map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: index * 0.08 + 0.15 + i * 0.08 }}
+                        className={`w-3.5 h-3.5 rounded-full border-2 ${colors.border} bg-background flex items-center justify-center shadow-sm`}
+                      >
+                        <span className="text-[7px] font-bold">{i % 2 === 0 ? '↑' : '↓'}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  {/* Label */}
+                  <div className="flex items-center gap-1.5 ml-1">
+                    <span className="text-[10px] font-mono font-semibold text-foreground">
+                      {orbital.name}
+                    </span>
+                    <span className="text-[9px] font-mono text-muted-foreground">
+                      {orbital.energy.toFixed(1)} eV
+                    </span>
+                    {isHomo && (
+                      <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 bg-green-500/20 text-green-500 border-green-500/40">
+                        HOMO
+                      </Badge>
+                    )}
+                    {isLumo && (
+                      <Badge variant="secondary" className="text-[8px] px-1 py-0 h-3.5 bg-red-500/20 text-red-500 border-red-500/40">
+                        LUMO
+                      </Badge>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
         
-        {/* Zero line (HOMO-LUMO gap indicator) */}
-        <div className="absolute left-8 right-4 top-1/2 border-t border-dashed border-muted-foreground/30">
-          <span className="absolute -top-2 right-0 text-[8px] text-muted-foreground">0 eV</span>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-4 mt-3 text-[10px]">
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1 rounded-full bg-gradient-to-r from-green-500 to-emerald-600" />
+            <span className="text-muted-foreground">Bonding</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1 rounded-full bg-gradient-to-r from-yellow-500 to-amber-600" />
+            <span className="text-muted-foreground">Non-bonding</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-4 h-1 rounded-full bg-gradient-to-r from-red-500 to-rose-600" />
+            <span className="text-muted-foreground">Antibonding</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3.5 h-3.5 rounded-full border-2 border-muted-foreground/30 bg-background flex items-center justify-center">
+              <span className="text-[7px]">↑</span>
+            </div>
+            <span className="text-muted-foreground">Electron</span>
+          </div>
         </div>
-        
-        {/* Orbitals */}
-        <div className="absolute left-12 right-4 top-0 bottom-0">
-          {sortedOrbitals.map((orbital, index) => (
-            <motion.div
-              key={orbital.name}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="absolute"
-              style={{ top: `${getYPosition(orbital.energy)}%` }}
-            >
-              {/* Orbital line */}
-              <div 
-                className={`h-1 w-16 rounded-full bg-gradient-to-r ${getOrbitalColor(orbital.type)} shadow-lg`}
-              />
-              
-              {/* Electrons */}
-              <div className="absolute -top-2 left-1 flex gap-0.5">
-                {Array.from({ length: Math.min(orbital.electrons, 2) }).map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: index * 0.1 + 0.2 + i * 0.1 }}
-                    className={`w-3 h-3 rounded-full border-2 ${getOrbitalBorderColor(orbital.type)} bg-background flex items-center justify-center`}
-                  >
-                    <span className="text-[8px]">{i === 0 ? '↑' : '↓'}</span>
-                  </motion.div>
-                ))}
-              </div>
-              
-              {/* Label */}
-              <div className="absolute left-20 -top-1.5 flex items-center gap-2">
-                <span className="text-[10px] font-mono text-foreground">{orbital.name}</span>
-                <span className="text-[9px] text-muted-foreground">
-                  {orbital.energy.toFixed(1)} eV
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Legend */}
-      <div className="flex items-center justify-center gap-4 mt-3 text-[10px]">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-1 rounded-full bg-gradient-to-r from-green-500 to-emerald-600" />
-          <span className="text-muted-foreground">Bonding</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-1 rounded-full bg-gradient-to-r from-yellow-500 to-amber-600" />
-          <span className="text-muted-foreground">Non-bonding</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-1 rounded-full bg-gradient-to-r from-red-500 to-rose-600" />
-          <span className="text-muted-foreground">Antibonding</span>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

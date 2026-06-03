@@ -12,7 +12,17 @@ export type GateType =
    | 'M'     // Measure
    | 'Rx'    // Rotation around X-axis (parametric)
    | 'Ry'    // Rotation around Y-axis (parametric)
-   | 'Rz';   // Rotation around Z-axis (parametric)
+   | 'Rz'    // Rotation around Z-axis (parametric)
+   | 'Sdg'   // S-dagger (S†)
+   | 'S†'    // S-dagger (alias)
+   | 'Tdg'   // T-dagger (T†)
+   | 'T†'    // T-dagger (alias)
+   | 'SX'    // √X gate
+   | 'SXdg'  // √X-dagger (SX†)
+   | 'SX†'   // √X-dagger (alias)
+   | 'P'     // Phase gate (parametric)
+   | 'DISPLAY' // Phase Disk Amplitude Display
+   | 'FUSED';  // Compiler-fused gate (multiple gates collapsed into one matrix)
 
 export interface QuantumGate {
   id: string;
@@ -23,6 +33,7 @@ export interface QuantumGate {
   targetQubit?: number;  // For SWAP
   controlQubit2?: number; // For Toffoli (second control)
    angle?: number; // For rotation gates (Rx, Ry, Rz) - angle in radians
+   fusedMatrix?: [[{re: number; im: number}, {re: number; im: number}], [{re: number; im: number}, {re: number; im: number}]]; // For compiler-fused gates
 }
 
 export interface CircuitState {
@@ -33,11 +44,22 @@ export interface CircuitState {
 export interface SimulationResult {
   probabilities: { state: string; probability: number }[];
   blochVectors: { x: number; y: number; z: number }[];
+  stateVector?: any; // Using any for now to avoid circular dependency or import the type
   isEntangled?: boolean;
   entangledPairs?: [number, number][];
   amplitudes?: { state: string; re: number; im: number; magnitude: number; phase: number }[];
   circuitDepth?: number;
   hasMeasurement?: boolean;
+  displays?: Record<string, { x: number; y: number; z: number }>;
+  gpuAccelerated?: boolean;
+  metadata?: {
+    top1000Mass: number;
+    isSampled: boolean;
+    totalShots?: number;
+    isExact: boolean;
+    backendName: string;
+    classification?: string;
+  };
 }
 
 export interface GateInfo {
@@ -152,5 +174,75 @@ export const GATE_INFO: Record<GateType, GateInfo> = {
      description: 'Rotation around Z-axis',
      color: 'hsl(240, 80%, 60%)',
      symbol: 'Rz',
+   },
+   P: {
+     type: 'P',
+     name: 'Phase',
+     description: 'Phase rotation',
+     color: 'hsl(199, 89%, 48%)',
+     symbol: 'P',
+   },
+   Sdg: {
+     type: 'Sdg',
+     name: 'S-dagger',
+     description: 'Inverse S gate',
+     color: 'hsl(199, 89%, 38%)',
+     symbol: 'S†',
+   },
+   'S†': {
+     type: 'S†',
+     name: 'S-dagger',
+     description: 'Inverse S gate',
+     color: 'hsl(199, 89%, 38%)',
+     symbol: 'S†',
+   },
+   Tdg: {
+     type: 'Tdg',
+     name: 'T-dagger',
+     description: 'Inverse T gate',
+     color: 'hsl(280, 80%, 50%)',
+     symbol: 'T†',
+   },
+   'T†': {
+     type: 'T†',
+     name: 'T-dagger',
+     description: 'Inverse T gate',
+     color: 'hsl(280, 80%, 50%)',
+     symbol: 'T†',
+   },
+   SX: {
+     type: 'SX',
+     name: 'SX',
+     description: 'Square root of X',
+     color: 'hsl(330, 100%, 55%)',
+     symbol: '√X',
+   },
+   SXdg: {
+     type: 'SXdg',
+     name: 'SX-dagger',
+     description: 'Inverse SX gate',
+     color: 'hsl(330, 100%, 45%)',
+     symbol: '√X†',
+   },
+   'SX†': {
+     type: 'SX†',
+     name: 'SX-dagger',
+     description: 'Inverse SX gate',
+     color: 'hsl(330, 100%, 45%)',
+     symbol: '√X†',
+   },
+   DISPLAY: {
+     type: 'DISPLAY',
+     name: 'Amplitude Display',
+     description: 'Phase Disk Amplitude Display',
+     color: 'hsl(210, 100%, 60%)',
+     symbol: 'Display',
+   },
+   FUSED: {
+     type: 'FUSED',
+     name: 'Fused Gate',
+     description: 'Compiler-optimized fused gate operation',
+     color: 'hsl(50, 90%, 55%)',
+     symbol: 'F',
    },
 };

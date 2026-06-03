@@ -6,6 +6,7 @@
 
 import { MoleculeData } from '@/lib/chemistry/moleculeData';
 import { Molecule3DViewer } from './Molecule3DViewer';
+import { buildMolBlock } from '@/lib/chemistry/molBlockBuilder';
 
 interface MoleculeViewer3DProps {
   molecule: MoleculeData;
@@ -20,6 +21,7 @@ export function MoleculeViewer3D({ molecule, height = 300 }: MoleculeViewer3DPro
   return (
     <Molecule3DViewer
       smiles={molecule.smiles}
+      fallbackMolBlock={buildMolBlock(molecule)}
       label={molecule.formula}
       heavyAtoms={heavy}
       height={height}

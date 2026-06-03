@@ -90,6 +90,19 @@ describe('Quantum circuit simulation', () => {
     expect(states).toContain('|01⟩');
     expect(states).toContain('|11⟩');
   });
+
+  it('should produce LSB-correct basis states for single-qubit gates', () => {
+    const gates = [
+      { id: '1', type: 'X' as const, qubit: 0, position: 0 },
+    ];
+
+    const result = simulateCircuit(gates, 2, 'LSB');
+
+    expect(result.probabilities).toHaveLength(1);
+    expect(result.probabilities[0].state).toBe('|01⟩');
+    expect(result.blochVectors[0].z).toBeCloseTo(-1, 5);
+    expect(result.blochVectors[1].z).toBeCloseTo(1, 5);
+  });
 });
 
 describe('CNOT and Entanglement', () => {

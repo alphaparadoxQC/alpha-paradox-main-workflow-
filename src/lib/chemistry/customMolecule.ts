@@ -131,11 +131,11 @@ function makeMolecule(
   const electrons = elements.reduce((sum, e) => sum + e.number, 0);
   const formula = formatFormula(elements.map(e => e.symbol));
 
-  // Heuristic qubit count: 2 spin-orbitals per valence pair, capped to keep
-  // simulations responsive in the browser. Min 4 qubits, max 14.
+  // Heuristic qubit count: 2 spin-orbitals per valence pair.
+  // MPS engine handles up to 100 qubits; cap at 100 for VQE responsiveness.
   const valenceElectrons = elements.reduce((s, e) => s + e.valence, 0);
-  const qubitsRequired = Math.max(4, Math.min(14, valenceElectrons * 2));
-  const vqeDepth = Math.max(2, Math.min(8, Math.ceil(qubitsRequired / 2)));
+  const qubitsRequired = Math.max(4, Math.min(100, valenceElectrons * 2));
+  const vqeDepth = Math.max(2, Math.min(10, Math.ceil(qubitsRequired / 2)));
 
   return {
     id: `custom-${elements.map(e => e.symbol).join('-').toLowerCase()}`,
@@ -153,6 +153,9 @@ function makeMolecule(
     ])),
     qubitsRequired,
     vqeDepth,
+    charge: 0,
+    multiplicity: 1,
+    isEnergyEstimated: true,
   };
 }
 
