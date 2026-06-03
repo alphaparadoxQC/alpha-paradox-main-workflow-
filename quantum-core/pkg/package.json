@@ -1,0 +1,19 @@
+{
+  "name": "quantum-core",
+  "type": "module",
+  "collaborators": [
+    "Quantum Engine Team"
+  ],
+  "description": "High-performance WebAssembly quantum tensor engine",
+  "version": "0.1.0",
+  "files": [
+    "quantum_core_bg.wasm",
+    "quantum_core.js",
+    "quantum_core.d.ts"
+  ],
+  "main": "quantum_core.js",
+  "types": "quantum_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
