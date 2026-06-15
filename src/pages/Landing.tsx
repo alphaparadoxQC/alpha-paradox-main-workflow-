@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { 
   Cpu, Zap, Globe, Atom, ArrowRight, Play, Layers, 
-  Sparkles, GitFork, Cloud, Keyboard, ChevronDown 
+  Sparkles, GitFork, Cloud, Keyboard, ChevronDown,
+  GraduationCap, Building2, ArrowLeft, X, FlaskConical, Pill
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { BRANDING } from '@/config/branding';
 
@@ -148,12 +150,12 @@ export default function Landing() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.95]);
 
+  const [isProductsOpen, setIsProductsOpen] = useState(false);
+  const [activeProductTab, setActiveProductTab] = useState<'category' | 'education' | 'industry'>('category');
+
   const handleLaunch = () => {
-    if (user) {
-      navigate('/builder');
-    } else {
-      navigate('/auth');
-    }
+    setIsProductsOpen(true);
+    setActiveProductTab('category');
   };
 
   return (
@@ -189,6 +191,17 @@ export default function Landing() {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-foreground hover:bg-accent/40"
+              onClick={() => {
+                setIsProductsOpen(true);
+                setActiveProductTab('category');
+              }}
+            >
+              Products <ChevronDown className="w-3 h-3 opacity-60" />
+            </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/gallery">Gallery</Link>
             </Button>
@@ -254,7 +267,7 @@ export default function Landing() {
               className="text-lg px-8 py-6 bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 shadow-lg shadow-primary/20"
             >
               <Play className="w-5 h-5 mr-2" />
-              Launch Builder
+              Launch Platforms
             </Button>
             <Button
               size="lg"
@@ -376,6 +389,271 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* Products Modal Overlay */}
+      <AnimatePresence>
+        {isProductsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto"
+            onClick={() => setIsProductsOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-5xl bg-card border border-border/80 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 h-8 w-8 rounded-full border border-border bg-background/50 hover:bg-accent text-muted-foreground hover:text-foreground z-10"
+                onClick={() => setIsProductsOpen(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+
+              {/* Header */}
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground flex items-center gap-2">
+                    <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                      Our Platforms
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select a platform category to launch your workspace
+                  </p>
+                </div>
+                {activeProductTab !== 'category' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mr-10 text-xs text-muted-foreground hover:text-foreground gap-1 border border-border/50 bg-background/25"
+                    onClick={() => setActiveProductTab('category')}
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Back to Categories
+                  </Button>
+                )}
+              </div>
+
+              {/* Main Content Area */}
+              <ScrollArea className="flex-1 pr-1">
+                <AnimatePresence mode="wait">
+                  {activeProductTab === 'category' && (
+                    <motion.div
+                      key="categories"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.2 }}
+                      className="grid md:grid-cols-2 gap-6 py-4"
+                    >
+                      {/* Education Category Card */}
+                      <div
+                        className="group relative p-6 sm:p-8 rounded-2xl border border-border/80 bg-gradient-to-br from-sidebar-accent/10 to-sidebar/20 hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between hover:shadow-xl hover:shadow-primary/5"
+                        onClick={() => setActiveProductTab('education')}
+                      >
+                        <div>
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-primary/20">
+                            <GraduationCap className="w-7 h-7 text-background" />
+                          </div>
+                          <h3 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2">
+                            Educational Suites
+                            <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+                          </h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Simulate and learn quantum systems, molecular structures, and pharmaceutical design. Access high-fidelity local or cloud backends.
+                          </p>
+                        </div>
+                        <div className="mt-8 flex items-center justify-between text-xs font-semibold text-primary">
+                          <span>Explore 3 educational simulators</span>
+                          <span className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20">Ready to simulate</span>
+                        </div>
+                        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-primary/30" />
+                      </div>
+
+                      {/* Industrial Use Category Card */}
+                      <div
+                        className="group relative p-6 sm:p-8 rounded-2xl border border-border/80 bg-gradient-to-br from-sidebar-accent/10 to-sidebar/20 hover:border-secondary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between hover:shadow-xl hover:shadow-secondary/5"
+                        onClick={() => setActiveProductTab('industry')}
+                      >
+                        <div>
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-secondary to-secondary/50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-secondary/20">
+                            <Building2 className="w-7 h-7 text-background" />
+                          </div>
+                          <h3 className="text-xl font-bold text-foreground mb-3 flex items-center gap-2">
+                            Industrial Solutions
+                            <ArrowRight className="w-4 h-4 text-secondary opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" />
+                          </h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Scale workloads up to 100+ qubits using high-performance tensor network contraction and execute tasks across multi-cloud QPU providers.
+                          </p>
+                        </div>
+                        <div className="mt-8 flex items-center justify-between text-xs font-semibold text-secondary">
+                          <span>Enterprise access and integration</span>
+                          <span className="px-2 py-0.5 rounded bg-secondary/10 border border-secondary/20">Under development</span>
+                        </div>
+                        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-secondary/30" />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeProductTab === 'education' && (
+                    <motion.div
+                      key="education"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="grid md:grid-cols-3 gap-6 py-4"
+                    >
+                      {/* Quantum Simulator */}
+                      <div className="group rounded-2xl border border-border/80 bg-sidebar/35 overflow-hidden flex flex-col hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
+                        <div className="h-44 overflow-hidden relative border-b border-border bg-black/45">
+                          <img
+                            src="/quantum_simulator.png"
+                            alt="Quantum Simulator"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/20 backdrop-blur-md border border-primary/30 text-[10px] font-bold text-primary">
+                            <Atom className="w-3.5 h-3.5" />
+                            Simulator
+                          </div>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
+                              Quantum Simulator
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                              Drag-and-drop quantum circuit builder with real-time state vector, density matrix, and MPS simulation.
+                            </p>
+                          </div>
+                          <Button
+                            className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold"
+                            onClick={() => {
+                              setIsProductsOpen(false);
+                              navigate('/builder');
+                            }}
+                          >
+                            Launch Builder
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Chemistry Simulator */}
+                      <div className="group rounded-2xl border border-border/80 bg-sidebar/35 overflow-hidden flex flex-col hover:border-accent/50 transition-all duration-300 hover:shadow-lg">
+                        <div className="h-44 overflow-hidden relative border-b border-border bg-black/45">
+                          <img
+                            src="/chemistry_simulator.png"
+                            alt="Chemistry Simulator"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-accent/20 backdrop-blur-md border border-accent/30 text-[10px] font-bold text-accent">
+                            <FlaskConical className="w-3.5 h-3.5" />
+                            Chemistry
+                          </div>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="font-bold text-lg text-foreground group-hover:text-accent transition-colors">
+                              Chemistry Workbench
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                              Variational Quantum Eigensolver (VQE) and UCCSD ansatz optimizer for molecular ground-state energy calculations.
+                            </p>
+                          </div>
+                          <Button
+                            className="w-full mt-6 bg-accent text-accent-foreground hover:bg-accent/95 text-xs font-semibold"
+                            onClick={() => {
+                              setIsProductsOpen(false);
+                              navigate('/chemistry');
+                            }}
+                          >
+                            Launch Chemistry
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Drug Simulator */}
+                      <div className="group rounded-2xl border border-border/80 bg-sidebar/35 overflow-hidden flex flex-col hover:border-quantum-pink/50 transition-all duration-300 hover:shadow-lg">
+                        <div className="h-44 overflow-hidden relative border-b border-border bg-black/45">
+                          <img
+                            src="/drug_simulator.png"
+                            alt="Drug Simulator"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-quantum-pink/20 backdrop-blur-md border border-quantum-pink/30 text-[10px] font-bold text-quantum-pink">
+                            <Pill className="w-3.5 h-3.5" />
+                            Pharma
+                          </div>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="font-bold text-lg text-foreground group-hover:text-quantum-pink transition-colors">
+                              Pharma Workspace
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                              Quantum-driven pharmaceutical workspace for docking, ADMET toxicity prediction, and Lipinski rule-of-five validation.
+                            </p>
+                          </div>
+                          <Button
+                            className="w-full mt-6 bg-quantum-pink text-white hover:bg-quantum-pink/95 text-xs font-semibold"
+                            onClick={() => {
+                              setIsProductsOpen(false);
+                              navigate('/pharma');
+                            }}
+                          >
+                            Launch Pharma
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeProductTab === 'industry' && (
+                    <motion.div
+                      key="industry"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.2 }}
+                      className="py-12 px-6 flex flex-col items-center justify-center text-center max-w-md mx-auto"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-secondary/15 flex items-center justify-center text-secondary mb-6 border border-secondary/20 animate-pulse">
+                        <Building2 className="w-8 h-8" />
+                      </div>
+                      <h4 className="text-xl font-bold text-foreground">
+                        Industrial Solutions
+                      </h4>
+                      <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+                        We don't have active industrial products on the platform yet. Our enterprise tensor solvers and multi-QPU compilation pipelines are currently under development.
+                      </p>
+                      <Button
+                        variant="outline"
+                        className="mt-8 border-border hover:bg-accent text-xs font-semibold"
+                        onClick={() => setActiveProductTab('category')}
+                      >
+                        Return to Categories
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </ScrollArea>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -190,6 +190,10 @@ export function Molecule3DViewer({
 
       {/* Top-left badges */}
       <div className="absolute top-2 left-2 flex flex-col gap-1.5 pointer-events-none">
+        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] gap-1 pointer-events-none">
+           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+           WebGL GPU Accelerated
+        </Badge>
         {label && (
           <Badge variant="secondary" className="text-[10px] font-mono pointer-events-auto">
             {label}
@@ -238,21 +242,20 @@ export function Molecule3DViewer({
 
 /**
  * Adaptive style based on molecule size and user preference.
- * - ≤30 heavy atoms: Ball-and-stick (sphere 0.3)
- * - 31-80 heavy atoms: Stick-only (stick 0.15, no spheres) 
- * - >80 heavy atoms: Line representation (fast)
+ * - ≤20 heavy atoms: Ball-and-stick (sphere 0.3)
+ * - 21-60 heavy atoms: Stick-only (stick 0.15, no spheres) 
+ * - >60 heavy atoms: Line representation (fast)
  */
 function applyAdaptiveStyle(viewer: any, showHs: boolean, mode: string, heavyAtomCount: number) {
   // Clear any existing labels
   viewer.removeAllLabels();
 
-  // Determine effective mode
+  // Determine effective mode (Tuned aggressively to prevent WebGL/GPU lag)
   let effectiveMode = mode;
   if (mode === 'auto') {
-    if (heavyAtomCount <= 30) effectiveMode = 'ballstick';
-    else if (heavyAtomCount <= 80) effectiveMode = 'stick';
-    else if (heavyAtomCount <= 300) effectiveMode = 'stick'; // Medium molecules
-    else effectiveMode = 'line'; // Extreme fallback for 300+ to prevent crash
+    if (heavyAtomCount <= 20) effectiveMode = 'ballstick';
+    else if (heavyAtomCount <= 60) effectiveMode = 'stick';
+    else effectiveMode = 'line'; // Extreme fallback for 60+ to prevent crash
   }
 
   if (effectiveMode === 'surface') {

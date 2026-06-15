@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "vite",
+    "dev:backend": "cd chemistry-backend && source .venv/bin/activate && uvicorn main:app --reload --port 8000",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
@@ -85,6 +87,7 @@
     "@vitejs/plugin-react-swc": "^3.11.0",
     "@webgpu/types": "^0.1.69",
     "autoprefixer": "^10.4.21",
+    "concurrently": "^10.0.3",
     "eslint": "^9.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

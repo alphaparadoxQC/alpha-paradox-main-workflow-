@@ -11,6 +11,15 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      '/chemistry/backends': 'http://localhost:8000',
+      '/chemistry/parse-smiles': 'http://localhost:8000',
+      '/chemistry/run-hf': 'http://localhost:8000',
+      '/chemistry/generate-hamiltonian': 'http://localhost:8000',
+      '/chemistry/generate-chemistry-circuit': 'http://localhost:8000',
+      '/chemistry/circuits': 'http://localhost:8000',
+      '/chemistry/vqe': 'http://localhost:8000',
+    }
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

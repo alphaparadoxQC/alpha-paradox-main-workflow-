@@ -1,10 +1,6 @@
-/**
- * Chemistry Circuit Templates
- * Pre-built VQE circuits for molecular ground state calculations
- */
-
 import { QuantumGate } from '@/types/quantum';
 import { MoleculeData, OrbitalInfo } from './moleculeData';
+import { generateUCCSDAnsatz, getUCCSDParameterCount } from './ansatz/uccsd';
 
 export interface ChemistryTemplate {
   id: string;
@@ -28,9 +24,6 @@ export interface ChemistryTemplate {
   learningObjectives: string[];
   references: { title: string; url: string }[];
 }
-
-// Helper to generate gate IDs
-const gateId = () => `tmpl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 // Atom properties
 const ATOM_PROPS = {
@@ -61,188 +54,67 @@ const HeHPlusMolecule: MoleculeData = {
   vqeDepth: 2,
 };
 
-// Generate H2 ground state circuit
+/**
+ * Generate UCCSD circuit for a molecule with preset parameters.
+ * Each molecule gets structurally different gates because UCCSD uses
+ * H, Rx, Rz, CNOT staircases whose connectivity follows the orbital
+ * excitation indices (occupied → virtual).
+ */
+const generateMoleculeCircuit = (
+  qubits: number,
+  electrons: number,
+  presetAngles?: number[]
+): QuantumGate[] => {
+  const paramCount = getUCCSDParameterCount(qubits, electrons);
+  const params = presetAngles ?? Array.from({ length: paramCount }, (_, i) => 
+    // Deterministic, physically motivated starting angles
+    (i % 2 === 0 ? 1 : -1) * Math.PI / (4 + i * 0.3)
+  );
+  return generateUCCSDAnsatz(qubits, electrons, params);
+};
+
+// Calculate circuit depth from gates
+const circuitDepth = (gates: QuantumGate[]): number => {
+  return gates.reduce((max, g) => Math.max(max, g.position), 0) + 1;
+};
+
+// Generate H2 ground state circuit — UCCSD with 2 electrons, 4 qubits
 const generateH2GroundStateCircuit = (): QuantumGate[] => {
-  const gates: QuantumGate[] = [];
-  
-  // Hartree-Fock reference state |0011⟩
-  gates.push({ id: gateId(), type: 'X', qubit: 0, position: 0 });
-  gates.push({ id: gateId(), type: 'X', qubit: 1, position: 0 });
-  
-  // UCCSD-inspired ansatz layer 1
-  gates.push({ id: gateId(), type: 'Ry', qubit: 0, position: 1, angle: Math.PI / 4 });
-  gates.push({ id: gateId(), type: 'Ry', qubit: 1, position: 1, angle: Math.PI / 4 });
-  gates.push({ id: gateId(), type: 'Ry', qubit: 2, position: 1, angle: -Math.PI / 6 });
-  gates.push({ id: gateId(), type: 'Ry', qubit: 3, position: 1, angle: -Math.PI / 6 });
-  
-  // Entangling layer
-  gates.push({ id: gateId(), type: 'CNOT', qubit: 0, controlQubit: 0, targetQubit: 1, position: 2 });
-  gates.push({ id: gateId(), type: 'CNOT', qubit: 2, controlQubit: 2, targetQubit: 3, position: 2 });
-  
-  gates.push({ id: gateId(), type: 'CNOT', qubit: 1, controlQubit: 1, targetQubit: 2, position: 3 });
-  
-  // Rz rotations
-  gates.push({ id: gateId(), type: 'Rz', qubit: 0, position: 4, angle: Math.PI / 3 });
-  gates.push({ id: gateId(), type: 'Rz', qubit: 1, position: 4, angle: Math.PI / 3 });
-  gates.push({ id: gateId(), type: 'Rz', qubit: 2, position: 4, angle: -Math.PI / 4 });
-  gates.push({ id: gateId(), type: 'Rz', qubit: 3, position: 4, angle: -Math.PI / 4 });
-  
-  return gates;
+  return generateMoleculeCircuit(4, 2);
 };
 
-// Generate H2 dissociation circuit (parameterized for different bond lengths)
+// Generate H2 dissociation circuit — deeper UCCSD with stretched parameters
 const generateH2DissociationCircuit = (): QuantumGate[] => {
-  const gates: QuantumGate[] = [];
-  
-  // Reference state
-  gates.push({ id: gateId(), type: 'X', qubit: 0, position: 0 });
-  gates.push({ id: gateId(), type: 'X', qubit: 1, position: 0 });
-  
-  // Hardware-efficient ansatz with more layers for dissociation
-  for (let layer = 0; layer < 3; layer++) {
-    const pos = layer * 3 + 1;
-    
-    gates.push({ id: gateId(), type: 'Ry', qubit: 0, position: pos, angle: Math.PI / (4 + layer) });
-    gates.push({ id: gateId(), type: 'Ry', qubit: 1, position: pos, angle: Math.PI / (4 + layer) });
-    gates.push({ id: gateId(), type: 'Ry', qubit: 2, position: pos, angle: -Math.PI / (5 + layer) });
-    gates.push({ id: gateId(), type: 'Ry', qubit: 3, position: pos, angle: -Math.PI / (5 + layer) });
-    
-    gates.push({ id: gateId(), type: 'CNOT', qubit: 0, controlQubit: 0, targetQubit: 1, position: pos + 1 });
-    gates.push({ id: gateId(), type: 'CNOT', qubit: 1, controlQubit: 1, targetQubit: 2, position: pos + 1 });
-    gates.push({ id: gateId(), type: 'CNOT', qubit: 2, controlQubit: 2, targetQubit: 3, position: pos + 1 });
-    
-    gates.push({ id: gateId(), type: 'Rz', qubit: 0, position: pos + 2, angle: Math.PI / (3 + layer) });
-    gates.push({ id: gateId(), type: 'Rz', qubit: 1, position: pos + 2, angle: Math.PI / (3 + layer) });
-    gates.push({ id: gateId(), type: 'Rz', qubit: 2, position: pos + 2, angle: -Math.PI / (4 + layer) });
-    gates.push({ id: gateId(), type: 'Rz', qubit: 3, position: pos + 2, angle: -Math.PI / (4 + layer) });
-  }
-  
-  return gates;
+  const paramCount = getUCCSDParameterCount(4, 2);
+  // At stretched bond lengths, correlations are stronger → larger angles
+  const params = Array.from({ length: paramCount }, (_, i) => 
+    (i % 2 === 0 ? 1 : -1) * Math.PI / (3 + i * 0.2)
+  );
+  return generateUCCSDAnsatz(4, 2, params);
 };
 
-// Generate LiH ground state circuit
+// Generate LiH ground state circuit — 4 electrons, 6 qubits
 const generateLiHGroundStateCircuit = (): QuantumGate[] => {
-  const gates: QuantumGate[] = [];
-  
-  // Hartree-Fock reference for LiH (4 electrons)
-  gates.push({ id: gateId(), type: 'X', qubit: 0, position: 0 });
-  gates.push({ id: gateId(), type: 'X', qubit: 1, position: 0 });
-  gates.push({ id: gateId(), type: 'X', qubit: 2, position: 0 });
-  gates.push({ id: gateId(), type: 'X', qubit: 3, position: 0 });
-  
-  // Multi-layer ansatz
-  for (let layer = 0; layer < 4; layer++) {
-    const pos = layer * 3 + 1;
-    
-    for (let q = 0; q < 6; q++) {
-      gates.push({ 
-        id: gateId(), 
-        type: 'Ry', 
-        qubit: q, 
-        position: pos, 
-        angle: (q < 4 ? 1 : -1) * Math.PI / (4 + layer) 
-      });
-    }
-    
-    for (let q = 0; q < 5; q++) {
-      gates.push({ 
-        id: gateId(), 
-        type: 'CNOT', 
-        qubit: q, 
-        controlQubit: q, 
-        targetQubit: q + 1, 
-        position: pos + 1 
-      });
-    }
-    
-    for (let q = 0; q < 6; q++) {
-      gates.push({ 
-        id: gateId(), 
-        type: 'Rz', 
-        qubit: q, 
-        position: pos + 2, 
-        angle: (q < 4 ? 1 : -1) * Math.PI / (3 + layer) 
-      });
-    }
-  }
-  
-  return gates;
+  return generateMoleculeCircuit(6, 4);
 };
 
-// Generate HeH+ ground state circuit
+// Generate HeH+ ground state circuit — 2 electrons, 4 qubits
 const generateHeHPlusCircuit = (): QuantumGate[] => {
-  const gates: QuantumGate[] = [];
-  
-  // 2 electrons in bonding orbital
-  gates.push({ id: gateId(), type: 'X', qubit: 0, position: 0 });
-  gates.push({ id: gateId(), type: 'X', qubit: 1, position: 0 });
-  
-  // Simple ansatz (similar to H2)
-  gates.push({ id: gateId(), type: 'Ry', qubit: 0, position: 1, angle: Math.PI / 5 });
-  gates.push({ id: gateId(), type: 'Ry', qubit: 1, position: 1, angle: Math.PI / 5 });
-  gates.push({ id: gateId(), type: 'Ry', qubit: 2, position: 1, angle: -Math.PI / 7 });
-  gates.push({ id: gateId(), type: 'Ry', qubit: 3, position: 1, angle: -Math.PI / 7 });
-  
-  gates.push({ id: gateId(), type: 'CNOT', qubit: 0, controlQubit: 0, targetQubit: 1, position: 2 });
-  gates.push({ id: gateId(), type: 'CNOT', qubit: 2, controlQubit: 2, targetQubit: 3, position: 2 });
-  gates.push({ id: gateId(), type: 'CNOT', qubit: 1, controlQubit: 1, targetQubit: 2, position: 3 });
-  
-  gates.push({ id: gateId(), type: 'Rz', qubit: 0, position: 4, angle: Math.PI / 4 });
-  gates.push({ id: gateId(), type: 'Rz', qubit: 1, position: 4, angle: Math.PI / 4 });
-  gates.push({ id: gateId(), type: 'Rz', qubit: 2, position: 4, angle: -Math.PI / 5 });
-  gates.push({ id: gateId(), type: 'Rz', qubit: 3, position: 4, angle: -Math.PI / 5 });
-  
-  return gates;
+  // Same qubit/electron count as H2 but with different preset angles
+  // reflecting the stronger He nuclear charge
+  const paramCount = getUCCSDParameterCount(4, 2);
+  const params = Array.from({ length: paramCount }, (_, i) => 
+    (i % 2 === 0 ? 1 : -1) * Math.PI / (5 + i * 0.4)
+  );
+  return generateUCCSDAnsatz(4, 2, params);
 };
 
-// Generate Water (H2O) simplified circuit
+// Generate Water (H2O) circuit — 6 active electrons, 8 active qubits
 const generateWaterCircuit = (): QuantumGate[] => {
-  const gates: QuantumGate[] = [];
-  
-  // Frozen core: 1s electrons not explicitly included
-  // Active space: valence electrons
-  for (let q = 0; q < 5; q++) {
-    gates.push({ id: gateId(), type: 'X', qubit: q, position: 0 });
-  }
-  
-  // Multi-layer ansatz for water
-  for (let layer = 0; layer < 6; layer++) {
-    const pos = layer * 3 + 1;
-    
-    for (let q = 0; q < 10; q++) {
-      gates.push({ 
-        id: gateId(), 
-        type: 'Ry', 
-        qubit: q, 
-        position: pos, 
-        angle: (q < 5 ? 1 : -1) * Math.PI / (4 + layer * 0.5) 
-      });
-    }
-    
-    for (let q = 0; q < 9; q++) {
-      gates.push({ 
-        id: gateId(), 
-        type: 'CNOT', 
-        qubit: q, 
-        controlQubit: q, 
-        targetQubit: q + 1, 
-        position: pos + 1 
-      });
-    }
-    
-    for (let q = 0; q < 10; q++) {
-      gates.push({ 
-        id: gateId(), 
-        type: 'Rz', 
-        qubit: q, 
-        position: pos + 2, 
-        angle: (q < 5 ? 1 : -1) * Math.PI / (3 + layer * 0.5) 
-      });
-    }
-  }
-  
-  return gates;
+  // Use active space electrons (6) instead of total (10)
+  return generateMoleculeCircuit(8, 6);
 };
+
 
 // Import molecule data
 import { MOLECULES, getMoleculeById } from './moleculeData';
@@ -257,7 +129,7 @@ export const CHEMISTRY_TEMPLATES: ChemistryTemplate[] = [
     circuit: {
       qubits: 4,
       gates: generateH2GroundStateCircuit(),
-      depth: 5,
+      depth: circuitDepth(generateH2GroundStateCircuit()),
     },
     description: 'Calculate the ground state energy of molecular hydrogen (H₂), the simplest neutral molecule.',
     explanation: [
@@ -291,7 +163,7 @@ export const CHEMISTRY_TEMPLATES: ChemistryTemplate[] = [
     circuit: {
       qubits: 4,
       gates: generateH2DissociationCircuit(),
-      depth: 10,
+      depth: circuitDepth(generateH2DissociationCircuit()),
     },
     description: 'Study how H₂ energy changes as the bond stretches, a key test for quantum chemistry methods.',
     explanation: [
@@ -324,7 +196,7 @@ export const CHEMISTRY_TEMPLATES: ChemistryTemplate[] = [
     circuit: {
       qubits: 6,
       gates: generateLiHGroundStateCircuit(),
-      depth: 13,
+      depth: circuitDepth(generateLiHGroundStateCircuit()),
     },
     description: 'Calculate the ground state of lithium hydride, a polar molecule with ionic character.',
     explanation: [
@@ -358,7 +230,7 @@ export const CHEMISTRY_TEMPLATES: ChemistryTemplate[] = [
     circuit: {
       qubits: 4,
       gates: generateHeHPlusCircuit(),
-      depth: 5,
+      depth: circuitDepth(generateHeHPlusCircuit()),
     },
     description: 'Calculate the ground state of HeH⁺, the universe\'s first molecule after the Big Bang.',
     explanation: [
@@ -390,9 +262,9 @@ export const CHEMISTRY_TEMPLATES: ChemistryTemplate[] = [
     difficulty: 'advanced',
     molecule: getMoleculeById('h2o')!,
     circuit: {
-      qubits: 10,
+      qubits: 8,
       gates: generateWaterCircuit(),
-      depth: 19,
+      depth: circuitDepth(generateWaterCircuit()),
     },
     description: 'A simplified VQE model for water, demonstrating larger molecule simulation.',
     explanation: [

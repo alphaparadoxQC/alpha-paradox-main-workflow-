@@ -1,0 +1,9 @@
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+rdkit>=2023.9.1
+pyscf>=2.4.0
+openfermion>=1.6.1
+openfermionpyscf>=0.5.0
+qiskit-nature>=0.7.2
+pennylane>=0.35.0

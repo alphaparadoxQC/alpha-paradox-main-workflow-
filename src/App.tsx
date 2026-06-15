@@ -14,6 +14,8 @@ const Gallery = lazy(() => import("./pages/Gallery"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const Pharma = lazy(() => import("./pages/Pharma"));
 const Chemistry = lazy(() => import("./pages/Chemistry"));
+const ChemistryCircuitBuilder = lazy(() => import("./pages/ChemistryCircuitBuilder"));
+// Note: Settings route is disabled because Settings component doesn't exist yet
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,11 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/builder" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/chemistry/circuit-builder" element={
+              <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+                <ChemistryCircuitBuilder />
+              </Suspense>
+            } />
             <Route path="/gallery" element={
               <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
                 <Gallery />

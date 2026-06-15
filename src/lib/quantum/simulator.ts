@@ -682,7 +682,7 @@ const simulateCircuitWithMPS = (
   
   // Build Bloch vectors — cap at 32 qubits to prevent timeout.
   // Each Bloch computation is O(n·χ^4), so 100 qubits × χ=48 is too expensive.
-  // We completely disable default bloch spheres for > 30 qubits.
+  // For > 30 qubits, we estimate the Z-axis from probabilities instead.
   const blochLimit = qubitCount > 30 ? 0 : Math.min(qubitCount, 32);
   const blochVectors: { x: number; y: number; z: number }[] = [];
   try {
@@ -695,9 +695,38 @@ const simulateCircuitWithMPS = (
       blochVectors.push({ x: 0, y: 0, z: 1 });
     }
   }
-  // Fill remaining qubits with default |0⟩ Bloch vectors
-  for (let q = blochLimit; q < qubitCount; q++) {
-    blochVectors.push({ x: 0, y: 0, z: 1 });
+  
+  // Fill remaining qubits
+  if (qubitCount > 30) {
+    const zEstimates = new Array(qubitCount).fill(0);
+    let totalProb = 0;
+    
+    if (mpsResult.probabilities) {
+      mpsResult.probabilities.forEach((p: any) => {
+        totalProb += p.probability;
+        // p.state looks like "|0110...⟩"
+        const bits = p.state.replace(/[|⟩]/g, '');
+        for (let q = 0; q < qubitCount && q < bits.length; q++) {
+          if (bits[q] === '0') zEstimates[q] += p.probability;
+          else if (bits[q] === '1') zEstimates[q] -= p.probability;
+        }
+      });
+    }
+    
+    if (totalProb > 0) {
+      for (let q = blochLimit; q < qubitCount; q++) {
+        // Z is normalized by the sampled probability mass
+        blochVectors.push({ x: 0, y: 0, z: zEstimates[q] / totalProb });
+      }
+    } else {
+      for (let q = blochLimit; q < qubitCount; q++) {
+        blochVectors.push({ x: 0, y: 0, z: 1 });
+      }
+    }
+  } else {
+    for (let q = blochLimit; q < qubitCount; q++) {
+      blochVectors.push({ x: 0, y: 0, z: 1 });
+    }
   }
   
   const circuitDepth = calculateCircuitDepth(gates);
@@ -728,13 +757,16 @@ const simulateCircuitWithMPS = (
   if (amplitudeInfo.length === 0 && mpsResult.probabilities) {
     mpsResult.probabilities.forEach((p: any) => {
       if (p.amplitude) {
-        const mag = Math.sqrt(p.amplitude.re * p.amplitude.re + p.amplitude.im * p.amplitude.im);
+        // Sanitize NaN to prevent rendering bugs ("NaNNai") in the UI
+        const re = Number.isNaN(p.amplitude.re) ? 0 : p.amplitude.re;
+        const im = Number.isNaN(p.amplitude.im) ? 0 : p.amplitude.im;
+        const mag = Math.sqrt(re * re + im * im);
         amplitudeInfo.push({
           state: p.state,
-          re: p.amplitude.re,
-          im: p.amplitude.im,
+          re,
+          im,
           magnitude: mag,
-          phase: Math.atan2(p.amplitude.im, p.amplitude.re),
+          phase: Math.atan2(im, re),
         });
       }
     });

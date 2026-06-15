@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronRight, FlaskConical, Atom, Pill, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Atom, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   ExtendedGateType, 
@@ -13,7 +12,6 @@ import {
 import { GATE_INFO, GateType } from '@/types/quantum';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Collapsible,
   CollapsibleContent,
@@ -163,29 +161,13 @@ export const GatesPalette = () => {
       </Button>
 
       <div className={`flex flex-col h-full w-72 transition-opacity duration-200 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-      <Tabs defaultValue="gates" className="flex flex-col h-full">
-        <div className="p-3 border-b border-sidebar-border">
-          <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="gates" className="text-xs gap-1">
-              <Atom className="w-3 h-3" />
-              Gates
-            </TabsTrigger>
-            <TabsTrigger value="chemistry" className="text-xs gap-1">
-              <FlaskConical className="w-3 h-3" />
-              Chem
-            </TabsTrigger>
-            <TabsTrigger value="drugs" className="text-xs gap-1">
-              <Pill className="w-3 h-3" />
-              Drugs
-            </TabsTrigger>
-          </TabsList>
-        </div>
-        
-        <TabsContent value="gates" className="flex-1 flex flex-col m-0 overflow-hidden">
-          <div className="px-4 py-2 border-b border-sidebar-border/50">
-            <p className="text-xs text-muted-foreground">
-              Click or drag gates to add
-            </p>
+        <div className="flex-1 flex flex-col m-0 overflow-hidden h-full">
+          <div className="px-4 py-3 border-b border-sidebar-border bg-sidebar-accent/10 flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Atom className="w-4 h-4 text-primary animate-pulse" />
+              <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Gates Palette</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground">Click or drag gates</span>
           </div>
           
           <ScrollArea className="flex-1">
@@ -237,50 +219,7 @@ export const GatesPalette = () => {
               <span className="text-primary">Tip:</span> Drag gates onto qubit lines
             </div>
           </div>
-        </TabsContent>
-        
-        <TabsContent value="chemistry" className="flex-1 m-0 overflow-hidden">
-          <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
-            <div className="p-4 rounded-2xl bg-primary/10">
-              <FlaskConical className="w-8 h-8 text-primary" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">Quantum Chemistry</h3>
-              <p className="text-xs text-muted-foreground max-w-[220px]">
-                Open the dedicated workspace with an interactive periodic table and VQE simulations.
-              </p>
-            </div>
-            <Link
-              to="/chemistry"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-            >
-              Open Chemistry Workspace
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="drugs" className="flex-1 m-0 overflow-hidden">
-          <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
-            <div className="p-4 rounded-2xl bg-primary/10">
-              <Pill className="w-8 h-8 text-primary" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">Pharma & Drug Discovery</h3>
-              <p className="text-xs text-muted-foreground max-w-[220px]">
-                Open the dedicated workspace for structured docking, ADMET and Lipinski outputs.
-              </p>
-            </div>
-            <Link
-              to="/pharma"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-            >
-              Open Pharma Workspace
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
       </div>
     </motion.div>
   );

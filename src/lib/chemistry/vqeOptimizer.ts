@@ -8,6 +8,7 @@ import { simulateCircuit } from '@/lib/quantum/simulator';
 import { BitOrder } from '@/lib/quantum/bitOrder';
 import { MoleculeData } from './moleculeData';
 import { getHamiltonian, calculatePauliExpectation, calculatePauliExpectationMPS } from './pauliHamiltonian';
+import { generateUCCSDAnsatz, getUCCSDParameterCount } from './ansatz/uccsd';
 
 // ─── Result Classification ──────────────────────────────────────────────────
 
@@ -88,82 +89,35 @@ const DEFAULT_CONFIG: VQEConfig = {
 
 /**
  * Generate parameterized ansatz gates for VQE
- * Returns gates with angles that can be updated during optimization
+ * 
+ * Uses UCCSD (Unitary Coupled-Cluster Singles and Doubles) ansatz
+ * which generates molecule-specific circuits based on orbital excitations.
+ * Each molecule gets a structurally unique circuit:
+ * - H₂ (2e, 4q): compact circuit with 2 singles + 1 double
+ * - LiH (4e, 6q): deeper circuit with 8 singles + 6 doubles  
+ * - H₂O (10e, 14q): very deep circuit with long-range CNOTs
  */
 export const generateParameterizedAnsatz = (
   molecule: MoleculeData,
   parameters: number[]
 ): QuantumGate[] => {
-  const gates: QuantumGate[] = [];
   const qubits = molecule.qubitsRequired;
-  const depth = molecule.vqeDepth;
+  const electrons = Math.min(molecule.activeSpace?.activeElectrons ?? molecule.electrons, qubits);
   
-  let paramIndex = 0;
-  const generateId = () => `vqe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
-  // Hartree-Fock state preparation (fill lowest energy spin-orbitals)
-  const occupiedSpinOrbitals = Math.min(molecule.electrons, qubits);
-  for (let i = 0; i < occupiedSpinOrbitals; i++) {
-    gates.push({
-      id: generateId(),
-      type: 'X',
-      qubit: i,
-      position: 0,
-    });
-  }
-  
-  // Variational layers
-  for (let layer = 0; layer < depth; layer++) {
-    const pos = layer * 3 + 1;
-    
-    // Ry rotations
-    for (let q = 0; q < qubits; q++) {
-      gates.push({
-        id: generateId(),
-        type: 'Ry',
-        qubit: q,
-        position: pos,
-        angle: parameters[paramIndex] ?? Math.PI / 4,
-      });
-      paramIndex++;
-    }
-    
-    // Entangling CNOT ladder
-    for (let q = 0; q < qubits - 1; q++) {
-      gates.push({
-        id: generateId(),
-        type: 'CNOT',
-        qubit: q,
-        controlQubit: q,
-        targetQubit: q + 1,
-        position: pos + 1,
-      });
-    }
-    
-    // Rz rotations
-    for (let q = 0; q < qubits; q++) {
-      gates.push({
-        id: generateId(),
-        type: 'Rz',
-        qubit: q,
-        position: pos + 2,
-        angle: parameters[paramIndex] ?? Math.PI / 3,
-      });
-      paramIndex++;
-    }
-  }
-  
-  return gates;
+  // Use UCCSD ansatz — generates proper Trotterized Pauli rotation
+  // circuits with H, Rx, Rz, CNOT staircases specific to each molecule's
+  // orbital structure (occupied→virtual excitations).
+  return generateUCCSDAnsatz(qubits, electrons, parameters);
 };
 
 /**
  * Calculate the number of parameters needed for a molecule's ansatz
+ * Uses UCCSD parameter count: singles + doubles excitations
  */
 export const getParameterCount = (molecule: MoleculeData): number => {
   const qubits = molecule.qubitsRequired;
-  const depth = molecule.vqeDepth;
-  // Each layer has: qubits Ry + qubits Rz = 2*qubits parameters
-  return depth * 2 * qubits;
+  const electrons = Math.min(molecule.activeSpace?.activeElectrons ?? molecule.electrons, qubits);
+  return getUCCSDParameterCount(qubits, electrons);
 };
 
 /**
@@ -433,18 +387,30 @@ export const runVQEOptimization = async (
 
 /**
  * Get parameter labels for display
+ * Labels now reflect UCCSD excitation structure instead of generic layers
  */
 export const getParameterLabels = (molecule: MoleculeData): string[] => {
   const labels: string[] = [];
   const qubits = molecule.qubitsRequired;
-  const depth = molecule.vqeDepth;
+  const electrons = Math.min(molecule.electrons, qubits);
   
-  for (let layer = 0; layer < depth; layer++) {
-    for (let q = 0; q < qubits; q++) {
-      labels.push(`θ_Ry_L${layer + 1}_Q${q}`);
+  // Single excitation labels
+  for (let occ = 0; occ < electrons; occ++) {
+    for (let virt = electrons; virt < qubits; virt++) {
+      labels.push(`θ_S(${occ}→${virt})`);
     }
-    for (let q = 0; q < qubits; q++) {
-      labels.push(`φ_Rz_L${layer + 1}_Q${q}`);
+  }
+  
+  // Double excitation labels
+  if (electrons >= 2 && qubits - electrons >= 2) {
+    for (let occ1 = 0; occ1 < electrons - 1; occ1++) {
+      for (let occ2 = occ1 + 1; occ2 < electrons; occ2++) {
+        for (let virt1 = electrons; virt1 < qubits - 1; virt1++) {
+          for (let virt2 = virt1 + 1; virt2 < qubits; virt2++) {
+            labels.push(`θ_D(${occ1},${occ2}→${virt1},${virt2})`);
+          }
+        }
+      }
     }
   }
   

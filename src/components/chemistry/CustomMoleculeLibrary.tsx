@@ -12,8 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ELEMENTS } from '@/lib/chemistry/periodicTable';
 import { FAMOUS_MOLECULES, CATEGORY_LABELS, FamousMolecule } from '@/lib/chemistry/famousMolecules';
 import { buildCustomMolecule } from '@/lib/chemistry/customMolecule';
-import { generateParameterizedAnsatz } from '@/lib/chemistry/vqeOptimizer';
-import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
+
 import { MoleculeViewer3D } from './MoleculeViewer3D';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -24,7 +23,7 @@ const CATEGORIES: FamousMolecule['category'][] = [
 
 export function CustomMoleculeLibrary() {
   const navigate = useNavigate();
-  const { setQubitCount, setGates, clearCircuit } = useQuantumCircuitStore();
+
 
   const [atoms, setAtoms] = useState<string[]>(['H', 'H']);
   const [customName, setCustomName] = useState('');
@@ -67,20 +66,16 @@ export function CustomMoleculeLibrary() {
       toast.error('Add at least one atom first');
       return;
     }
-    // Use neutral parameters — user can run VQE on the page itself,
-    // here we just hand them a ready-to-explore ansatz circuit.
-    const params = new Array(molecule.qubitsRequired * molecule.vqeDepth).fill(0.1);
-    const gates = generateParameterizedAnsatz(molecule, params);
-    clearCircuit();
-    setQubitCount(molecule.qubitsRequired);
-    setGates(gates);
-    toast.success(`Loaded ${customName || molecule.formula} into Circuit Builder`, {
-      description: `${molecule.qubitsRequired} qubits • ${gates.length} gates`,
-      action: {
-        label: 'Open',
-        onClick: () => navigate('/builder'),
-      },
+    // Navigate directly to the Chemistry Circuit Builder with molecule data
+    const params = new URLSearchParams();
+    params.set('atoms', atoms.join(','));
+    if (customName) params.set('name', customName);
+    if (molecule.smiles) params.set('smiles', molecule.smiles);
+    
+    toast.success(`Loading ${customName || molecule.formula} into Chemistry Circuit Builder`, {
+      description: `${molecule.qubitsRequired} qubits`,
     });
+    navigate(`/chemistry/circuit-builder?${params.toString()}`);
   };
 
   return (

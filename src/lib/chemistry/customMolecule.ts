@@ -155,6 +155,12 @@ function makeMolecule(
     vqeDepth,
     charge: 0,
     multiplicity: 1,
+    activeSpace: {
+      activeElectrons: valenceElectrons,
+      activeOrbitals: qubitsRequired / 2,
+      frozenCore: electrons - valenceElectrons,
+      description: `CAS(${valenceElectrons},${qubitsRequired / 2}) — Custom valence space`
+    },
     isEnergyEstimated: true,
   };
 }
