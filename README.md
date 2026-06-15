@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# alpha-paradox-main-workflow-
 
 ## Project info
 
