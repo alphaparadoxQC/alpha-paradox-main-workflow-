@@ -823,6 +823,7 @@ export default function ChemistryCircuitBuilder() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Charge / Multiplicity:</span><span className="font-mono">{cm.charge} / {cm.multiplicity}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Mapping:</span><span className="font-mono text-orange-400">{cm.mapping}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Ansatz:</span><span className="font-mono text-red-400">{cm.ansatz}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">HF Energy:</span><span className="font-mono text-cyan-400">{cm.hf_energy?.toFixed(6)} Ha</span></div>
               </div>
               <div className="pt-2 border-t border-border space-y-1">
                 <div className="flex justify-between"><span className="text-muted-foreground">Qubits:</span><span className="font-mono">{cm.qubit_count}</span></div>
