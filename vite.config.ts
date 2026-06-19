@@ -12,13 +12,10 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
     proxy: {
-      '/chemistry/backends': 'http://localhost:8000',
-      '/chemistry/parse-smiles': 'http://localhost:8000',
-      '/chemistry/run-hf': 'http://localhost:8000',
-      '/chemistry/generate-hamiltonian': 'http://localhost:8000',
-      '/chemistry/generate-chemistry-circuit': 'http://localhost:8000',
-      '/chemistry/circuits': 'http://localhost:8000',
-      '/chemistry/vqe': 'http://localhost:8000',
+      '/chemistry': {
+        target: 'http://localhost:8000',
+        changeOrigin: true
+      }
     }
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),

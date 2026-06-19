@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "vite",
-    "dev:backend": "cd chemistry-backend && source .venv/bin/activate && uvicorn main:app --reload --port 8000",
+    "dev:backend": "cd chemistry-backend && uvicorn main:app --reload --port 8000",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
@@ -56,7 +56,9 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.31.0",
+    "immer": "^11.1.8",
     "input-otp": "^1.4.2",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "quantum-core": "file:quantum-core/pkg",

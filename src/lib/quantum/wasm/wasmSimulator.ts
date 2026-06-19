@@ -54,12 +54,14 @@ export const simulateCircuitWasm = async (
   // For >16 qubits that's 65K+ iterations. For 20 qubits it's 1M+ → OOM crash.
   // Reject and let the caller fall back to MPS.
   if (qubitCount > 16) {
-    throw new Error(`WASM dense backend cannot handle ${qubitCount} qubits (max 16). Use MPS backend.`);
+    return Promise.reject(new Error(`Simulation limit reached: WASM dense backend supports up to 16 qubits. For ${qubitCount} qubits, please select the MPS or Tensor Network backend in the simulation settings.`));
   }
 
   await initializeWasmEngine();
   
   const engine = new TensorEngine(qubitCount);
+  
+  try {
   
   // Sort gates by position
   const sortedGates = [...gates].sort((a, b) => a.position - b.position);
@@ -235,20 +237,21 @@ export const simulateCircuitWasm = async (
     });
   }
 
-  // Calculate depth
-  const circuitDepth = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
-  
-  // Cleanup WASM memory
-  engine.free();
-  
-  return {
-    probabilities: probabilities.sort((a, b) => b.probability - a.probability),
-    blochVectors,
-    isEntangled: gates.some(g => ['CNOT', 'CZ', 'SWAP', 'CCX'].includes(g.type)),
-    entangledPairs: [],
-    stateVector: { amplitudes, qubitCount },
-    amplitudes: amplitudeInfo,
-    circuitDepth,
-    hasMeasurement: gates.some(g => g.type === 'M'),
-  };
+    // Calculate depth
+    const circuitDepth = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
+    
+    return {
+      probabilities: probabilities.sort((a, b) => b.probability - a.probability),
+      blochVectors,
+      isEntangled: gates.some(g => ['CNOT', 'CZ', 'SWAP', 'CCX'].includes(g.type)),
+      entangledPairs: [],
+      stateVector: { amplitudes, qubitCount },
+      amplitudes: amplitudeInfo,
+      circuitDepth,
+      hasMeasurement: gates.some(g => g.type === 'M'),
+    };
+  } finally {
+    // Cleanup WASM memory
+    engine.free();
+  }
 };
