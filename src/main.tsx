@@ -3,6 +3,11 @@ import App from "./App.tsx";
 import "./index.css";
 
 // #region agent log
+window.assistantContext = {
+  currentPage: "",
+  pageData: {}
+};
+
 window.addEventListener("error", (event) => {
   fetch("http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8", {
     method: "POST",

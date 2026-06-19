@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { BRANDING } from '@/config/branding';
+import { QuantumAssistant } from '@/components/quantum/QuantumAssistant';
+
 
 // Animated particle field
 function ParticleField() {
@@ -654,6 +656,8 @@ export default function Landing() {
           </motion.div>
         )}
       </AnimatePresence>
+      <QuantumAssistant />
     </div>
   );
 }
+

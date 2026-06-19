@@ -339,15 +339,9 @@ def _build_excitation_list(active_electrons, spin_orbitals, qubits, ansatz):
     return excitations
 
 
-@router.post("/generate-chemistry-circuit")
-def generate_chemistry_circuit(req: CircuitGenerationRequest):
-    """
-    Full chemistry circuit generation pipeline:
-    SMILES → RDKit → PySCF HF → Active Space → OpenFermion Hamiltonian →
-    Qubit Mapping → Ansatz → Gate-level circuit + QASM
-    """
-    circuit_id = f"chem_{req.molecule}_{req.basis_set}_{uuid.uuid4().hex[:6]}"
-    circuit_id = circuit_id.replace(" ", "_").replace("-", "")
+import asyncio
+
+def _generate_circuit_blocking(req: CircuitGenerationRequest, circuit_id: str):
     warnings = []
     logs = []
 
@@ -597,5 +591,21 @@ def generate_chemistry_circuit(req: CircuitGenerationRequest):
         "warnings": warnings,
         "logs": logs,
     }
+    return response_data
+
+@router.post("/generate-chemistry-circuit")
+async def generate_chemistry_circuit(req: CircuitGenerationRequest):
+    """
+    Full chemistry circuit generation pipeline:
+    SMILES → RDKit → PySCF HF → Active Space → OpenFermion Hamiltonian →
+    Qubit Mapping → Ansatz → Gate-level circuit + QASM
+    """
+    circuit_id = f"chem_{req.molecule}_{req.basis_set}_{uuid.uuid4().hex[:6]}"
+    circuit_id = circuit_id.replace(" ", "_").replace("-", "")
+    
+    loop = asyncio.get_running_loop()
+    # Execute the computationally heavy chemistry pipeline in a thread pool to avoid blocking FastAPI
+    response_data = await loop.run_in_executor(None, _generate_circuit_blocking, req, circuit_id)
+    
     circuit_store[circuit_id] = response_data
     return response_data

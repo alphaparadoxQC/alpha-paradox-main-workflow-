@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { GatesPalette } from './GatesPalette';
 import { QuantumCanvas } from './QuantumCanvas';
 import { SimulationResults } from './SimulationResults';
@@ -16,6 +18,20 @@ import {
 } from "@/components/ui/resizable";
 
 export const QuantumCircuitBuilder = () => {
+  const { qubitCount, gates, simulationResult, activeTemplate } = useQuantumCircuitStore();
+
+  useEffect(() => {
+    if (window.assistantContext) {
+      window.assistantContext.currentPage = 'quantum-builder';
+      window.assistantContext.pageData = {
+        Qubits: qubitCount,
+        Gates: gates.length > 0 ? gates.map((g) => g.type).join(', ') : 'None',
+        'Simulation result': simulationResult ? 'Available' : 'None',
+        'Selected circuit': activeTemplate ? activeTemplate.name : 'Custom',
+      };
+    }
+  }, [qubitCount, gates, simulationResult, activeTemplate]);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}

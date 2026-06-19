@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { QuantumGate, SimulationResult, GateType } from '@/types/quantum';
 import { CircuitTemplate, createGatesFromTemplate } from '@/lib/quantum/templates';
 import QuantumWorker from '@/lib/quantum/workers/quantumWorker?worker';
+import { toast } from 'sonner';
 
 // Module-level reference to the active Web Worker to allow cancellation
 let activeWorker: Worker | null = null;
@@ -41,7 +42,7 @@ export const QUBIT_LIMITS = {
   * ============================================================
   */
  interface HistoryState {
-   gates: QuantumGate[];
+   gatesJson: string;
  }
  
  const MAX_HISTORY_LENGTH = 50; // Limit memory usage
@@ -50,12 +51,9 @@ export const QUBIT_LIMITS = {
   * ============================================================
   * HELPER: Save current state to history before modification
   * ============================================================
-  * This is called before every state-changing operation to enable undo.
-  * We capture the current gates array and push it to the past stack.
-  * ============================================================
   */
  const saveToHistory = (gates: QuantumGate[], past: HistoryState[]): HistoryState[] => {
-   const newPast = [...past, { gates: [...gates] }];
+   const newPast = [...past, { gatesJson: JSON.stringify(gates) }];
    // Limit history size to prevent memory issues
    if (newPast.length > MAX_HISTORY_LENGTH) {
      return newPast.slice(-MAX_HISTORY_LENGTH);
@@ -267,8 +265,8 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
      const newPast = state.past.slice(0, -1);
      return {
        past: newPast,
-       future: [{ gates: [...state.gates] }, ...state.future],
-       gates: previous.gates,
+       future: [{ gatesJson: JSON.stringify(state.gates) }, ...state.future],
+       gates: JSON.parse(previous.gatesJson),
        selectedGateId: null,
        activeTemplate: null,
      };
@@ -279,9 +277,9 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
      const next = state.future[0];
      const newFuture = state.future.slice(1);
      return {
-       past: [...state.past, { gates: [...state.gates] }],
+       past: [...state.past, { gatesJson: JSON.stringify(state.gates) }],
        future: newFuture,
-       gates: next.gates,
+       gates: JSON.parse(next.gatesJson),
        selectedGateId: null,
        activeTemplate: null,
      };
@@ -437,6 +435,9 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
         fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H2',location:'src/store/quantumCircuitStore.ts:386',message:'simulate failed',data:{error,qubitCount,gateCount:gates.length},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         console.error("Simulation Worker Error:", error);
+        toast.error("Simulation Failed", {
+          description: typeof error === 'string' ? error : "An error occurred during quantum simulation."
+        });
         set({ isSimulating: false });
       }
       

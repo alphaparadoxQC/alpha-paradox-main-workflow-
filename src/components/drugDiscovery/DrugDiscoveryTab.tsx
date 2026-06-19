@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Pill, Play, RotateCcw, Download, Atom, FlaskConical, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -49,12 +49,25 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
   const [dockingResult, setDockingResult] = useState<DockingResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [customDrugs, setCustomDrugs] = useState<DrugCandidate[]>([]);
+  const [activeTab, setActiveTab] = useState<string>('ai');
 
   const allDrugs = [...DRUG_CANDIDATES, ...customDrugs];
   const drug = getDrugById(selectedDrugId) || customDrugs.find(d => d.id === selectedDrugId) || allDrugs[0];
   const target = getTargetById(selectedTargetId) || PROTEIN_TARGETS[0];
   const lipinskiResult = calculateLipinski(drug);
   const admetProfile = predictADMET(drug);
+
+  useEffect(() => {
+    if (window.assistantContext) {
+      window.assistantContext.currentPage = 'drug-discovery';
+      window.assistantContext.pageData = {
+        'Molecule selected': drug.name,
+        'Active protein target': target.name,
+        'Prediction data': dockingResult ? 'Available' : 'None',
+        'Current tab': activeTab,
+      };
+    }
+  }, [drug.name, target.name, dockingResult, activeTab]);
 
   const handleAddCustomDrug = useCallback((newDrug: DrugCandidate) => {
     setCustomDrugs(prev => [...prev, newDrug]);
@@ -307,7 +320,7 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
       )}
 
       {/* Results Tabs */}
-      <Tabs defaultValue="ai" className="flex-1">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="ai">
             <Brain className="w-3 h-3 mr-1" />
