@@ -55,13 +55,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export const ChemistryAPI = {
   async getStatus(): Promise<BackendStatus> {
-    const res = await fetch(`${API_BASE_URL}/chemistry/backends/status');
+    const res = await fetch(`${API_BASE_URL}/chemistry/backends/status`);
     if (!res.ok) throw new Error('Failed to fetch backend status');
     return res.json();
   },
 
   async parseSmiles(smiles: string): Promise<MoleculeResponse> {
-    const res = await fetch(`${API_BASE_URL}/chemistry/parse-smiles', {
+    const res = await fetch(`${API_BASE_URL}/chemistry/parse-smiles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ smiles })
@@ -74,7 +74,7 @@ export const ChemistryAPI = {
   },
 
   async runHF(smiles: string, basis: string = "sto-3g"): Promise<ClassicalResponse> {
-    const res = await fetch(`${API_BASE_URL}/chemistry/run-hf', {
+    const res = await fetch(`${API_BASE_URL}/chemistry/run-hf`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ smiles, basis })
@@ -93,7 +93,7 @@ export const ChemistryAPI = {
     active_orbitals?: number,
     basis: string = "sto-3g"
   ): Promise<any> {
-    const res = await fetch(`${API_BASE_URL}/chemistry/generate-hamiltonian', {
+    const res = await fetch(`${API_BASE_URL}/chemistry/generate-hamiltonian`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -112,7 +112,7 @@ export const ChemistryAPI = {
   },
 
   async generateChemistryCircuit(req: any): Promise<any> {
-    const res = await fetch(`${API_BASE_URL}/chemistry/generate-chemistry-circuit', {
+    const res = await fetch(`${API_BASE_URL}/chemistry/generate-chemistry-circuit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)
@@ -133,7 +133,7 @@ export const ChemistryAPI = {
     return res.json();
   },
   async buildMolecule(req: any): Promise<any> {
-    const res = await fetch(`${API_BASE_URL}/api/chemistry/molecule/build', {
+    const res = await fetch(`${API_BASE_URL}/api/chemistry/molecule/build`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)
@@ -146,7 +146,7 @@ export const ChemistryAPI = {
   },
 
   async generateRealHamiltonian(req: any): Promise<any> {
-    const res = await fetch(`${API_BASE_URL}/api/chemistry/hamiltonian/generate', {
+    const res = await fetch(`${API_BASE_URL}/api/chemistry/hamiltonian/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)
@@ -159,7 +159,7 @@ export const ChemistryAPI = {
   },
 
   async generateRealAnsatz(req: any): Promise<any> {
-    const res = await fetch(`${API_BASE_URL}/api/chemistry/ansatz/generate', {
+    const res = await fetch(`${API_BASE_URL}/api/chemistry/ansatz/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)
@@ -172,7 +172,7 @@ export const ChemistryAPI = {
   },
 
   async runRealVQE(req: any): Promise<any> {
-    const res = await fetch(`${API_BASE_URL}/chemistry/vqe/run', {
+    const res = await fetch(`${API_BASE_URL}/chemistry/vqe/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req)
