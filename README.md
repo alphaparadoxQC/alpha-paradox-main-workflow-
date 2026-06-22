@@ -158,7 +158,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SECRET_KEY=your_supabase_service_role_key
 
 # Backend API
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 ### 4. WASM Build Instructions (Rust)
@@ -197,8 +197,8 @@ You can run both the frontend and backend concurrently using our NPM scripts:
 # This starts the Vite dev server and the Uvicorn Python backend automatically
 npm run dev
 ```
-- **Frontend:** `http://localhost:8080`
-- **Backend Swagger API Docs:** `http://localhost:8000/docs`
+- **Frontend:** `http://127.0.0.1:8080`
+- **Backend Swagger API Docs:** `http://127.0.0.1:8000/docs`
 
 ---
 
@@ -230,7 +230,7 @@ Our FastAPI backend provides several distinct REST modules under the `/chemistry
 - `POST /chemistry/vqe`: Executes a Variational Quantum Eigensolver optimization loop against a parameterized circuit.
 - `GET /chemistry/backends`: Fetches live QPU availability (IBM Quantum / Mock systems).
 
-All API endpoints are documented via OpenAPI and can be tested locally at `http://localhost:8000/docs`.
+All API endpoints are documented via OpenAPI and can be tested locally at `http://127.0.0.1:8000/docs`.
 
 ---
 
