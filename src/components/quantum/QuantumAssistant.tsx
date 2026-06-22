@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Mic, Square } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { callGemini, type ConversationTurn } from '@/lib/geminiService';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { BRANDING } from '@/config/branding';
 import AICharacter2D, { AICharacterState } from './AICharacter2D';
@@ -66,12 +65,8 @@ function createSpeechRecognition(): SpeechRecognitionInstance | null {
 }
 
 // ─────────────────────────────────────────────
-// Conversation history for multi-turn
+// Conversation history for multi-turn (type imported from geminiService)
 // ─────────────────────────────────────────────
-interface ConversationEntry {
-  role: 'user' | 'assistant';
-  content: string;
-}
 
 // ─────────────────────────────────────────────
 // Component
@@ -93,12 +88,22 @@ export const QuantumAssistant = () => {
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const wakeWordRecognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const wakeWordActiveRef = useRef(false); // true when passive listener is running
-  const conversationRef = useRef<ConversationEntry[]>([]);
+  const conversationRef = useRef<ConversationTurn[]>([]);
   const isActiveRef = useRef(false); // mirrors isAssistantActive for async callbacks
   const speechInterruptedRef = useRef(false); // prevents cancelled utterance callbacks from looping
 
-  const { session } = useAuth();
-  const { gates, qubitCount, simulationResult } = useQuantumCircuitStore();
+  const {
+    gates,
+    qubitCount,
+    simulationResult,
+    addGate,
+    clearCircuit,
+    incrementQubits,
+    decrementQubits,
+    undo,
+    redo,
+    simulate
+  } = useQuantumCircuitStore();
 
   // Keep ref in sync
   useEffect(() => {
@@ -134,53 +139,122 @@ export const QuantumAssistant = () => {
     []
   );
 
-  // ── Send to backend (unchanged API) ──
+  // ── Send to Gemini 2.5 Flash (direct API call) ──
   const sendToBackend = useCallback(
     async (text: string) => {
       setIsProcessing(true);
       setStatusText('🧠 Thinking...');
 
       try {
-        // Build global context
+        // Build compact context suffix to minimise input tokens
         let contextStr = '';
         if (window.assistantContext && window.assistantContext.currentPage) {
-          contextStr += `\n\nContext:\nCurrent page = ${window.assistantContext.currentPage}`;
-          for (const [key, value] of Object.entries(window.assistantContext.pageData)) {
-            contextStr += `\n${key} = ${value}`;
+          contextStr += `\n[Page:${window.assistantContext.currentPage}`;
+          const entries = Object.entries(window.assistantContext.pageData);
+          if (entries.length > 0) {
+            contextStr += ' | ' + entries.map(([k, v]) => `${k}=${v}`).join(', ');
           }
-        } else {
-          // Fallback if no context
-          contextStr = gates.length > 0
-            ? `\n\nContext:\nCurrent page = quantum-builder\nQubits = ${qubitCount}\nGates = ${gates.map((g) => g.type).join(', ')}`
-            : '';
+          contextStr += ']';
+        } else if (gates.length > 0) {
+          // Fallback context from circuit store
+          contextStr = `\n[Page:quantum-builder | Qubits=${qubitCount}, Gates=${gates.map((g) => g.type).join(',')}]`;
         }
 
         conversationRef.current.push({ role: 'user', content: text });
 
-        const finalMessage = `Question:\n${text}${contextStr}`;
+        const finalMessage = `${text}${contextStr}`;
 
-        const { data, error } = await supabase.functions.invoke(
-          'quantum-assistant',
-          {
-            body: {
-              message: finalMessage,
-              conversationHistory: conversationRef.current.slice(-6),
-            },
-            headers: session?.access_token
-              ? { Authorization: `Bearer ${session.access_token}` }
-              : undefined,
-          }
+        // Call Gemini 2.5 Flash directly — no Supabase edge function needed
+        const response = await callGemini(
+          finalMessage,
+          conversationRef.current.slice(-6),
         );
 
-        if (error) throw error;
+        // Parse actions: [ACTION: NAME key=val key=val]
+        const actionRegex = /\[ACTION:\s*([A-Z_]+)([^\]]*)\]/g;
+        let match;
+        const actionsToExecute: { action: string; params: Record<string, string> }[] = [];
 
-        const response =
-          data.response ||
-          "I apologize, but I couldn't process that request. Please try again.";
+        let cleanedResponse = response;
+        while ((match = actionRegex.exec(response)) !== null) {
+          const action = match[1];
+          const paramStr = match[2];
+          const params: Record<string, string> = {};
+          
+          const paramRegex = /(\w+)=([^\s]+)/g;
+          let paramMatch;
+          while ((paramMatch = paramRegex.exec(paramStr)) !== null) {
+            params[paramMatch[1]] = paramMatch[2];
+          }
+          
+          actionsToExecute.push({ action, params });
+        }
 
-        conversationRef.current.push({ role: 'assistant', content: response });
+        // Clean action tags out of speech audio response
+        cleanedResponse = response.replace(actionRegex, '').trim();
 
-        return response;
+        // Perform actions
+        actionsToExecute.forEach(({ action, params }) => {
+          try {
+            switch (action) {
+              case 'CLEAR_CIRCUIT':
+                clearCircuit();
+                break;
+              case 'INCREMENT_QUBITS':
+                incrementQubits();
+                break;
+              case 'DECREMENT_QUBITS':
+                decrementQubits();
+                break;
+              case 'UNDO':
+                undo();
+                break;
+              case 'REDO':
+                redo();
+                break;
+              case 'SIMULATE':
+                simulate();
+                break;
+              case 'ADD_GATE': {
+                const gateType = params.type;
+                if (!gateType) break;
+
+                if (gateType === 'CNOT' || gateType === 'cx') {
+                  const control = parseInt(params.control ?? params.qubit ?? '0');
+                  const target = parseInt(params.target ?? '1');
+                  const maxPos = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
+                  addGate({
+                    id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'CNOT',
+                    qubit: control,
+                    position: maxPos,
+                    controlQubit: control,
+                    targetQubit: target,
+                  });
+                } else {
+                  const q = parseInt(params.qubit ?? '0');
+                  const maxPos = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
+                  addGate({
+                    id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    type: gateType as any,
+                    qubit: q,
+                    position: maxPos,
+                    ...(['Rx', 'Ry', 'Rz', 'P'].includes(gateType) ? { angle: Math.PI / 2 } : {}),
+                  });
+                }
+                break;
+              }
+              default:
+                console.warn('Unknown assistant action:', action);
+            }
+          } catch (e) {
+            console.error('Error executing assistant action:', e);
+          }
+        });
+
+        conversationRef.current.push({ role: 'assistant', content: cleanedResponse });
+
+        return cleanedResponse;
       } catch (err) {
         console.error('Assistant error:', err);
         return "I'm having trouble connecting right now. Please try again in a moment.";
@@ -188,7 +262,7 @@ export const QuantumAssistant = () => {
         setIsProcessing(false);
       }
     },
-    [gates, qubitCount, simulationResult, session]
+    [gates, qubitCount, simulationResult, addGate, clearCircuit, incrementQubits, decrementQubits, undo, redo, simulate]
   );
 
   // ── Interrupt speech: cancel synthesis → go to listening ──
@@ -942,7 +1016,7 @@ export const QuantumAssistant = () => {
           >
             {/* ── Character ── */}
             <div style={{ position: 'relative', pointerEvents: 'auto' }}>
-              <AICharacter2D state={characterState} size={120} />
+              <AICharacter2D state={characterState} size={210} />
             </div>
 
             {/* ── Interrupt button (visible only while speaking) ── */}
