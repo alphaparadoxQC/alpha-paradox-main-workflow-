@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, X, Mic, Square } from 'lucide-react';
-import { callGemini, type ConversationTurn } from '@/lib/geminiService';
+import { callHuggingFace, type ConversationTurn } from '@/lib/huggingFaceService';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { BRANDING } from '@/config/branding';
 import AICharacter2D, { AICharacterState } from './AICharacter2D';
@@ -164,8 +164,8 @@ export const QuantumAssistant = () => {
 
         const finalMessage = `${text}${contextStr}`;
 
-        // Call Gemini 2.5 Flash directly — no Supabase edge function needed
-        const response = await callGemini(
+        // Call Hugging Face API directly — no Supabase edge function needed
+        const response = await callHuggingFace(
           finalMessage,
           conversationRef.current.slice(-6),
         );

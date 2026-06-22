@@ -26,7 +26,7 @@ import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { QuantumGate } from '@/types/quantum';
-import { generateCircuitFromPrompt } from '@/lib/geminiService';
+import { generateCircuitFromPrompt } from '@/lib/huggingFaceService';
 
 const EXAMPLE_PROMPTS = [
   "Create a Bell state with 2 qubits",
