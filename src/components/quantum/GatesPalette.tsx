@@ -25,7 +25,7 @@ const BASIC_GATES: GateType[] = [
 ];
 
 export const GatesPalette = () => {
-  const { setDraggedGate, draggedGate, addGate, gates, qubitCount, startSelectionVibe, selectionVibeStep } = useQuantumCircuitStore();
+  const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<GateCategory>>(
     new Set(['standard', 'twoQubit'])
@@ -41,8 +41,44 @@ export const GatesPalette = () => {
     setExpandedCategories(newExpanded);
   };
 
-  const handleDragStart = (gateType: GateType | ExtendedGateType) => {
+  const handleDragStart = (gateType: GateType | ExtendedGateType, e: React.DragEvent) => {
     setDraggedGate(gateType);
+    
+    // Create custom drag image (IBM style for CNOT/multi-qubit)
+    const isMultiQubit = MULTI_QUBIT_GATES.has(gateType as string);
+    const dragIcon = document.createElement('div');
+    dragIcon.style.position = 'absolute';
+    dragIcon.style.top = '-1000px';
+    
+    if (isMultiQubit) {
+      const gate = GATE_INFO[gateType as GateType] || EXTENDED_GATE_INFO[gateType as ExtendedGateType] || { color: '#000' };
+      dragIcon.innerHTML = `
+        <svg width="40" height="80" viewBox="0 0 40 80">
+          <line x1="20" y1="20" x2="20" y2="60" stroke="${gate.color}" stroke-width="2" />
+          <circle cx="20" cy="20" r="6" fill="${gate.color}" />
+          <circle cx="20" cy="60" r="14" fill="none" stroke="${gate.color}" stroke-width="2" />
+          <line x1="10" y1="60" x2="30" y2="60" stroke="${gate.color}" stroke-width="2" />
+          <line x1="20" y1="50" x2="20" y2="70" stroke="${gate.color}" stroke-width="2" />
+        </svg>
+      `;
+    } else {
+      const gate = GATE_INFO[gateType as GateType] || EXTENDED_GATE_INFO[gateType as ExtendedGateType];
+      dragIcon.innerHTML = `
+        <svg width="40" height="40">
+          <rect x="2" y="2" width="36" height="36" rx="6" fill="hsl(var(--card))" stroke="${gate?.color}" stroke-width="2" />
+          <text x="20" y="26" fill="${gate?.color}" font-size="18" font-family="monospace" font-weight="bold" text-anchor="middle">${gate?.symbol}</text>
+        </svg>
+      `;
+    }
+    document.body.appendChild(dragIcon);
+    e.dataTransfer.setDragImage(dragIcon, 20, 20);
+    
+    // Cleanup after drag ends (or just leave it to garbage collection if small, but better to remove)
+    setTimeout(() => {
+      if (document.body.contains(dragIcon)) {
+        document.body.removeChild(dragIcon);
+      }
+    }, 100);
   };
 
   const handleDragEnd = () => {
@@ -57,23 +93,20 @@ export const GatesPalette = () => {
   ]);
 
   const handleClick = (gateType: GateType | ExtendedGateType) => {
-    // Multi-qubit gates use Selection Vibe workflow
-    if (MULTI_QUBIT_GATES.has(gateType)) {
-      startSelectionVibe(gateType);
-      return;
-    }
-    
-    // Single-qubit gates: add directly
     const maxPosition = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
     const extendedInfo = EXTENDED_GATE_INFO[gateType as ExtendedGateType];
+    const isMulti = MULTI_QUBIT_GATES.has(gateType as string);
+    
+    const targetQubit = isMulti ? Math.min(1, qubitCount - 1) : undefined;
     
     const newGate = {
       id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: gateType as GateType,
       qubit: 0,
       position: maxPosition,
+      ...(isMulti ? { controlQubit: 0, targetQubit: targetQubit } : {}),
       // Rotation gates default angle (π/2)
-      ...(['Rx', 'Ry', 'Rz', 'P', 'U1'].includes(gateType) 
+      ...(['Rx', 'Ry', 'Rz', 'P', 'U1', 'CP', 'CRx', 'CRy', 'CRz'].includes(gateType) 
         ? { angle: extendedInfo?.defaultParams?.angle ?? Math.PI / 2 } 
         : {}),
     };
@@ -93,7 +126,7 @@ export const GatesPalette = () => {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: index * 0.02 }}
         draggable
-        onDragStart={() => handleDragStart(gateType)}
+        onDragStart={(e) => handleDragStart(gateType, e as any)}
         onDragEnd={handleDragEnd}
         onClick={() => handleClick(gateType)}
         className={`
@@ -149,7 +182,7 @@ export const GatesPalette = () => {
         <motion.div 
       initial={false}
       animate={{ width: isCollapsed ? 48 : 288 }}
-      className="bg-sidebar border-r border-sidebar-border flex flex-col h-full overflow-hidden relative shrink-0"
+      className="bg-sidebar border-r border-sidebar-border flex flex-col h-full overflow-hidden relative shrink-0 select-none"
     >
       <Button
         variant="ghost"

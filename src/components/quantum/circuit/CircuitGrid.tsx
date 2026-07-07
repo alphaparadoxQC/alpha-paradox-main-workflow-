@@ -23,8 +23,6 @@ export const CircuitGrid = () => {
     moveGate,
     undo,
     redo,
-    selectionVibeStep,
-    cancelSelectionVibe,
   } = useQuantumCircuitStore();
 
   const [draggingGateId, setDraggingGateId] = useState<string | null>(null);
@@ -59,8 +57,7 @@ export const CircuitGrid = () => {
       removeGate(selectedGateId);
     }
     if (e.key === 'Escape') {
-      if (selectionVibeStep !== 'idle') cancelSelectionVibe();
-      else selectGate(null);
+      selectGate(null);
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
@@ -70,7 +67,7 @@ export const CircuitGrid = () => {
       e.preventDefault();
       redo();
     }
-  }, [selectedGateId, removeGate, selectGate, undo, redo, selectionVibeStep, cancelSelectionVibe]);
+  }, [selectedGateId, removeGate, selectGate, undo, redo]);
 
   const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -115,11 +112,19 @@ export const CircuitGrid = () => {
     const existingGate = gates.find(g => g.qubit === qubitIndex && g.position === position);
     if (existingGate) return;
 
+    const isMulti = ['CNOT', 'CY', 'CZ', 'CH', 'SWAP', 'iSWAP', 'SQSWAP', 'DCX', 'ECR', 'CP', 'CRx', 'CRy', 'CRz', 'CCX', 'CCZ', 'CSWAP', 'C3X', 'C4X', 'MCX', 'MCZ', 'MCRY', 'RXX', 'RYY', 'RZZ'].includes(draggedGate);
+    let targetQubit = undefined;
+    if (isMulti) {
+      targetQubit = qubitIndex + 1 < qubitCount ? qubitIndex + 1 : qubitIndex - 1;
+      if (targetQubit < 0) targetQubit = 1;
+    }
+
     const newGate = {
       id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: draggedGate as GateType,
       qubit: qubitIndex,
       position,
+      ...(isMulti ? { controlQubit: qubitIndex, targetQubit } : {}),
       ...((['Rx', 'Ry', 'Rz'].includes(draggedGate)) && { angle: Math.PI / 2 }),
     };
 
@@ -150,7 +155,7 @@ export const CircuitGrid = () => {
 
   return (
     <div 
-      className="h-full w-full overflow-auto bg-background quantum-grid relative outline-none"
+      className="h-full w-full overflow-auto bg-background quantum-grid relative outline-none select-none"
       onScroll={handleScroll}
       onKeyDown={handleKeyDown}
       onClick={handleCanvasClick}
@@ -195,29 +200,7 @@ export const CircuitGrid = () => {
            <ClassicalRegister classicalBitCount={classicalBitCount} width={canvasWidth} />
         </div>
 
-        {selectionVibeStep !== 'idle' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
-          >
-            <div className="bg-card/90 backdrop-blur border border-primary/30 rounded-xl px-6 py-3 shadow-lg">
-              <p className="text-sm font-medium text-center">
-                {selectionVibeStep === 'selectControl' ? (
-                  <span className="text-quantum-cyan">
-                    🎯 Click a qubit line to select the <strong>Control Qubit</strong> (●)
-                  </span>
-                ) : (
-                  <span className="text-quantum-purple">
-                    ⊕ Click a qubit line to select the <strong>Target Qubit</strong>
-                  </span>
-                )}
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {gates.length === 0 && !draggedGate && selectionVibeStep === 'idle' && (
+        {gates.length === 0 && !draggedGate && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
