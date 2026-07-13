@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Atom, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ChevronDown, ChevronRight, Atom, PanelLeftClose, PanelLeftOpen, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
   ExtendedGateType, 
   EXTENDED_GATE_INFO, 
@@ -27,6 +28,7 @@ const BASIC_GATES: GateType[] = [
 export const GatesPalette = () => {
   const { setDraggedGate, draggedGate, addGate, gates, qubitCount } = useQuantumCircuitStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<GateCategory>>(
     new Set(['standard', 'twoQubit'])
   );
@@ -195,17 +197,66 @@ export const GatesPalette = () => {
 
       <div className={`flex flex-col h-full w-72 transition-opacity duration-200 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <div className="flex-1 flex flex-col m-0 overflow-hidden h-full">
-          <div className="px-4 py-3 border-b border-sidebar-border bg-sidebar-accent/10 flex items-center justify-between">
+          <div className="pl-4 pr-10 py-3 border-b border-sidebar-border bg-sidebar-accent/10 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Atom className="w-4 h-4 text-primary animate-pulse" />
               <span className="text-xs font-semibold text-foreground uppercase tracking-wider">Gates Palette</span>
             </div>
             <span className="text-[10px] text-muted-foreground">Click or drag gates</span>
           </div>
+
+          <div className="p-3 border-b border-sidebar-border">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search gates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 pr-8 h-8 text-xs bg-sidebar-accent/10 border-sidebar-border"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
           
           <ScrollArea className="flex-1">
             <div className="p-3 space-y-2">
-              {GATE_CATEGORIES.map((category) => {
+              {searchQuery ? (() => {
+                const query = searchQuery.toLowerCase();
+                const allGates = GATE_CATEGORIES.flatMap(c => getGatesByCategory(c.id));
+                const availableGates = allGates.filter(g => 
+                  GATE_INFO[g as GateType] || EXTENDED_GATE_INFO[g as ExtendedGateType]
+                );
+                
+                const filteredGates = availableGates.filter(g => {
+                  const info = GATE_INFO[g as GateType] || EXTENDED_GATE_INFO[g as ExtendedGateType];
+                  return (
+                    info.name.toLowerCase().includes(query) ||
+                    info.symbol.toLowerCase().includes(query) ||
+                    (info.description || '').toLowerCase().includes(query)
+                  );
+                });
+
+                if (filteredGates.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-muted-foreground text-xs">
+                      No gates found
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-1.5">
+                    {filteredGates.map((gateType, index) => renderGateButton(gateType, index))}
+                  </div>
+                );
+              })() : GATE_CATEGORIES.map((category) => {
                 const categoryGates = getGatesByCategory(category.id);
                 const availableGates = categoryGates.filter(g => 
                   GATE_INFO[g as GateType] || EXTENDED_GATE_INFO[g as ExtendedGateType]

@@ -144,3 +144,26 @@ impl TensorEngine {
         js_sys::Float64Array::from(&flat[..])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tensor_engine_new() {
+        let engine = TensorEngine::new(2);
+        assert_eq!(engine.memory_used_bytes(), 4 * 16);
+    }
+
+    #[test]
+    fn test_apply_x_gate() {
+        let mut engine = TensorEngine::new(1);
+        let x_gate = vec![0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0];
+        engine.apply_single_qubit_gate(0, &x_gate).unwrap();
+        let state = engine.get_state_vector();
+        // [re0, im0, re1, im1]
+        // |0> = 1 + 0i, |1> = 0 + 0i. X|0> = |1>
+        assert!((state.get(0) - 0.0).abs() < 1e-6);
+        assert!((state.get(2) - 1.0).abs() < 1e-6);
+    }
+}

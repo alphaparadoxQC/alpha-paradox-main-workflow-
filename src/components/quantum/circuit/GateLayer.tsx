@@ -36,10 +36,11 @@ export const GateLayer: React.FC<GateLayerProps> = ({
     draggedGate,
     qubitCount,
     moveGate,
-    moveTargetNode
+    moveTargetNode,
+    alignmentMode
   } = useQuantumCircuitStore();
 
-  const [dragState, setDragState] = useState<{ id: string, type: 'full' | 'target', startY: number, currentY: number } | null>(null);
+  const [dragState, setDragState] = useState<{ id: string, type: 'full' | 'target', startY: number, currentY: number, startX: number, currentX: number } | null>(null);
 
   // Filter gates to only those visible (optimization for 100+ qubits)
   const visibleGates = gates.filter(gate => {
@@ -64,13 +65,13 @@ export const GateLayer: React.FC<GateLayerProps> = ({
     if (e.button !== 0) return;
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
-    setDragState({ id: gateId, type, startY: e.clientY, currentY: e.clientY });
+    setDragState({ id: gateId, type, startY: e.clientY, currentY: e.clientY, startX: e.clientX, currentX: e.clientX });
     handleGateDragStart(gateId);
   };
 
   const handlePointerMove = (e: React.PointerEvent<SVGGElement>) => {
     if (dragState) {
-      setDragState({ ...dragState, currentY: e.clientY });
+      setDragState({ ...dragState, currentY: e.clientY, currentX: e.clientX });
     }
   };
 
@@ -80,12 +81,48 @@ export const GateLayer: React.FC<GateLayerProps> = ({
       const deltaY = dragState.currentY - dragState.startY;
       const deltaRows = Math.round(deltaY / ROW_HEIGHT);
       
+      const deltaX = dragState.currentX - dragState.startX;
+      const deltaCols = Math.round(deltaX / COL_WIDTH);
+
+      // If there was no significant movement (just a click), do not trigger a move/snap
+      if (deltaRows === 0 && deltaCols === 0) {
+        setDragState(null);
+        setDraggingGateId(null);
+        return;
+      }
+      
       const gate = gates.find(g => g.id === dragState.id);
       if (gate) {
         if (dragState.type === 'full') {
            const newQubit = gate.qubit + deltaRows;
+           let newPosition = gate.position;
+           if (alignmentMode === 'freedom') {
+             newPosition = Math.max(0, gate.position + deltaCols);
+           } else if (alignmentMode === 'left') {
+             const newTarget = gate.targetQubit !== undefined ? gate.targetQubit + deltaRows : undefined;
+             const occupiedWires = [newQubit];
+             if (newTarget !== undefined) {
+               const minWire = Math.min(newQubit, newTarget);
+               const maxWire = Math.max(newQubit, newTarget);
+               for (let w = minWire; w <= maxWire; w++) {
+                 if (!occupiedWires.includes(w)) occupiedWires.push(w);
+               }
+             }
+             let maxPos = -1;
+             gates.forEach(g => {
+               if (g.id === gate.id) return;
+               const gMin = Math.min(g.qubit, g.targetQubit ?? g.qubit);
+               const gMax = Math.max(g.qubit, g.targetQubit ?? g.qubit);
+               const overlaps = occupiedWires.some(w => w >= gMin && w <= gMax);
+               if (overlaps) {
+                 maxPos = Math.max(maxPos, g.position);
+               }
+             });
+             newPosition = maxPos + 1;
+           }
+
            if (newQubit >= 0 && newQubit < qubitCount) {
-              moveGate(gate.id, newQubit, gate.position);
+              moveGate(gate.id, newQubit, newPosition);
            }
         } else if (dragState.type === 'target') {
            const targetQubit = (gate.targetQubit ?? 0) + deltaRows;
@@ -108,6 +145,44 @@ export const GateLayer: React.FC<GateLayerProps> = ({
       return newQubit;
     }
     return originalQubit;
+  };
+
+  const getRenderPosition = (gateId: string, originalPosition: number) => {
+    if (dragState && dragState.id === gateId && dragState.type === 'full') {
+      if (alignmentMode === 'freedom') {
+        const deltaX = dragState.currentX - dragState.startX;
+        const deltaCols = Math.round(deltaX / COL_WIDTH);
+        return Math.max(0, originalPosition + deltaCols);
+      } else if (alignmentMode === 'left') {
+        const gate = gates.find(g => g.id === gateId);
+        if (gate) {
+          const deltaY = dragState.currentY - dragState.startY;
+          const deltaRows = Math.round(deltaY / ROW_HEIGHT);
+          const newQubit = gate.qubit + deltaRows;
+          const newTarget = gate.targetQubit !== undefined ? gate.targetQubit + deltaRows : undefined;
+          const occupiedWires = [newQubit];
+          if (newTarget !== undefined) {
+            const minWire = Math.min(newQubit, newTarget);
+            const maxWire = Math.max(newQubit, newTarget);
+            for (let w = minWire; w <= maxWire; w++) {
+              if (!occupiedWires.includes(w)) occupiedWires.push(w);
+            }
+          }
+          let maxPos = -1;
+          gates.forEach(g => {
+            if (g.id === gateId) return;
+            const gMin = Math.min(g.qubit, g.targetQubit ?? g.qubit);
+            const gMax = Math.max(g.qubit, g.targetQubit ?? g.qubit);
+            const overlaps = occupiedWires.some(w => w >= gMin && w <= gMax);
+            if (overlaps) {
+              maxPos = Math.max(maxPos, g.position);
+            }
+          });
+          return maxPos + 1;
+        }
+      }
+    }
+    return originalPosition;
   };
 
   const isCollision = (gateId: string, qubit: number, position: number) => {
@@ -160,7 +235,8 @@ export const GateLayer: React.FC<GateLayerProps> = ({
       {/* Gates */}
       {visibleGates.map((gate) => {
         const gateInfo = GATE_INFO[gate.type as GateType] ?? EXTENDED_GATE_INFO[gate.type as keyof typeof EXTENDED_GATE_INFO] ?? { color: 'hsl(200, 80%, 60%)', symbol: gate.type, name: gate.type };
-        const x = CANVAS_PADDING + 40 + gate.position * COL_WIDTH;
+        const renderPosition = getRenderPosition(gate.id, gate.position);
+        const x = CANVAS_PADDING + 40 + renderPosition * COL_WIDTH;
         
         const isSelected = selectedGateId === gate.id;
         const isDraggingFull = draggingGateId === gate.id && (!dragState || dragState.type === 'full');
@@ -176,7 +252,7 @@ export const GateLayer: React.FC<GateLayerProps> = ({
         const targetY = renderTargetQubit !== undefined ? CANVAS_PADDING + renderTargetQubit * ROW_HEIGHT + ROW_HEIGHT / 2 : undefined;
         const controlY = renderControlQubit !== undefined ? CANVAS_PADDING + renderControlQubit * ROW_HEIGHT + ROW_HEIGHT / 2 : undefined;
         
-        const colliding = isDraggingFull && isCollision(gate.id, renderQubit, gate.position);
+        const colliding = isDraggingFull && isCollision(gate.id, renderQubit, renderPosition);
 
         const displayData = simulationResult?.displays?.[gate.id] || { x: 0, y: 0, z: 1 };
         const prob = (1 - displayData.z) / 2;
@@ -364,7 +440,14 @@ export const GateLayer: React.FC<GateLayerProps> = ({
                     </text>
                   )}
 
-                  <g className="cursor-pointer opacity-0 hover:opacity-100" style={{ transition: 'opacity 0.2s' }} onClick={(e) => { e.stopPropagation(); removeGate(gate.id); }}>
+                  <g 
+                    className="cursor-pointer opacity-0 hover:opacity-100" 
+                    style={{ transition: 'opacity 0.2s', pointerEvents: 'auto' }} 
+                    onPointerDown={(e) => { 
+                      e.stopPropagation(); 
+                      removeGate(gate.id); 
+                    }}
+                  >
                     <circle cx={x + GATE_WIDTH / 2 - 5} cy={y - GATE_WIDTH / 2 + 5} r="8" fill="hsl(var(--destructive))" />
                     <foreignObject x={x + GATE_WIDTH / 2 - 11} y={y - GATE_WIDTH / 2 - 1} width="12" height="12">
                       <X className="w-3 h-3 text-destructive-foreground" />

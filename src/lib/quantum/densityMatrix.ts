@@ -373,10 +373,10 @@ export function applySingleQubitChannel(
             const iNew = (i & ~(1 << bitPos)) | (ki << bitPos);
             const jNew = (j & ~(1 << bitPos)) | (kj << bitPos);
 
-            // K[ki][qi] * rho[iNew][jNew] * conj(K[kj][qj])
+            // K[qi][ki] * rho[iNew][jNew] * conj(K[qj][kj])
             const elem = multiply(
-              multiply(K[ki][qi], rho[iNew][jNew]),
-              conjugate(K[kj][qj])
+              multiply(K[qi][ki], rho[iNew][jNew]),
+              conjugate(K[qj][kj])
             );
             newRho[i][j] = add(newRho[i][j], elem);
           }
@@ -427,8 +427,8 @@ export function applyTwoQubitChannel(
             const jNew = (j & ~(1 << bitPos1) & ~(1 << bitPos2)) | (kj1 << bitPos1) | (kj2 << bitPos2);
 
             const elem = multiply(
-              multiply(K[ki][q_i], rho[iNew][jNew]),
-              conjugate(K[kj][q_j])
+              multiply(K[q_i][ki], rho[iNew][jNew]),
+              conjugate(K[q_j][kj])
             );
             newRho[i][j] = add(newRho[i][j], elem);
           }

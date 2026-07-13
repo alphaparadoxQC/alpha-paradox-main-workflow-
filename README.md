@@ -22,7 +22,7 @@
 
 **Alpha Paradox QC** is a production-ready, deep-tech platform designed for researchers, computational chemists, and quantum computing engineers. The platform combines real-time quantum circuit synthesis, cloud-native high-performance simulation backends, and pharmaceutical drug discovery pipelines into a single seamless graphical interface. 
 
-From dragging and dropping qubits into a VQE (Variational Quantum Eigensolver) to generating active space Hamiltonians natively compiled from PySCF—Alpha Paradox QC abstracts the complexities of quantum-chemistry while offering raw computational power through WebGPU and Rust/WebAssembly hardware acceleration.
+From dragging and dropping qubits into a VQE (Variational Quantum Eigensolver) to generating active space Hamiltonians natively compiled from PySCF—Alpha Paradox QC abstracts the complexities of quantum-chemistry while offering raw computational power through WebGPU and optimized JS/TS tensor network simulation.
 
 ---
 
@@ -33,7 +33,7 @@ Current quantum computing ecosystems (like Qiskit or PennyLane) and computationa
 **Alpha Paradox QC** exists to solve this fragmentation by providing:
 - **A Visual IDE:** Bringing deep-tech node-based workflows to quantum mechanics.
 - **Hardware Agnosticism:** Running quantum jobs seamlessly across simulated and real-world QPU targets (e.g., IBM Quantum).
-- **Scale-Ready Architecture:** Offloading heavy computations using Python executor threads, parallel Web Workers, and WebAssembly to prevent thread starvation and memory leaks.
+- **Scale-Ready Architecture:** Offloading heavy computations using Python executor threads, parallel Web Workers, and JS/TS tensor network engines to prevent thread starvation and memory leaks.
 - **End-to-End Drug Discovery:** Allowing pharmaceutical researchers to go from SMILES string -> 3D Topology -> Hartree-Fock Base -> Qubit Hamiltonian -> Quantum Simulation in minutes.
 
 ---
@@ -60,7 +60,7 @@ Our platform is structured on a loosely coupled microservice-inspired architectu
 
 ```mermaid
 graph TD
-    UI[React Frontend / Vite] -->|Zustand + Web Workers| WASM[Rust WebAssembly Engine]
+    UI[React Frontend / Vite] -->|Zustand + Web Workers| TS[JS/TS Simulation Engine]
     UI -->|REST / API| Backend[FastAPI Python Server]
     
     Backend --> PySCF[PySCF HF Solvers]
@@ -80,7 +80,7 @@ graph TD
 | **Visualization** | React Flow (`@xyflow/react`), Three.js, Recharts |
 | **Backend Core** | Python, FastAPI |
 | **Scientific Stack** | PySCF, RDKit, OpenFermion, Qiskit Nature, PennyLane |
-| **Performance Layer** | Rust, WebAssembly (WASM), Web Workers, WebGPU |
+| **Performance Layer** | Web Workers, WebGPU, Optimized JS/TS Engines |
 | **Database & Auth** | Supabase, PostgreSQL, OAuth |
 | **Deployment** | Vercel (Edge network), Uvicorn (Backend) |
 
@@ -136,7 +136,6 @@ alpha-paradox-qc/
 ### 1. Prerequisites
 - Node.js `v18+`
 - Python `v3.10+`
-- Rust & Cargo (for WASM compilation)
 - Supabase CLI (optional, for local DB testing)
 
 ### 2. Repository Setup
@@ -161,16 +160,7 @@ SUPABASE_SECRET_KEY=your_supabase_service_role_key
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-### 4. WASM Build Instructions (Rust)
-Before running the frontend, compile the Rust quantum tensor engine to WebAssembly.
-```bash
-cd quantum-core
-cargo install wasm-pack
-wasm-pack build --target web --out-dir pkg
-cd ..
-```
-
-### 5. Backend Setup Instructions (Python)
+### 4. Backend Setup Instructions (Python)
 We recommend using a virtual environment to isolate the heavy scientific libraries.
 ```bash
 cd chemistry-backend
@@ -184,14 +174,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 6. Supabase Setup Guide
+### 5. Supabase Setup Guide
 If you are managing the database locally, ensure your Supabase containers are running:
 ```bash
 supabase start
 supabase db push
 ```
 
-### 7. Running Project Locally
+### 6. Running Project Locally
 You can run both the frontend and backend concurrently using our NPM scripts:
 ```bash
 # This starts the Vite dev server and the Uvicorn Python backend automatically
@@ -237,7 +227,7 @@ All API endpoints are documented via OpenAPI and can be tested locally at `http:
 ## ⚙️ Main Project Modules
 
 1. **`quantumCircuitStore.ts`**: The central nervous system for the frontend IDE. Manages strict temporal state (Undo/Redo) using compressed JSON serialization to mitigate memory bloat, tracking qubits, gate matrices, and quantum topologies.
-2. **`wasmSimulator.ts`**: The TypeScript bridge executing WebAssembly tensor calculations. Ensures memory safety using deterministic `finally` cleanup block protections.
+2. **`simulator.ts`**: The JS/TS quantum core that orchestrates execution across statevector, MPS, and sparse simulation backends.
 3. **`builder.py`**: The heavy-lifting python router. Synchronous compute requests (like PySCF Hartree-Fock) are offloaded to native `asyncio` thread executors to prevent GIL blocking and FastAPI starvation.
 4. **`quantumWorker.ts`**: A dedicated Web Worker that fully parallelizes real-time quantum circuit simulation away from the browser's main UI thread.
 
@@ -247,7 +237,6 @@ All API endpoints are documented via OpenAPI and can be tested locally at `http:
 
 To achieve production-grade stability under complex quantum simulations, we have implemented several aggressive optimizations:
 - **Zero UI-Thread Blocking:** All quantum simulations are dynamically offloaded to Web Workers.
-- **WASM Memory Safety:** Rust-to-TypeScript WASM memory is strictly managed with localized engine `free()` handlers wrapped in `try/finally` blocks, preventing catastrophic permanent heap leaks.
 - **Backend Thread Isolation:** CPU-bound PySCF/RDKit computations execute exclusively via `asyncio.get_running_loop().run_in_executor`, ensuring the FastAPI async loop remains highly responsive to concurrent clients.
 - **Zustand History Compression:** Undo/Redo logic utilizes JSON delta-compression, preventing N-fold deep copy memory bloat across multi-hundred-gate quantum circuits.
 

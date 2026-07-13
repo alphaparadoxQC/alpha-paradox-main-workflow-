@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { simulateCircuitStabilizer } from '../stabilizer';
 import { simulateCircuitDensityMatrix } from '../densityMatrix';
 import { simulateCircuit } from '../simulator';
-import { QuantumGate } from '../../types/quantum';
+import { QuantumGate } from '@/types/quantum';
 
 describe('New Backends Validation', () => {
   it('Stabilizer simulator handles H and CNOT correctly', () => {

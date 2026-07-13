@@ -26,10 +26,6 @@ export const StatusBar = () => {
     incrementClassicalBits,
     decrementClassicalBits,
     setSimulationMethod,
-    selectionVibeGate,
-    selectionVibeStep,
-    selectionVibeControlQubit,
-    cancelSelectionVibe,
     gpuAccelerated,
   } = useQuantumCircuitStore();
   
@@ -195,58 +191,9 @@ export const StatusBar = () => {
         ))}
       </div>
 
-      {/* Center info - Selection Vibe status OR simulation status */}
+      {/* Center info - Simulation status */}
       <div className="flex items-center gap-4">
-        <AnimatePresence mode="wait">
-          {selectionVibeStep !== 'idle' && selectionVibeGate && (
-            <motion.div
-              key="selection-vibe"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              className="flex items-center gap-3"
-            >
-              {selectionVibeStep === 'selectControl' ? (
-                <div className="flex items-center gap-2">
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                  >
-                    <MousePointer2 className="w-4 h-4 text-quantum-cyan" />
-                  </motion.div>
-                  <span className="text-xs font-medium text-quantum-cyan">
-                    Select Control Qubit for {selectionVibeGate}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    Control: q{selectionVibeControlQubit}
-                  </span>
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1, repeat: Infinity }}
-                  >
-                    <Target className="w-4 h-4 text-quantum-purple" />
-                  </motion.div>
-                  <span className="text-xs font-medium text-quantum-purple">
-                    Select Target Qubit
-                  </span>
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 text-[10px] text-muted-foreground hover:text-destructive"
-                onClick={cancelSelectionVibe}
-              >
-                Cancel (Esc)
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {selectionVibeStep === 'idle' && executionTimeMs !== null && !isSimulating && (
+        {executionTimeMs !== null && !isSimulating && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -259,7 +206,7 @@ export const StatusBar = () => {
           </motion.div>
         )}
         
-        {selectionVibeStep === 'idle' && isSimulating && (
+        {isSimulating && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork, History, Menu, Wand2, Blocks } from 'lucide-react';
+import { Play, Trash2, Cpu, Zap, ChevronDown, FileCode, Undo2, Redo2, Save, FolderOpen, Globe, GitFork, History, Menu, Wand2, Blocks, AlignLeft, Layers, Move } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import {
@@ -54,7 +54,9 @@ export const Toolbar = () => {
     setGates,
     setQubitCount,
     bitOrder,
-    setBitOrder
+    setBitOrder,
+    alignmentMode,
+    setAlignmentMode
   } = useQuantumCircuitStore();
 
   const { user } = useAuth();
@@ -317,6 +319,41 @@ export const Toolbar = () => {
         >
           {bitOrder}
         </Button>
+
+        {/* Alignment Mode Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size={isMobile ? "icon" : "default"} className="border-border hover:border-primary/50 shrink-0">
+              {alignmentMode === 'left' && <AlignLeft className="w-4 h-4 md:mr-2 text-primary" />}
+              {alignmentMode === 'layer' && <Layers className="w-4 h-4 md:mr-2 text-primary" />}
+              {alignmentMode === 'freedom' && <Move className="w-4 h-4 md:mr-2 text-primary" />}
+              {!isMobile && (
+                <span className="capitalize">
+                  {alignmentMode === 'left' ? 'Left Align' : alignmentMode === 'layer' ? 'Layer Align' : 'Freedom'}
+                </span>
+              )}
+              {!isMobile && <ChevronDown className="w-3 h-3 ml-2 opacity-60" />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-48">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Gate Placement
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setAlignmentMode('left')}>
+              <AlignLeft className="w-4 h-4 mr-2" />
+              Left Align
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setAlignmentMode('layer')}>
+              <Layers className="w-4 h-4 mr-2" />
+              Layer Align
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setAlignmentMode('freedom')}>
+              <Move className="w-4 h-4 mr-2" />
+              Freedom
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* More Actions Dropdown */}
         <DropdownMenu>

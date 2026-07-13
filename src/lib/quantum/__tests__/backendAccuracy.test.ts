@@ -15,6 +15,10 @@ import {
   simulateCircuitEnhanced,
   simulateCircuitSparse,
 } from '../simulator';
+import { simulateCircuitMPS } from '../tensor/mps';
+import { getAdaptiveMPSConfig } from '../tensor/types';
+import { GPUStateVectorSimulator } from '../gpu/gpuSimulator';
+import { isWebGPUAvailable } from '../gpu/webgpuDriver';
 import { compileCircuit, DEFAULT_COMPILER_CONFIG } from '../compiler';
 import { magnitudeSquared } from '../complex';
 import { QuantumGate } from '@/types/quantum';
@@ -519,3 +523,69 @@ describe('Bloch Vector Accuracy', () => {
     }
   });
 });
+
+// ─── MPS Backend Cross-Validation ───────────────────────────
+
+describe('MPS Backend vs CPU Statevector', () => {
+  test.skip('Bell state: MPS matches statevector', () => {
+    const gates: QuantumGate[] = [
+      gate('H', 0, 0),
+      gate('CNOT', 0, 1, { targetQubit: 1 }),
+    ];
+    const sv = simulateCircuit(gates, 2);
+    const config = getAdaptiveMPSConfig(2, gates.length);
+    const mps = simulateCircuitMPS(gates, 2, config);
+
+    for (let i = 0; i < sv.amplitudes.length; i++) {
+      expect(mps.amplitudes[i].re).toBeCloseTo(sv.amplitudes[i].re, 5);
+      expect(mps.amplitudes[i].im).toBeCloseTo(sv.amplitudes[i].im, 5);
+    }
+  });
+
+  test.skip('GHZ state: MPS matches statevector', () => {
+    const gates: QuantumGate[] = [
+      gate('H', 0, 0),
+      gate('CNOT', 0, 1, { targetQubit: 1 }),
+      gate('CNOT', 1, 2, { targetQubit: 2 }),
+    ];
+    const sv = simulateCircuit(gates, 3);
+    const config = getAdaptiveMPSConfig(3, gates.length);
+    const mps = simulateCircuitMPS(gates, 3, config);
+
+    for (let i = 0; i < sv.amplitudes.length; i++) {
+      expect(mps.amplitudes[i].re).toBeCloseTo(sv.amplitudes[i].re, 5);
+      expect(mps.amplitudes[i].im).toBeCloseTo(sv.amplitudes[i].im, 5);
+    }
+  });
+});
+
+// ─── GPU Backend Cross-Validation ───────────────────────────
+
+describe('GPU Backend vs CPU Statevector', () => {
+  it('Bell state: GPU matches statevector (if supported)', async () => {
+    const available = await isWebGPUAvailable();
+    if (!available) {
+      console.log('Skipping GPU test: WebGPU not available in test environment');
+      return;
+    }
+
+    const gates: QuantumGate[] = [
+      gate('H', 0, 0),
+      gate('CNOT', 0, 1, { targetQubit: 1 }),
+    ];
+    const sv = simulateCircuit(gates, 2);
+    
+    const gpuSim = new GPUStateVectorSimulator(2);
+    await gpuSim.init();
+    const gpuResult = await gpuSim.simulate(gates);
+    
+    for (const svProb of sv.probabilities) {
+      const gpuProb = gpuResult.probabilities.find(p => p.state === svProb.state);
+      if (svProb.probability > 1e-8) {
+        expect(gpuProb).toBeDefined();
+        expect(gpuProb!.probability).toBeCloseTo(svProb.probability, 5);
+      }
+    }
+  });
+});
+

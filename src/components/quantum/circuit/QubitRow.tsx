@@ -10,25 +10,8 @@ interface QubitRowProps {
 
 export const QubitRow: React.FC<QubitRowProps> = ({ index, width }) => {
   const {
-    selectionVibeStep,
-    selectionVibeControlQubit,
-    selectControlQubit,
-    selectTargetQubit,
     simulationResult
   } = useQuantumCircuitStore();
-
-  const isVibeActive = selectionVibeStep !== 'idle';
-  const isControlSelected = selectionVibeStep === 'selectTarget' && selectionVibeControlQubit === index;
-  const isValidTarget = selectionVibeStep === 'selectTarget' && selectionVibeControlQubit !== index;
-  const isClickable = selectionVibeStep === 'selectControl' || isValidTarget;
-
-  const handleClick = () => {
-    if (selectionVibeStep === 'selectControl') {
-      selectControlQubit(index);
-    } else if (selectionVibeStep === 'selectTarget' && selectionVibeControlQubit !== index) {
-      selectTargetQubit(index);
-    }
-  };
 
   // State visualization
   const vec = simulationResult?.blochVectors?.[index] || { x: 0, y: 0, z: 1 };
@@ -40,13 +23,12 @@ export const QubitRow: React.FC<QubitRowProps> = ({ index, width }) => {
 
   return (
     <div
-      className={`qubit-row absolute left-0 right-0 hover:bg-white/5 transition-colors ${isClickable ? 'cursor-pointer' : ''}`}
+      className={`qubit-row absolute left-0 right-0 hover:bg-white/5 transition-colors`}
       style={{
         height: ROW_HEIGHT,
         top: index * ROW_HEIGHT + CANVAS_PADDING, // Added padding at top
       }}
       data-qubit={index}
-      onClick={handleClick}
     >
       <svg width={width} height={ROW_HEIGHT} className="absolute inset-0 pointer-events-none">
         <defs>
@@ -110,47 +92,6 @@ export const QubitRow: React.FC<QubitRowProps> = ({ index, width }) => {
         >
           |0⟩
         </text>
-
-        {/* Selection Vibe highlight on qubit line */}
-        {isVibeActive && isClickable && (
-          <motion.rect
-            x={CANVAS_PADDING - 30}
-            y={lineY - 20}
-            width={width - CANVAS_PADDING * 2 + 60}
-            height={40}
-            rx="6"
-            fill={selectionVibeStep === 'selectControl' ? 'hsl(185, 100%, 50%)' : 'hsl(265, 100%, 65%)'}
-            fillOpacity="0.08"
-            animate={{ fillOpacity: [0.04, 0.12, 0.04] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            style={{ pointerEvents: 'none' }}
-          />
-        )}
-        
-        {/* Control qubit indicator when selected */}
-        {isControlSelected && (
-          <motion.g
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-          >
-            <circle
-              cx={CANVAS_PADDING - 40}
-              cy={lineY}
-              r="8"
-              fill="hsl(185, 100%, 50%)"
-            />
-            <text
-              x={CANVAS_PADDING - 40}
-              y={lineY + 4}
-              fill="hsl(var(--background))"
-              fontSize="10"
-              fontWeight="bold"
-              textAnchor="middle"
-            >
-              ●
-            </text>
-          </motion.g>
-        )}
 
         {/* End-of-line Phase Disk */}
         <g>

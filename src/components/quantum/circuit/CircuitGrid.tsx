@@ -23,6 +23,7 @@ export const CircuitGrid = () => {
     moveGate,
     undo,
     redo,
+    alignmentMode,
   } = useQuantumCircuitStore();
 
   const [draggingGateId, setDraggingGateId] = useState<string | null>(null);
@@ -96,10 +97,62 @@ export const CircuitGrid = () => {
     
     if (qubitIndex < 0 || qubitIndex >= qubitCount) return;
 
-    // Grid snapping for X coordinate
+    const isMulti = ['CNOT', 'CY', 'CZ', 'CH', 'SWAP', 'iSWAP', 'SQSWAP', 'DCX', 'ECR', 'CP', 'CRx', 'CRy', 'CRz', 'CCX', 'CCZ', 'CSWAP', 'C3X', 'C4X', 'MCX', 'MCZ', 'MCRY', 'RXX', 'RYY', 'RZZ'].includes(draggedGate || draggingGateId?.split('-')[0] || '');
+    let targetQubit = undefined;
+    if (isMulti) {
+      targetQubit = qubitIndex + 1 < qubitCount ? qubitIndex + 1 : qubitIndex - 1;
+      if (targetQubit < 0) targetQubit = 1;
+    }
+    
+    // Calculate effective occupied wires for this operation
+    const occupiedWires = [qubitIndex];
+    if (targetQubit !== undefined) {
+      // If it's a gate like CNOT, it occupies control, target, and all wires in between
+      const minWire = Math.min(qubitIndex, targetQubit);
+      const maxWire = Math.max(qubitIndex, targetQubit);
+      for (let w = minWire; w <= maxWire; w++) {
+        if (!occupiedWires.includes(w)) occupiedWires.push(w);
+      }
+    }
+
+    // Grid snapping for X coordinate based on alignmentMode
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const position = Math.max(0, Math.round((x - CANVAS_PADDING - 40) / COL_WIDTH));
+    let position = Math.max(0, Math.round((x - CANVAS_PADDING - 40) / COL_WIDTH));
+
+    if (alignmentMode === 'left') {
+      // Find the maximum position currently occupied on the involved wires
+      let maxPos = -1;
+      gates.forEach(g => {
+        if (g.id === draggingGateId) return; // ignore self
+        const gMin = Math.min(g.qubit, g.targetQubit ?? g.qubit);
+        const gMax = Math.max(g.qubit, g.targetQubit ?? g.qubit);
+        
+        // check overlap of wires
+        const overlaps = occupiedWires.some(w => w >= gMin && w <= gMax);
+        if (overlaps) {
+          maxPos = Math.max(maxPos, g.position);
+        }
+      });
+      position = maxPos + 1;
+    } else if (alignmentMode === 'layer') {
+      // Find the first global position where none of the involved wires are occupied
+      let testPos = 0;
+      while (true) {
+        const isOccupied = gates.some(g => {
+          if (g.id === draggingGateId) return false;
+          if (g.position !== testPos) return false;
+          const gMin = Math.min(g.qubit, g.targetQubit ?? g.qubit);
+          const gMax = Math.max(g.qubit, g.targetQubit ?? g.qubit);
+          return occupiedWires.some(w => w >= gMin && w <= gMax);
+        });
+        if (!isOccupied) {
+          position = testPos;
+          break;
+        }
+        testPos++;
+      }
+    }
 
     if (draggingGateId) {
       moveGate(draggingGateId, qubitIndex, position);
@@ -111,13 +164,6 @@ export const CircuitGrid = () => {
 
     const existingGate = gates.find(g => g.qubit === qubitIndex && g.position === position);
     if (existingGate) return;
-
-    const isMulti = ['CNOT', 'CY', 'CZ', 'CH', 'SWAP', 'iSWAP', 'SQSWAP', 'DCX', 'ECR', 'CP', 'CRx', 'CRy', 'CRz', 'CCX', 'CCZ', 'CSWAP', 'C3X', 'C4X', 'MCX', 'MCZ', 'MCRY', 'RXX', 'RYY', 'RZZ'].includes(draggedGate);
-    let targetQubit = undefined;
-    if (isMulti) {
-      targetQubit = qubitIndex + 1 < qubitCount ? qubitIndex + 1 : qubitIndex - 1;
-      if (targetQubit < 0) targetQubit = 1;
-    }
 
     const newGate = {
       id: `gate-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

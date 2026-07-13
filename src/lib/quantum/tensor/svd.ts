@@ -357,11 +357,11 @@ export const truncatedSVD = (
       U.push(u);
       const At = conjugateTranspose(matrix);
       const Atu = matVecMul(At, u);
-      rightVectors.push(normalizeVec(Atu));
+      rightVectors.push(normalizeVec(Atu).map(c => conjugate(c)));
     } else {
       // vector is right singular vector v; compute u = A v / sigma
       const v = vecComplex;
-      rightVectors.push(v);
+      rightVectors.push(v.map(c => conjugate(c)));
       const Av = matVecMul(matrix, v);
       U.push(normalizeVec(Av));
     }

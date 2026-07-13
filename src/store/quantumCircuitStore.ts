@@ -24,6 +24,36 @@ export const QUBIT_LIMITS = {
   TENSOR_NETWORK_MAX: 1000, // Extended limit for 100+ qubits
 };
 
+const compactGatesLeft = (gates: QuantumGate[]): QuantumGate[] => {
+  // Sort gates primarily by position, so we process them left-to-right
+  const sortedGates = [...gates].sort((a, b) => a.position - b.position);
+  const newGates: QuantumGate[] = [];
+  
+  for (const gate of sortedGates) {
+    const occupiedWires = [gate.qubit];
+    if (gate.targetQubit !== undefined) {
+      const minWire = Math.min(gate.qubit, gate.targetQubit);
+      const maxWire = Math.max(gate.qubit, gate.targetQubit);
+      for (let w = minWire; w <= maxWire; w++) {
+        if (!occupiedWires.includes(w)) occupiedWires.push(w);
+      }
+    }
+    
+    let maxPos = -1;
+    for (const g of newGates) {
+      const gMin = Math.min(g.qubit, g.targetQubit ?? g.qubit);
+      const gMax = Math.max(g.qubit, g.targetQubit ?? g.qubit);
+      const overlaps = occupiedWires.some(w => w >= gMin && w <= gMax);
+      if (overlaps) {
+        maxPos = Math.max(maxPos, g.position);
+      }
+    }
+    
+    newGates.push({ ...gate, position: maxPos + 1 });
+  }
+  return newGates;
+};
+
  /**
   * ============================================================
   * UNDO/REDO HISTORY SYSTEM
@@ -83,6 +113,9 @@ interface QuantumCircuitStore {
   // Bit order convention
   bitOrder: 'MSB' | 'LSB';
   
+  // Gate placement alignment mode
+  alignmentMode: 'left' | 'layer' | 'freedom';
+  
    // Selection state
    selectedGateId: string | null;
    
@@ -100,6 +133,7 @@ interface QuantumCircuitStore {
   simulate: () => void;
   loadTemplate: (template: CircuitTemplate) => void;
   setBitOrder: (order: 'MSB' | 'LSB') => void;
+  setAlignmentMode: (mode: 'left' | 'layer' | 'freedom') => void;
    
    // Selection actions
    selectGate: (gateId: string | null) => void;
@@ -145,34 +179,45 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
   draggedGate: null,
   activeTemplate: null,
   bitOrder: 'MSB',
+  alignmentMode: 'freedom',
   
    selectedGateId: null,
    past: [],
    future: [],
 
-   addGate: (gate) => set((state) => ({
-     past: saveToHistory(state.gates, state.past),
-     future: [],
-    gates: [...state.gates, gate],
-     activeTemplate: null,
-  })),
+   addGate: (gate) => set((state) => {
+     let nextGates = [...state.gates, gate];
+     if (state.alignmentMode === 'left') nextGates = compactGatesLeft(nextGates);
+     return {
+       past: saveToHistory(state.gates, state.past),
+       future: [],
+       gates: nextGates,
+       activeTemplate: null,
+     };
+   }),
 
-  removeGate: (gateId) => set((state) => ({
-     past: saveToHistory(state.gates, state.past),
-     future: [],
-    gates: state.gates.filter((g) => g.id !== gateId),
-     selectedGateId: state.selectedGateId === gateId ? null : state.selectedGateId,
-     activeTemplate: null,
-  })),
+  removeGate: (gateId) => set((state) => {
+     let nextGates = state.gates.filter((g) => g.id !== gateId);
+     if (state.alignmentMode === 'left') nextGates = compactGatesLeft(nextGates);
+     return {
+       past: saveToHistory(state.gates, state.past),
+       future: [],
+       gates: nextGates,
+       selectedGateId: state.selectedGateId === gateId ? null : state.selectedGateId,
+       activeTemplate: null,
+     };
+  }),
 
-  updateGate: (gateId, updates) => set((state) => ({
-     past: saveToHistory(state.gates, state.past),
-     future: [],
-     gates: state.gates.map((g) =>
-      g.id === gateId ? { ...g, ...updates } : g
-    ),
-     activeTemplate: null,
-  })),
+  updateGate: (gateId, updates) => set((state) => {
+     let nextGates = state.gates.map((g) => g.id === gateId ? { ...g, ...updates } : g);
+     if (state.alignmentMode === 'left') nextGates = compactGatesLeft(nextGates);
+     return {
+       past: saveToHistory(state.gates, state.past),
+       future: [],
+       gates: nextGates,
+       activeTemplate: null,
+     };
+  }),
 
    clearCircuit: () => set((state) => ({
      past: saveToHistory(state.gates, state.past),
@@ -191,7 +236,7 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
     set({
        past: saveToHistory(state.gates, state.past),
        future: [],
-      gates,
+      gates: state.alignmentMode === 'left' ? compactGatesLeft(gates) : gates,
       activeTemplate: template,
        simulationResult: null,
        selectedGateId: null,
@@ -249,10 +294,13 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
        position: newPosition,
      };
      
+     let nextGates = [...state.gates, newGate];
+     if (state.alignmentMode === 'left') nextGates = compactGatesLeft(nextGates);
+
      set({
        past: saveToHistory(state.gates, state.past),
        future: [],
-       gates: [...state.gates, newGate],
+       gates: nextGates,
        selectedGateId: newGate.id,
        activeTemplate: null,
      });
@@ -265,33 +313,34 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
      );
      if (isOccupied) return;
      
-     // If it's a controlled gate, update controlQubit if it's the main qubit
-     // This maintains the target offset if possible, but actually we only move the control.
-     // Wait, if it moves to a new qubit, and target remains the same...
-     // We will just let targetQubit be whatever it was, unless it collides.
+     let nextGates = state.gates.map(g => {
+        if (g.id === gateId) {
+          const updates: Partial<QuantumGate> = { qubit: newQubit, position: newPosition };
+          if (g.controlQubit !== undefined) updates.controlQubit = newQubit;
+          return { ...g, ...updates };
+        }
+        return g;
+      });
+
      set({
        past: saveToHistory(state.gates, state.past),
        future: [],
-       gates: state.gates.map(g => {
-         if (g.id === gateId) {
-           const updates: Partial<QuantumGate> = { qubit: newQubit, position: newPosition };
-           if (g.controlQubit !== undefined) updates.controlQubit = newQubit;
-           return { ...g, ...updates };
-         }
-         return g;
-       }),
+       gates: state.alignmentMode === 'left' ? compactGatesLeft(nextGates) : nextGates,
        activeTemplate: null,
      });
    },
 
    moveTargetNode: (gateId, newTargetQubit) => {
      const state = get();
+     let nextGates = state.gates.map(g =>
+       g.id === gateId ? { ...g, targetQubit: newTargetQubit } : g
+     );
+     if (state.alignmentMode === 'left') nextGates = compactGatesLeft(nextGates);
+
      set({
        past: saveToHistory(state.gates, state.past),
        future: [],
-       gates: state.gates.map(g =>
-         g.id === gateId ? { ...g, targetQubit: newTargetQubit } : g
-       ),
+       gates: nextGates,
        activeTemplate: null,
      });
    },
@@ -299,7 +348,7 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
    setGates: (gates) => set((state) => ({
      past: saveToHistory(state.gates, state.past),
      future: [],
-     gates,
+     gates: state.alignmentMode === 'left' ? compactGatesLeft(gates) : gates,
      activeTemplate: null,
      selectedGateId: null,
    })),
@@ -359,6 +408,8 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
     set({ bitOrder: order });
     get().simulate(); // Re-simulate to update bit strings
   },
+
+  setAlignmentMode: (mode) => set({ alignmentMode: mode }),
 
   simulate: () => {
     set({ isSimulating: true });
