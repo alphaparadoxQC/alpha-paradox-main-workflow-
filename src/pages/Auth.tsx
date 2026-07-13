@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Cpu, Mail, Lock, Loader2, Eye, EyeOff, Atom } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -155,26 +155,18 @@ const passwordSchema = z.string().min(6, 'Password must be at least 6 characters
        </div>
  
        {/* Logo and Title */}
-       <motion.div 
-         initial={{ opacity: 0, y: -20 }}
-         animate={{ opacity: 1, y: 0 }}
-         className="flex items-center gap-3 mb-8"
-       >
-         <motion.div
-           animate={{ rotate: 360 }}
-           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-           className="w-12 h-12 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center"
-         >
-           <Cpu className="w-6 h-6 text-background" />
-         </motion.div>
-        <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              {BRANDING.platformName}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {BRANDING.platformTagline}
-            </p>
-          </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-center mb-8"
+        >
+          <Link to="/">
+            <img
+              src="/logo.png"
+              alt="Alpha Paradox Logo"
+              className="h-16 w-auto object-contain drop-shadow-lg hover:opacity-80 transition-opacity cursor-pointer"
+            />
+          </Link>
         </motion.div>
 
         {/* Password Reset Form */}

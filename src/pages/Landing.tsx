@@ -181,16 +181,13 @@ export default function Landing() {
           className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-background/60 backdrop-blur-xl border-b border-border/50"
         >
           <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-              className="w-8 h-8 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center"
-            >
-              <Cpu className="w-4 h-4 text-background" />
-            </motion.div>
-            <span className="text-lg font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              {BRANDING.platformName}
-            </span>
+            <Link to="/">
+              <img
+                src="/logo.png"
+                alt="Alpha Paradox Logo"
+                className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
+              />
+            </Link>
           </div>
           <div className="flex items-center gap-3">
             <Button

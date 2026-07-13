@@ -221,18 +221,15 @@ export const Toolbar = () => {
     >
       {/* Left side - Logo/Title */}
       <div className="flex items-center gap-3">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center"
-        >
-          <Cpu className="w-4 h-4 text-background" />
-        </motion.div>
+        <Link to="/">
+          <img
+            src="/logo.png"
+            alt="Alpha Paradox Logo"
+            className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
+          />
+        </Link>
         <div>
-          <h1 className="text-lg font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            {BRANDING.platformName}
-          </h1>
-          <p className="text-[10px] text-muted-foreground -mt-0.5">
+          <p className="text-[10px] text-muted-foreground">
             {forkedFrom ? (
               <span className="flex items-center gap-1">
                 <GitFork className="w-3 h-3" />

@@ -243,13 +243,13 @@
              </Link>
              <div className="h-6 w-px bg-border" />
              <div className="flex items-center gap-2">
-               <motion.div
-                 animate={{ rotate: 360 }}
-                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                 className="w-8 h-8 rounded-full bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center"
-               >
-                 <Cpu className="w-4 h-4 text-background" />
-               </motion.div>
+               <Link to="/">
+                 <img
+                   src="/logo.png"
+                   alt="Alpha Paradox Logo"
+                   className="h-8 w-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
+                 />
+               </Link>
                <div>
                  <h1 className="text-lg font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                    Circuit Gallery
