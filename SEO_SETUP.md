@@ -7,7 +7,7 @@ This document outlines how SEO, metadata, and analytics are configured in the Al
 To enable full tracking and absolute URLs for SEO (like canonical links and Open Graph images), ensure your production environment has these variables set:
 
 ```env
-VITE_SITE_URL=https://YOUR_DOMAIN.com
+VITE_SITE_URL=https://alphaparadoxqc.com
 VITE_GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
 ```
 
@@ -39,7 +39,7 @@ You can pass a `structuredData` prop (JSON object) to the SEO component for adva
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Alpha ParadoxQC",
-    "url": "https://YOUR_DOMAIN.com"
+    "url": "https://alphaparadoxqc.com"
   }}
 />
 ```
@@ -58,8 +58,8 @@ Google Analytics 4 (GA4) is integrated via `src/components/GoogleAnalytics.tsx`.
 ## 5. Pre-launch Production Checklist
 
 Before the final launch, complete these manual steps:
-1. **Update Domain Name**: Replace `https://YOUR_DOMAIN.com` in `public/robots.txt` and `public/sitemap.xml` with your actual production domain.
+1. **Update Domain Name**: Replace `https://alphaparadoxqc.com` in `public/robots.txt` and `public/sitemap.xml` with your actual production domain.
 2. **Verify Google Search Console**: Add your domain to Google Search Console and verify ownership.
-3. **Submit Sitemap**: In Google Search Console, submit your sitemap URL (`https://yourdomain.com/sitemap.xml`).
+3. **Submit Sitemap**: In Google Search Console, submit your sitemap URL (`https://alphaparadoxqc.com/sitemap.xml`).
 4. **Set Analytics ID**: Provide your actual Google Analytics Measurement ID in the production environment variables (`VITE_GOOGLE_ANALYTICS_ID`).
 5. **Test Open Graph Tags**: Use tools like [Twitter Card Validator](https://cards-dev.twitter.com/validator) or [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/) to ensure social sharing cards appear correctly.

@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://YOUR_DOMAIN.com/sitemap.xml
+Sitemap: https://alphaparadoxqc.com/sitemap.xml
