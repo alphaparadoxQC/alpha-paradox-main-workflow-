@@ -54,6 +54,7 @@ import { SimulationResult } from '@/types/quantum';
 import { BRANDING } from '@/config/branding';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { convertBitStringOrder } from '@/lib/quantum/bitOrder';
+import { SEO } from '@/components/shared/SEO';
 
 interface QuantumJob {
   id: string;
@@ -256,6 +257,75 @@ const Jobs = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Quantum Computing Jobs & Careers | Alpha ParadoxQC"
+        description="Explore career opportunities in quantum computing, software engineering, and computational chemistry at Alpha ParadoxQC."
+        canonical="/jobs"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "SoftwareApplication",
+              "name": "Alpha ParadoxQC Job History",
+              "applicationCategory": "DeveloperApplication",
+              "operatingSystem": "Web"
+            },
+            {
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "How do I apply for a role?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "You can view open positions and submit your application through the careers section of our website."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What roles are available?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "We periodically list openings across research, development, and engineering. Current openings are detailed on the careers page."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Can recent graduates apply?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Opportunities may be available for candidates at various experience levels. We encourage interested candidates to review specific role requirements."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Do you offer remote work?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Work arrangements depend on the specific role and organizational needs. Details are provided in individual job descriptions."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Where can I learn about the company culture?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Information about our mission and culture can be found on our main website and professional networking pages."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How can I contact the recruiting team?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "For inquiries related to careers, please use the contact information provided on the careers page."
+                  }
+                }
+              ]
+            }
+          ]
+        }}
+      />
       {/* Header */}
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">

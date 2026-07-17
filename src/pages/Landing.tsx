@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { BRANDING } from '@/config/branding';
 import { QuantumAssistant } from '@/components/quantum/QuantumAssistant';
+import { SEO } from '@/components/shared/SEO';
 
 
 // Animated particle field
@@ -162,6 +163,31 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <SEO 
+        title="Alpha ParadoxQC — Visual Quantum Circuit Builder, Chemistry & Drug Simulation"
+        description="Design quantum circuits, run VQE chemistry simulations, and evaluate drug candidates — no SDK setup required. Free browser-based quantum computing platform."
+        canonical="/"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Alpha ParadoxQC Private Limited",
+          "url": "https://alphaparadoxqc.com",
+          "logo": "https://alphaparadoxqc.com/logo.png",
+          "foundingDate": "2026-07-04",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "3/1, West Kamarthuba Road, Habra",
+            "addressRegion": "West Bengal",
+            "postalCode": "743263",
+            "addressCountry": "IN"
+          },
+          "email": "quantum@alphaparadoxqc.com",
+          "founder": {
+            "@type": "Person",
+            "name": "Sourojit Mondal"
+          }
+        }}
+      />
       {/* Hero */}
       <motion.section
         ref={heroRef}

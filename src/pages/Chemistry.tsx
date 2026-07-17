@@ -33,6 +33,7 @@ import { MoleculeInput } from '@/components/chemistry/MoleculeInput';
 import { ResultJSONViewer } from '@/components/chemistry/ResultJSONViewer';
 import { QuantumMappingPanel } from '@/components/chemistry/QuantumMappingPanel';
 import { ChemistryAPI, MoleculeResponse, ClassicalResponse } from '@/lib/chemistry/apiClient';
+import { SEO } from '@/components/shared/SEO';
 
 const Chemistry = () => {
   const { user, loading } = useAuth();
@@ -54,9 +55,6 @@ const Chemistry = () => {
     }
   }, [user, loading, navigate]);
 
-  useEffect(() => {
-    document.title = 'Quantum Chemistry Platform';
-  }, []);
 
   const customMolecule = useMemo(
     () => buildCustomMolecule(selectedAtoms) ?? MOLECULES[0],
@@ -177,6 +175,107 @@ const Chemistry = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <SEO 
+        title="Quantum Chemistry Simulation — VQE Molecular Modeling | Alpha ParadoxQC"
+        description="Run Variational Quantum Eigensolver simulations, Hartree-Fock calculations, and molecular orbital mapping directly in your browser."
+        canonical="/chemistry"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "SoftwareApplication",
+              "name": "Alpha ParadoxQC Quantum Chemistry Simulation",
+              "applicationCategory": "ScienceApplication",
+              "operatingSystem": "Web"
+            },
+            {
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "What is Quantum Chemistry Simulation?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The Alpha ParadoxQC Quantum Chemistry Simulation platform is being developed to help researchers study molecular systems using advanced computational methods inspired by quantum computing and computational chemistry. It aims to support scientific research, education, and innovation."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Why is Alpha ParadoxQC developing this platform?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Many molecular simulations are computationally intensive and can require significant resources. We are building this platform to provide researchers with tools that support more efficient computational studies and accelerate scientific exploration."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Who can use this platform?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The platform is intended for researchers, universities, pharmaceutical companies, chemical industries, material scientists, educators, and students interested in computational chemistry."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What problems does it aim to solve?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "It is designed to support molecular modeling, electronic structure analysis, reaction studies, and materials research by providing computational tools that complement existing scientific workflows."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Can it replace laboratory experiments?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. The platform is intended to complement laboratory research by assisting with computational analysis. Experimental validation remains essential."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What types of molecules can be studied?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The exact capabilities will depend on the released version. Supported molecular systems and simulation methods will be documented as the platform develops."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Is programming experience required?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "The platform is being designed with usability in mind, offering tools for both experienced researchers and users with limited programming experience."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Can universities use this platform?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Supporting education and academic research is one of the objectives of the platform."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Will cloud-based simulations be available?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Deployment options and computational infrastructure will be announced as development progresses."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How can organizations collaborate with Alpha ParadoxQC?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Organizations interested in research partnerships, pilot projects, or technology collaborations can contact our team through the official website."
+                  }
+                }
+              ]
+            }
+          ]
+        }}
+      />
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">

@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { ForgotPasswordDialog } from '@/components/auth/ForgotPasswordDialog';
 import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm';
 import { BRANDING } from '@/config/branding';
+import { SEO } from '@/components/shared/SEO';
 
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
@@ -113,6 +114,11 @@ const passwordSchema = z.string().min(6, 'Password must be at least 6 characters
  
    return (
      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
+       <SEO 
+         title="Sign In | Alpha ParadoxQC"
+         description="Access your quantum workspace to build, simulate, and manage quantum circuits and chemistry simulations."
+         canonical="/auth"
+       />
        {/* Animated background elements */}
        <div className="absolute inset-0 overflow-hidden pointer-events-none">
          {[...Array(20)].map((_, i) => (
