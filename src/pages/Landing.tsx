@@ -228,6 +228,9 @@ export default function Landing() {
               Products <ChevronDown className="w-3 h-3 opacity-60" />
             </Button>
             <Button variant="ghost" size="sm" asChild>
+              <Link to="/about">About Us</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
               <Link to="/gallery">Gallery</Link>
             </Button>
             {user ? (
@@ -340,6 +343,51 @@ export default function Landing() {
           </motion.div>
         </motion.div>
       </motion.section>
+
+      {/* Purpose of Alpha ParadoxQC */}
+      <section className="py-24 px-4 relative bg-muted/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground">
+              Purpose of Alpha ParadoxQC
+            </h2>
+            <p className="text-muted-foreground mt-4 text-lg leading-relaxed max-w-2xl mx-auto">
+              Alpha ParadoxQC exists to bridge advanced quantum research with practical innovation. Our website is more than a company profile — it is a living platform where technology, research, education, and industry converge to explore the next generation of computational solutions.
+            </p>
+          </motion.div>
+          <div className="grid sm:grid-cols-2 gap-8 text-left">
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-primary">Advance Quantum Innovation</h3>
+              <p className="text-muted-foreground leading-relaxed">By promoting research and engineering that address real-world computational challenges.</p>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-accent">Make Quantum Technology Accessible</h3>
+              <p className="text-muted-foreground leading-relaxed">By transforming complex scientific concepts into practical knowledge for learners, developers, researchers, and organizations.</p>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-secondary">Enable Industry Transformation</h3>
+              <p className="text-muted-foreground leading-relaxed">By exploring quantum-driven solutions for sectors such as healthcare, logistics, cybersecurity, artificial intelligence, finance, and scientific research.</p>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-quantum-pink">Cultivate Global Collaboration</h3>
+              <p className="text-muted-foreground leading-relaxed">By bringing together researchers, innovators, academic institutions, enterprises, and public organizations to accelerate technological progress.</p>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-quantum-green">Inspire the Next Generation</h3>
+              <p className="text-muted-foreground leading-relaxed">By encouraging education, curiosity, and innovation through high-quality technical resources and community engagement.</p>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-xl font-semibold text-quantum-orange">Shape the Future of Computing</h3>
+              <p className="text-muted-foreground leading-relaxed">By contributing to the long-term evolution of quantum technologies through responsible research, continuous innovation, and impactful engineering.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Features */}
       <section className="py-24 px-4 relative">
@@ -566,10 +614,10 @@ export default function Landing() {
                             className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/95 text-xs font-semibold"
                             onClick={() => {
                               setIsProductsOpen(false);
-                              navigate('/builder');
+                              navigate('/products/circuit-builder');
                             }}
                           >
-                            Launch Builder
+                            Explore Simulator
                           </Button>
                         </div>
                       </div>
@@ -601,10 +649,10 @@ export default function Landing() {
                             className="w-full mt-6 bg-accent text-accent-foreground hover:bg-accent/95 text-xs font-semibold"
                             onClick={() => {
                               setIsProductsOpen(false);
-                              navigate('/chemistry');
+                              navigate('/products/chemistry-simulation');
                             }}
                           >
-                            Launch Chemistry
+                            Explore Chemistry
                           </Button>
                         </div>
                       </div>
@@ -636,10 +684,10 @@ export default function Landing() {
                             className="w-full mt-6 bg-quantum-pink text-white hover:bg-quantum-pink/95 text-xs font-semibold"
                             onClick={() => {
                               setIsProductsOpen(false);
-                              navigate('/pharma');
+                              navigate('/products/drug-simulation');
                             }}
                           >
-                            Launch Pharma
+                            Explore Pharma
                           </Button>
                         </div>
                       </div>

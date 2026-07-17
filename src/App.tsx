@@ -17,6 +17,11 @@ const Jobs = lazy(() => import("./pages/Jobs"));
 const Pharma = lazy(() => import("./pages/Pharma"));
 const Chemistry = lazy(() => import("./pages/Chemistry"));
 const ChemistryCircuitBuilder = lazy(() => import("./pages/ChemistryCircuitBuilder"));
+
+const About = lazy(() => import("./pages/About"));
+const CircuitBuilderLanding = lazy(() => import("./pages/products/CircuitBuilderLanding"));
+const ChemistrySimulationLanding = lazy(() => import("./pages/products/ChemistrySimulationLanding"));
+const DrugSimulationLanding = lazy(() => import("./pages/products/DrugSimulationLanding"));
 // Note: Settings route is disabled because Settings component doesn't exist yet
 
 const queryClient = new QueryClient();
@@ -32,6 +37,26 @@ const App = () => (
             <GoogleAnalytics />
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/about" element={
+                <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+                  <About />
+                </Suspense>
+              } />
+              <Route path="/products/circuit-builder" element={
+                <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+                  <CircuitBuilderLanding />
+                </Suspense>
+              } />
+              <Route path="/products/chemistry-simulation" element={
+                <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+                  <ChemistrySimulationLanding />
+                </Suspense>
+              } />
+              <Route path="/products/drug-simulation" element={
+                <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+                  <DrugSimulationLanding />
+                </Suspense>
+              } />
               <Route path="/builder" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/chemistry/circuit-builder" element={
