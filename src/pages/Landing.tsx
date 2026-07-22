@@ -167,7 +167,7 @@ export default function Landing() {
                           </p>
                         </div>
                         <div className="mt-8 flex items-center justify-between text-xs font-semibold text-primary">
-                          <span>Explore 3 educational simulators</span>
+                          <span>Explore 2 educational simulators</span>
                           <span className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20">Ready to simulate</span>
                         </div>
                         <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-primary/30" />
@@ -205,7 +205,7 @@ export default function Landing() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.2 }}
-                      className="grid md:grid-cols-3 gap-6 py-4"
+                      className="grid md:grid-cols-2 gap-6 py-4"
                     >
                       <div className="group rounded-2xl border border-border/80 bg-sidebar/35 overflow-hidden flex flex-col hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
                         <div className="h-44 overflow-hidden relative border-b border-border bg-black/45">
@@ -275,39 +275,6 @@ export default function Landing() {
                         </div>
                       </div>
 
-                      <div className="group rounded-2xl border border-border/80 bg-sidebar/35 overflow-hidden flex flex-col hover:border-quantum-pink/50 transition-all duration-300 hover:shadow-lg">
-                        <div className="h-44 overflow-hidden relative border-b border-border bg-black/45">
-                          <img
-                            src="/drug_simulator.png"
-                            alt="Drug Simulator"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-quantum-pink/20 backdrop-blur-md border border-quantum-pink/30 text-[10px] font-bold text-quantum-pink">
-                            <Pill className="w-3.5 h-3.5" />
-                            Pharma
-                          </div>
-                        </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h4 className="font-bold text-lg text-foreground group-hover:text-quantum-pink transition-colors">
-                              Pharma Workspace
-                            </h4>
-                            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                              Quantum-driven pharmaceutical workspace for docking, ADMET toxicity prediction, and Lipinski rule-of-five validation.
-                            </p>
-                          </div>
-                          <Button
-                            className="w-full mt-6 bg-quantum-pink text-white hover:bg-quantum-pink/95 text-xs font-semibold"
-                            onClick={() => {
-                              setIsProductsOpen(false);
-                              navigate('/products/drug-simulation');
-                            }}
-                          >
-                            Explore Pharma
-                          </Button>
-                        </div>
-                      </div>
                     </motion.div>
                   )}
 

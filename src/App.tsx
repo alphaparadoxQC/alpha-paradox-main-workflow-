@@ -14,14 +14,12 @@ import { HelmetProvider } from "react-helmet-async";
 
 const Gallery = lazy(() => import("./pages/Gallery"));
 const Jobs = lazy(() => import("./pages/Jobs"));
-const Pharma = lazy(() => import("./pages/Pharma"));
 const Chemistry = lazy(() => import("./pages/Chemistry"));
 const ChemistryCircuitBuilder = lazy(() => import("./pages/ChemistryCircuitBuilder"));
 
 const About = lazy(() => import("./pages/About"));
 const CircuitBuilderLanding = lazy(() => import("./pages/products/CircuitBuilderLanding"));
 const ChemistrySimulationLanding = lazy(() => import("./pages/products/ChemistrySimulationLanding"));
-const DrugSimulationLanding = lazy(() => import("./pages/products/DrugSimulationLanding"));
 // Note: Settings route is disabled because Settings component doesn't exist yet
 
 const queryClient = new QueryClient();
@@ -52,11 +50,6 @@ const App = () => (
                   <ChemistrySimulationLanding />
                 </Suspense>
               } />
-              <Route path="/products/drug-simulation" element={
-                <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
-                  <DrugSimulationLanding />
-                </Suspense>
-              } />
               <Route path="/builder" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/chemistry/circuit-builder" element={
@@ -72,11 +65,6 @@ const App = () => (
               <Route path="/jobs" element={
                 <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
                   <Jobs />
-                </Suspense>
-              } />
-              <Route path="/pharma" element={
-                <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
-                  <Pharma />
                 </Suspense>
               } />
               <Route path="/chemistry" element={

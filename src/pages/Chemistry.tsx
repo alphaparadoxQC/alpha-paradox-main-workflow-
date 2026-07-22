@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FlaskConical, Loader2, Atom as AtomIcon, Sparkles, Info, Zap, Server, FileJson, Play, Cpu } from 'lucide-react';
+import { ArrowLeft, FlaskConical, Loader2, Atom as AtomIcon, Sparkles, Info, Zap, Server, FileJson, Play, Cpu, Pill } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import { VQEProgressChart } from '@/components/chemistry/VQEProgressChart';
 import { VQEResults } from '@/components/chemistry/VQEResults';
 import { ElectronicProperties } from '@/components/chemistry/ElectronicProperties';
 import { DFTPanel } from '@/components/chemistry/DFTPanel';
+import { DrugDiscoveryTab } from '@/components/drugDiscovery/DrugDiscoveryTab';
 
 import { buildCustomMolecule } from '@/lib/chemistry/customMolecule';
 import { useVQE } from '@/hooks/useVQE';
@@ -317,7 +318,7 @@ const Chemistry = () => {
       <main className="flex-1">
         <section className="max-w-7xl mx-auto w-full px-2 sm:px-4 py-4 space-y-4">
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full md:w-auto mb-6">
+            <TabsList className="grid grid-cols-2 md:grid-cols-6 w-full md:w-auto mb-6">
               <TabsTrigger value="dashboard" className="text-xs gap-1">
                 <Server className="w-3.5 h-3.5" /> Platform Dashboard
               </TabsTrigger>
@@ -332,6 +333,9 @@ const Chemistry = () => {
               </TabsTrigger>
               <TabsTrigger value="library" className="text-xs gap-1">
                 <Sparkles className="w-3.5 h-3.5" /> Templates
+              </TabsTrigger>
+              <TabsTrigger value="pharma" className="text-xs gap-1 text-quantum-pink data-[state=active]:text-quantum-pink">
+                <Pill className="w-3.5 h-3.5" /> Pharma
               </TabsTrigger>
             </TabsList>
 
@@ -504,6 +508,13 @@ const Chemistry = () => {
             <TabsContent value="library" className="mt-4">
               <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
                 <ChemistryTab />
+              </div>
+            </TabsContent>
+
+            {/* PHARMA / DRUG SIMULATOR */}
+            <TabsContent value="pharma" className="mt-4">
+              <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden">
+                <DrugDiscoveryTab />
               </div>
             </TabsContent>
           </Tabs>

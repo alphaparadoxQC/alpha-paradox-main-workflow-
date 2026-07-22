@@ -114,26 +114,14 @@ export default function About() {
             <Building2 className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-bold">Company Information</h2>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="p-4 border border-border/50 rounded-xl bg-card">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2"><FileText className="w-3 h-3"/> Company Name</div>
-              <div className="font-medium">ALPHA PARADOXQC PRIVATE LIMITED</div>
+          <div className="grid sm:grid-cols-2 gap-6">
+            <div className="group p-6 border border-border/50 rounded-2xl bg-card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 flex flex-col justify-center">
+              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2 font-medium tracking-wide uppercase"><FileText className="w-4 h-4 text-primary"/> Company Name</div>
+              <div className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">ALPHA PARADOXQC PRIVATE LIMITED</div>
             </div>
-            <div className="p-4 border border-border/50 rounded-xl bg-card">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2"><Building2 className="w-3 h-3"/> Company Type</div>
-              <div className="font-medium">Private Limited Company (India)</div>
-            </div>
-            <div className="p-4 border border-border/50 rounded-xl bg-card">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2"><Calendar className="w-3 h-3"/> Incorporation Date</div>
-              <div className="font-medium">July 04, 2026</div>
-            </div>
-            <div className="p-4 border border-border/50 rounded-xl bg-card">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2"><FileText className="w-3 h-3"/> Registrar</div>
-              <div className="font-medium">Registrar of Companies, ROC Kolkata II</div>
-            </div>
-            <div className="sm:col-span-2 p-4 border border-border/50 rounded-xl bg-card">
-              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2"><MapPin className="w-3 h-3"/> Registered Address</div>
-              <div className="font-medium leading-relaxed">
+            <div className="group p-6 border border-border/50 rounded-2xl bg-card hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 flex flex-col justify-center">
+              <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2 font-medium tracking-wide uppercase"><MapPin className="w-4 h-4 text-primary"/> Registered Address</div>
+              <div className="font-medium leading-relaxed text-foreground/90">
                 3/1, West Kamarthuba Road, Po and Pnr. Anita Anustan Grih, Habra,<br />
                 North 24 Parganas, Habra - I, West Bengal, India, 743263
               </div>
@@ -150,7 +138,7 @@ export default function About() {
           <div className="space-y-8">
             
             {/* Sourojit Mondal */}
-            <div className="p-6 border border-border/50 rounded-2xl bg-card">
+            <div className="p-8 border border-border/50 rounded-3xl bg-card hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group">
               <h3 className="text-xl font-bold text-primary mb-1">Sourojit Mondal</h3>
               <div className="text-sm text-muted-foreground mb-4">Founder & Chief Executive Officer (CEO)</div>
               <p className="text-sm leading-relaxed mb-4 text-foreground/80">
@@ -179,7 +167,7 @@ export default function About() {
             </div>
 
             {/* Debanjan Paul */}
-            <div className="p-6 border border-border/50 rounded-2xl bg-card">
+            <div className="p-8 border border-border/50 rounded-3xl bg-card hover:border-secondary/40 hover:shadow-xl hover:shadow-secondary/5 transition-all duration-300 group">
               <h3 className="text-xl font-bold text-secondary mb-1">Debanjan Paul</h3>
               <div className="text-sm text-muted-foreground mb-4">Co-Founder & Chief Operating Officer (COO)</div>
               <p className="text-sm leading-relaxed mb-4 text-foreground/80">
@@ -213,7 +201,7 @@ export default function About() {
         {/* Board of Directors & Authorized Signatories */}
         <section>
           <h3 className="text-xl font-bold mb-4">Board of Directors (July 2026)</h3>
-          <div className="overflow-x-auto rounded-xl border border-border/50">
+          <div className="overflow-x-auto rounded-2xl border border-border/50 shadow-sm">
             <table className="w-full text-sm text-left text-muted-foreground">
               <thead className="text-xs text-foreground uppercase bg-muted/50">
                 <tr>
@@ -241,10 +229,10 @@ export default function About() {
           </div>
           
           <div className="mt-6">
-            <h4 className="text-sm font-bold mb-2">Authorized Signatories</h4>
-            <ul className="text-sm text-muted-foreground list-disc pl-4">
-              <li>Debanjan Paul</li>
-              <li>Sourojit Mondal</li>
+            <h4 className="text-sm font-bold mb-3 flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Authorized Signatories</h4>
+            <ul className="text-sm text-muted-foreground space-y-2">
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary/50" /> Debanjan Paul</li>
+              <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary/50" /> Sourojit Mondal</li>
             </ul>
           </div>
         </section>
@@ -255,23 +243,23 @@ export default function About() {
             <Mail className="w-6 h-6 text-accent" />
             <h2 className="text-2xl font-bold">Contact Information</h2>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <a href="mailto:quantum@alphaparadoxqc.com" className="group p-6 border border-border/50 rounded-xl bg-card hover:border-accent/50 transition-colors flex items-center gap-4 cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-colors">
-                <Mail className="w-5 h-5" />
+          <div className="grid sm:grid-cols-2 gap-6">
+            <a href="mailto:quantum@alphaparadoxqc.com" className="group p-6 border border-border/50 rounded-2xl bg-card hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 flex items-center gap-5 cursor-pointer">
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white group-hover:scale-110 transition-all duration-300 shadow-inner">
+                <Mail className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-xs text-muted-foreground mb-0.5">Primary Email</div>
-                <div className="font-medium">quantum@alphaparadoxqc.com</div>
+                <div className="text-xs text-muted-foreground mb-1 font-medium tracking-wide uppercase">Primary Email</div>
+                <div className="font-semibold text-foreground group-hover:text-accent transition-colors">quantum@alphaparadoxqc.com</div>
               </div>
             </a>
-            <a href="mailto:alphaparadoxqc@gmail.com" className="group p-6 border border-border/50 rounded-xl bg-card hover:border-accent/50 transition-colors flex items-center gap-4 cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-colors">
-                <Mail className="w-5 h-5" />
+            <a href="mailto:alphaparadoxqc@gmail.com" className="group p-6 border border-border/50 rounded-2xl bg-card hover:border-accent/50 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300 flex items-center gap-5 cursor-pointer">
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white group-hover:scale-110 transition-all duration-300 shadow-inner">
+                <Mail className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-xs text-muted-foreground mb-0.5">Secondary Email</div>
-                <div className="font-medium">alphaparadoxqc@gmail.com</div>
+                <div className="text-xs text-muted-foreground mb-1 font-medium tracking-wide uppercase">Secondary Email</div>
+                <div className="font-semibold text-foreground group-hover:text-accent transition-colors">alphaparadoxqc@gmail.com</div>
               </div>
             </a>
           </div>

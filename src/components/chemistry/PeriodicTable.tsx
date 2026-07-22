@@ -96,7 +96,7 @@ export function PeriodicTable({
           className="grid gap-1 mx-auto"
           style={{
             gridTemplateColumns: 'repeat(18, minmax(34px, 1fr))',
-            gridTemplateRows: 'repeat(7, minmax(40px, auto))',
+            gridTemplateRows: 'repeat(10, minmax(40px, auto))',
             minWidth: 612,
           }}
         >
@@ -107,7 +107,7 @@ export function PeriodicTable({
 
         {/* Legend */}
         <div className="mt-3 flex flex-wrap gap-2">
-          {Object.entries(CATEGORY_COLORS).slice(0, 8).map(([cat, color]) => (
+          {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
             <div key={cat} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <span
                 className="w-2.5 h-2.5 rounded-sm border border-border"
