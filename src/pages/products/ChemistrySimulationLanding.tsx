@@ -106,7 +106,7 @@ export default function ChemistrySimulationLanding() {
             <Link to="/gallery">Gallery</Link>
           </Button>
           {user ? (
-            <Button size="sm" onClick={() => navigate('/builder')}>
+            <Button size="sm" onClick={() => navigate('/chemistry')}>
               Open Builder <ArrowRight className="w-3 h-3 ml-1" />
             </Button>
           ) : (

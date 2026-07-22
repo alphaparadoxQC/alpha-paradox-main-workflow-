@@ -106,7 +106,7 @@ export default function DrugSimulationLanding() {
             <Link to="/gallery">Gallery</Link>
           </Button>
           {user ? (
-            <Button size="sm" onClick={() => navigate('/builder')}>
+            <Button size="sm" onClick={() => navigate('/pharma')}>
               Open Builder <ArrowRight className="w-3 h-3 ml-1" />
             </Button>
           ) : (

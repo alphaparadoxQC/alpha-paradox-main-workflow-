@@ -15,7 +15,13 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
     proxy: {
-      '/chemistry': {
+      // Regex key (must start with ^): only matches real backend calls like
+      // /chemistry/backends/status or /chemistry/parse-smiles. A plain
+      // '/chemistry' string prefix here also matched /chemistry_simulator.png
+      // (the landing page's static PNG) and the bare /chemistry page route,
+      // incorrectly forwarding both to the Python backend and causing
+      // ECONNREFUSED when it wasn't running.
+      '^/chemistry/.*': {
         target: 'http://localhost:8000',
         changeOrigin: true
       }
