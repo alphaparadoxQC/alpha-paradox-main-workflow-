@@ -16,10 +16,10 @@ const Gallery = lazy(() => import("./pages/Gallery"));
 const Jobs = lazy(() => import("./pages/Jobs"));
 const Chemistry = lazy(() => import("./pages/Chemistry"));
 const ChemistryCircuitBuilder = lazy(() => import("./pages/ChemistryCircuitBuilder"));
-
 const About = lazy(() => import("./pages/About"));
 const CircuitBuilderLanding = lazy(() => import("./pages/products/CircuitBuilderLanding"));
 const ChemistrySimulationLanding = lazy(() => import("./pages/products/ChemistrySimulationLanding"));
+const ElectronicsBuilder = lazy(() => import("./pages/ElectronicsBuilder"));
 // Note: Settings route is disabled because Settings component doesn't exist yet
 
 const queryClient = new QueryClient();
@@ -70,6 +70,11 @@ const App = () => (
               <Route path="/chemistry" element={
                 <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
                   <Chemistry />
+                </Suspense>
+              } />
+              <Route path="/circuits" element={
+                <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+                  <ElectronicsBuilder />
                 </Suspense>
               } />
               <Route path="*" element={<NotFound />} />

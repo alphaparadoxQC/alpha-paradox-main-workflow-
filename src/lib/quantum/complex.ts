@@ -16,52 +16,79 @@ export const ONE: Complex = { re: 1, im: 0 };
 export const I: Complex = { re: 0, im: 1 };  // Imaginary unit
 
 // Basic operations
-export const add = (a: Complex, b: Complex): Complex => ({
-  re: a.re + b.re,
-  im: a.im + b.im
-});
+export const add = (a: Complex, b: Complex): Complex => {
+  const sa = a || ZERO;
+  const sb = b || ZERO;
+  return {
+    re: sa.re + sb.re,
+    im: sa.im + sb.im
+  };
+};
 
-export const subtract = (a: Complex, b: Complex): Complex => ({
-  re: a.re - b.re,
-  im: a.im - b.im
-});
+export const subtract = (a: Complex, b: Complex): Complex => {
+  const sa = a || ZERO;
+  const sb = b || ZERO;
+  return {
+    re: sa.re - sb.re,
+    im: sa.im - sb.im
+  };
+};
 
-export const multiply = (a: Complex, b: Complex): Complex => ({
-  re: a.re * b.re - a.im * b.im,
-  im: a.re * b.im + a.im * b.re
-});
+export const multiply = (a: Complex, b: Complex): Complex => {
+  const sa = a || ZERO;
+  const sb = b || ZERO;
+  return {
+    re: sa.re * sb.re - sa.im * sb.im,
+    im: sa.re * sb.im + sa.im * sb.re
+  };
+};
 
 export const divide = (a: Complex, b: Complex): Complex => {
-  const denominator = b.re * b.re + b.im * b.im;
+  const sa = a || ZERO;
+  const sb = b || ZERO;
+  const denominator = sb.re * sb.re + sb.im * sb.im;
+  if (denominator === 0) return ZERO;
   return {
-    re: (a.re * b.re + a.im * b.im) / denominator,
-    im: (a.im * b.re - a.re * b.im) / denominator
+    re: (sa.re * sb.re + sa.im * sb.im) / denominator,
+    im: (sa.im * sb.re - sa.re * sb.im) / denominator
   };
 };
 
 // Scalar multiplication
-export const scale = (c: Complex, scalar: number): Complex => ({
-  re: c.re * scalar,
-  im: c.im * scalar
-});
+export const scale = (c: Complex, scalar: number): Complex => {
+  const sc = c || ZERO;
+  return {
+    re: sc.re * scalar,
+    im: sc.im * scalar
+  };
+};
 
 // Conjugate: a + bi -> a - bi
-export const conjugate = (c: Complex): Complex => ({
-  re: c.re,
-  im: -c.im
-});
+export const conjugate = (c: Complex): Complex => {
+  const sc = c || ZERO;
+  return {
+    re: sc.re,
+    im: -sc.im
+  };
+};
 
 // Magnitude (absolute value): |a + bi| = sqrt(a² + b²)
-export const magnitude = (c: Complex): number => 
-  Math.sqrt(c.re * c.re + c.im * c.im);
+export const magnitude = (c: Complex): number => {
+  const sc = c || ZERO;
+  return Math.sqrt(sc.re * sc.re + sc.im * sc.im);
+};
 
 // Magnitude squared (probability): |a + bi|² = a² + b²
-export const magnitudeSquared = (c: Complex): number => 
-  c.re * c.re + c.im * c.im;
+export const magnitudeSquared = (c: Complex): number => {
+  const sc = c || ZERO;
+  return sc.re * sc.re + sc.im * sc.im;
+};
 
 // Phase angle: arg(a + bi) = atan2(b, a)
-export const phase = (c: Complex): number => 
-  Math.atan2(c.im, c.re);
+export const phase = (c: Complex): number => {
+  const sc = c || ZERO;
+  return Math.atan2(sc.im, sc.re);
+};
 
 // Exponential: e^(ix) = cos(x) + i*sin(x)
 export const expI = (theta: number): Complex => ({
@@ -70,16 +97,21 @@ export const expI = (theta: number): Complex => ({
 });
 
 // Check if approximately equal
-export const equals = (a: Complex, b: Complex, epsilon = 1e-10): boolean =>
-  Math.abs(a.re - b.re) < epsilon && Math.abs(a.im - b.im) < epsilon;
+export const equals = (a: Complex, b: Complex, epsilon = 1e-10): boolean => {
+  const sa = a || ZERO;
+  const sb = b || ZERO;
+  return Math.abs(sa.re - sb.re) < epsilon && Math.abs(sa.im - sb.im) < epsilon;
+};
 
 // String representation
 export const toString = (c: Complex, precision = 4): string => {
-  const re = c.re.toFixed(precision);
-  const im = Math.abs(c.im).toFixed(precision);
+  const sc = c || ZERO;
+  const re = sc.re.toFixed(precision);
+  const im = Math.abs(sc.im).toFixed(precision);
   
-  if (Math.abs(c.im) < 1e-10) return re;
-  if (Math.abs(c.re) < 1e-10) return c.im >= 0 ? `${im}i` : `-${im}i`;
+  if (Math.abs(sc.im) < 1e-10) return re;
+  if (Math.abs(sc.re) < 1e-10) return sc.im >= 0 ? `${im}i` : `-${im}i`;
   
-  return c.im >= 0 ? `${re}+${im}i` : `${re}-${im}i`;
+  return sc.im >= 0 ? `${re}+${im}i` : `${re}-${im}i`;
 };
+

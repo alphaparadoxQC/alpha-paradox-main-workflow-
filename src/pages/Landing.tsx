@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight, ArrowLeft, X, GraduationCap, Building2,
-  Atom, FlaskConical, Pill,
+  Atom, FlaskConical, Pill, Cpu,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -205,7 +205,7 @@ export default function Landing() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.2 }}
-                      className="grid md:grid-cols-2 gap-6 py-4"
+                      className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 py-4"
                     >
                       <div className="group rounded-2xl border border-border/80 bg-sidebar/35 overflow-hidden flex flex-col hover:border-primary/50 transition-all duration-300 hover:shadow-lg">
                         <div className="h-44 overflow-hidden relative border-b border-border bg-black/45">
@@ -275,6 +275,38 @@ export default function Landing() {
                         </div>
                       </div>
 
+                      {/* Schematic Designer */}
+                      <div className="group rounded-2xl border border-border/80 bg-sidebar/35 overflow-hidden flex flex-col hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg">
+                        <div className="h-44 overflow-hidden relative border-b border-border bg-black/45">
+                          <div className="w-full h-full bg-[#0a0f19] flex items-center justify-center text-purple-500/40 font-mono text-xs select-none">
+                            <Cpu className="w-12 h-12 text-purple-500/20 animate-pulse" />
+                          </div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-500/20 backdrop-blur-md border border-purple-500/30 text-[10px] font-bold text-purple-400">
+                            <Cpu className="w-3.5 h-3.5" />
+                            Schematic
+                          </div>
+                        </div>
+                        <div className="p-5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h4 className="font-bold text-lg text-foreground group-hover:text-purple-400 transition-colors">
+                              Schematic Designer
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                              AI-powered natural language electronic circuit builder, command execution engine, and SPICE layout exporter.
+                            </p>
+                          </div>
+                          <Button
+                            className="w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold"
+                            onClick={() => {
+                              setIsProductsOpen(false);
+                              navigate('/circuits');
+                            }}
+                          >
+                            Launch Circuits
+                          </Button>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
 

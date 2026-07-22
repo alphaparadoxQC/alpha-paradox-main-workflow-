@@ -12,7 +12,7 @@ interface DrugViewer3DProps {
 }
 
 export function DrugViewer3D({ drug, height = 240 }: DrugViewer3DProps) {
-  const heavy = drug.atoms.filter((a) => a.symbol !== 'H').length || undefined;
+  const heavy = drug?.atoms ? drug.atoms.filter((a) => a.symbol !== 'H').length : undefined;
 
   return (
     <Molecule3DViewer

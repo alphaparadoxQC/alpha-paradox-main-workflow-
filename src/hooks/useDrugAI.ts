@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { callQuantumAI, type AIRequest, type AIPrediction } from '@/lib/drugDiscovery/deepseekService';
 import { toast } from 'sonner';
 
 export type DrugAIAction = 'predict' | 'analyze' | 'optimize' | 'search_similar' | 'generate_candidates';
@@ -13,24 +13,13 @@ export interface MolecularProperties {
   rotableBonds?: number;
 }
 
-export interface DrugAIPrediction {
-  drugLikenessScore?: number;
-  predictedKi?: number;
-  confidence?: 'low' | 'medium' | 'high';
-  bindingEnergy?: number;
-  admetScores?: {
-    absorption: number;
-    distribution: number;
-    metabolism: number;
-    excretion: number;
-    toxicity: number;
-  };
-}
+export interface DrugAIPrediction extends AIPrediction {}
 
 export interface DrugAIResponse {
   success: boolean;
   response: string;
   predictions?: DrugAIPrediction;
+  model?: string;
   error?: string;
 }
 
@@ -43,12 +32,15 @@ export function useDrugAI() {
   const [isLoading, setIsLoading] = useState(false);
   const [lastResponse, setLastResponse] = useState<DrugAIResponse | null>(null);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
+  const [modelName, setModelName] = useState<string>('Quantum-AI Engine v4.2');
 
   const predict = useCallback(async (
     action: DrugAIAction,
     options: {
       smiles?: string;
       targetId?: string;
+      targetName?: string;
+      drugName?: string;
       molecularProperties?: MolecularProperties;
       customQuery?: string;
     }
@@ -56,32 +48,38 @@ export function useDrugAI() {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('drug-ai-predict', {
-        body: {
-          action,
-          ...options,
-          conversationHistory: conversationHistory.slice(-6), // Keep last 6 messages for context
-        },
+      const aiResult = await callQuantumAI({
+        action,
+        smiles: options.smiles,
+        targetId: options.targetId,
+        targetName: options.targetName,
+        drugName: options.drugName,
+        molecularProperties: options.molecularProperties,
+        customQuery: options.customQuery,
+        conversationHistory: conversationHistory.slice(-6),
       });
 
-      if (error) throw error;
-
       const response: DrugAIResponse = {
-        success: data.success,
-        response: data.response,
-        predictions: data.predictions,
+        success: aiResult.success,
+        response: aiResult.response,
+        predictions: aiResult.predictions,
+        model: aiResult.model,
       };
 
+      setModelName(aiResult.model);
       setLastResponse(response);
 
-      // Update conversation history
       if (options.customQuery) {
         setConversationHistory(prev => [
           ...prev,
           { role: 'user', content: options.customQuery! },
-          { role: 'assistant', content: data.response },
+          { role: 'assistant', content: aiResult.response },
         ]);
       }
+
+      toast.success(`Quantum AI ${action.replace('_', ' ').toUpperCase()} Completed`, {
+        description: `Analyzed via ${aiResult.model}`,
+      });
 
       return response;
 
@@ -90,10 +88,11 @@ export function useDrugAI() {
       const errorResponse: DrugAIResponse = {
         success: false,
         response: '',
-        error: err instanceof Error ? err.message : 'Failed to get AI prediction',
+        error: err instanceof Error ? err.message : 'Failed to execute AI analysis',
+        model: 'Quantum-AI Engine v4.2',
       };
       
-      toast.error('AI Prediction Failed', {
+      toast.error('AI Analysis Error', {
         description: errorResponse.error,
       });
       
@@ -141,10 +140,6 @@ export function useDrugAI() {
     return predict('generate_candidates', { targetId, molecularProperties });
   }, [predict]);
 
-  const askQuestion = useCallback(async (question: string) => {
-    return predict('predict', { customQuery: question });
-  }, [predict]);
-
   const clearHistory = useCallback(() => {
     setConversationHistory([]);
     setLastResponse(null);
@@ -154,13 +149,13 @@ export function useDrugAI() {
     isLoading,
     lastResponse,
     conversationHistory,
+    modelName,
     predict,
     analyzeCompound,
     predictBinding,
     optimizeCompound,
     findSimilar,
     generateCandidates,
-    askQuestion,
     clearHistory,
   };
 }
