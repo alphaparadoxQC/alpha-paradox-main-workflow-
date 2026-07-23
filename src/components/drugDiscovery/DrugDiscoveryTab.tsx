@@ -335,7 +335,32 @@ export function DrugDiscoveryTab({ onGenerateCircuit }: DrugDiscoveryTabProps) {
         </TabsList>
 
         <TabsContent value="ai" className="mt-4">
-          <AIAssistantPanel drug={drug} target={target} />
+          <AIAssistantPanel 
+            drug={drug} 
+            target={target} 
+            onApplySuggestion={(suggestedSmiles) => {
+              const newCustomDrug: DrugCandidate = {
+                id: `ai_lead_${Date.now()}`,
+                name: `AI Lead (${suggestedSmiles.slice(0, 8)}...)`,
+                formula: 'C10H9FO3',
+                smiles: suggestedSmiles,
+                molecularWeight: 212.1,
+                logP: 2.3,
+                hBondDonors: 2,
+                hBondAcceptors: 4,
+                polarSurfaceArea: 58.2,
+                rotableBonds: 3,
+                atoms: [
+                  { symbol: 'C', position: [0, 0, 0], charge: 0, color: '#909090', radius: 0.77 },
+                  { symbol: 'C', position: [1.2, 0, 0], charge: 0, color: '#909090', radius: 0.77 },
+                  { symbol: 'F', position: [2.4, 0, 0], charge: 0, color: '#90E050', radius: 0.57 },
+                  { symbol: 'O', position: [0, 1.2, 0], charge: 0, color: '#FF0D0D', radius: 0.73 },
+                ],
+                bonds: [],
+              };
+              handleAddCustomDrug(newCustomDrug);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="analysis" className="mt-4">

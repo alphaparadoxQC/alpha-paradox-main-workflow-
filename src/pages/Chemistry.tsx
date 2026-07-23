@@ -49,12 +49,10 @@ const Chemistry = () => {
   // Existing VQE State
   const [selectedAtoms, setSelectedAtoms] = useState<string[]>(['H', 'H']);
 
+  // Guest & local development access enabled for Chemistry & Pharma Workbench
   useEffect(() => {
-    if (!loading && !user) {
-      sessionStorage.setItem('returnUrl', '/chemistry');
-      navigate('/auth', { replace: true, state: { returnTo: '/chemistry' } });
-    }
-  }, [user, loading, navigate]);
+    // Session tracking preserved
+  }, []);
 
 
   const customMolecule = useMemo(
@@ -172,7 +170,6 @@ const Chemistry = () => {
       </div>
     );
   }
-  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

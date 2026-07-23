@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Mic, Square } from 'lucide-react';
-import { callHuggingFace, type ConversationTurn } from '@/lib/huggingFaceService';
+import { Bot, X, Mic, Square, Play, Volume2, VolumeX, Send, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { callHuggingFace, localQuantumAgent, type ConversationTurn } from '@/lib/huggingFaceService';
 import { useQuantumCircuitStore } from '@/store/quantumCircuitStore';
 import { BRANDING } from '@/config/branding';
 import AICharacter2D, { AICharacterState } from './AICharacter2D';
@@ -72,6 +73,8 @@ function createSpeechRecognition(): SpeechRecognitionInstance | null {
 // Component
 // ─────────────────────────────────────────────
 export const QuantumAssistant = () => {
+  const navigate = useNavigate();
+
   // ── Core state ──
   const [isAssistantActive, setIsAssistantActive] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false); // toggle button expanded into capsule+circle
@@ -84,6 +87,17 @@ export const QuantumAssistant = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [spokenCaption, setSpokenCaption] = useState(''); // live subtitle of assistant speech
 
+  // ── Chat interface states ──
+  const [messages, setMessages] = useState<ConversationTurn[]>([
+    {
+      role: 'assistant',
+      content: "Hello! I am Alpha, your AI Quantum Copilot. Ask me to 'create a Bell state', 'add superposition', or 'run simulation'!"
+    }
+  ]);
+  const [inputText, setInputText] = useState('');
+  const [speakResponses, setSpeakResponses] = useState(false); // defaults to muted for a pleasant text UX
+  const [showSandbox, setShowSandbox] = useState(true);
+
   // ── Refs ──
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const wakeWordRecognitionRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -91,6 +105,8 @@ export const QuantumAssistant = () => {
   const conversationRef = useRef<ConversationTurn[]>([]);
   const isActiveRef = useRef(false); // mirrors isAssistantActive for async callbacks
   const speechInterruptedRef = useRef(false); // prevents cancelled utterance callbacks from looping
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const isSpeechInputRef = useRef(false);
 
   const {
     gates,
@@ -102,7 +118,9 @@ export const QuantumAssistant = () => {
     decrementQubits,
     undo,
     redo,
-    simulate
+    simulate,
+    setGates,
+    setQubitCount
   } = useQuantumCircuitStore();
 
   // Keep ref in sync
@@ -139,11 +157,18 @@ export const QuantumAssistant = () => {
     []
   );
 
-  // ── Send to Gemini 2.5 Flash (direct API call) ──
+  // ── Send to AI (calls HF or falls back to local parser) ──
   const sendToBackend = useCallback(
     async (text: string) => {
       setIsProcessing(true);
       setStatusText('🧠 Thinking...');
+
+      // Append user message immediately if not already there
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'user' && last.content === text) return prev;
+        return [...prev, { role: 'user', content: text }];
+      });
 
       try {
         // Build compact context suffix to minimise input tokens
@@ -164,7 +189,7 @@ export const QuantumAssistant = () => {
 
         const finalMessage = `${text}${contextStr}`;
 
-        // Call Hugging Face API directly — no Supabase edge function needed
+        // Call Hugging Face API directly
         const response = await callHuggingFace(
           finalMessage,
           conversationRef.current.slice(-6),
@@ -253,17 +278,108 @@ export const QuantumAssistant = () => {
         });
 
         conversationRef.current.push({ role: 'assistant', content: cleanedResponse });
+        setMessages(prev => [...prev, { role: 'assistant', content: cleanedResponse }]);
 
         return cleanedResponse;
       } catch (err) {
-        console.error('Assistant error:', err);
-        return "I'm having trouble connecting right now. Please try again in a moment.";
+        console.warn('Hugging Face API failed, falling back to local compilation:', err);
+        try {
+          const norm = text.toLowerCase().trim();
+          const localResult = localQuantumAgent(text);
+          let reply = "";
+          
+          if (localResult.type === 'command' && localResult.commandData) {
+            const action = localResult.commandData.action;
+            const params = localResult.commandData.params;
+            
+            if (action === 'CLEAR_ALL' as any || action === 'CLEAR_CIRCUIT') {
+              clearCircuit();
+              reply = "I've cleared the circuit canvas for you.";
+            } else if (action === 'INCREMENT_QUBITS') {
+              incrementQubits();
+              reply = "I've added a qubit wire to the circuit.";
+            } else if (action === 'DECREMENT_QUBITS') {
+              decrementQubits();
+              reply = "I've removed a qubit wire from the circuit.";
+            } else if (action === 'UNDO') {
+              undo();
+              reply = "Undone the last change.";
+            } else if (action === 'REDO') {
+              redo();
+              reply = "Redone the change.";
+            } else if (action === 'SIMULATE') {
+              simulate();
+              reply = "Running quantum simulation. The probabilities are updated.";
+            } else if (action === 'ADD_GATE' && params) {
+              const type = params.type || 'H';
+              const q = parseInt(params.qubit || '0');
+              const maxPos = gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0;
+              
+              if (type === 'CNOT') {
+                const target = parseInt(params.target || '1');
+                addGate({
+                  id: `gate-${Date.now()}`,
+                  type: 'CNOT',
+                  qubit: q,
+                  position: maxPos,
+                  controlQubit: q,
+                  targetQubit: target
+                });
+                reply = `Added a CNOT gate with control on qubit ${q} and target on qubit ${target}.`;
+              } else {
+                addGate({
+                  id: `gate-${Date.now()}`,
+                  type: type as any,
+                  qubit: q,
+                  position: maxPos
+                });
+                reply = `Added a ${type} gate to qubit ${q}.`;
+              }
+            }
+          } else if (localResult.type === 'circuit' && localResult.circuitData) {
+            const cd = localResult.circuitData;
+            const newGates = cd.gates.map((g, idx) => ({
+              id: `gate-${Date.now()}-${idx}`,
+              type: g.type,
+              qubit: g.qubit,
+              position: g.position,
+              ...(g.targetQubit !== undefined ? { targetQubit: g.targetQubit } : {}),
+            })) as any[];
+            setQubitCount(cd.qubitCount);
+            setGates(newGates);
+            
+            if (norm.includes('bell')) {
+              reply = "I've generated a Bell state circuit with a Hadamard and CNOT gate.";
+            } else if (norm.includes('ghz')) {
+              reply = `I've generated a Greenberger-Horne-Zeilinger (GHZ) state circuit with ${cd.qubitCount} qubits.`;
+            } else if (norm.includes('grover')) {
+              reply = "I've generated a 4-qubit Grover's Search algorithm circuit showing the oracle and diffusion operators.";
+            } else {
+              reply = `I've compiled and generated the requested ${cd.qubitCount}-qubit circuit.`;
+            }
+          }
+          
+          if (!reply) {
+            reply = "I've parsed that request but couldn't execute it. Try asking for a Bell state or adding specific gates.";
+          }
+          
+          conversationRef.current.push({ role: 'assistant', content: reply });
+          setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+          return reply;
+        } catch (localErr: any) {
+          console.error('Local fallback parsing failed:', localErr);
+          const failMsg = localErr.message || "I couldn't understand that request. Try asking to 'Create a Bell state', 'clear the circuit', or 'simulate'.";
+          conversationRef.current.push({ role: 'assistant', content: failMsg });
+          setMessages(prev => [...prev, { role: 'assistant', content: failMsg }]);
+          return failMsg;
+        }
       } finally {
         setIsProcessing(false);
       }
     },
-    [gates, qubitCount, simulationResult, addGate, clearCircuit, incrementQubits, decrementQubits, undo, redo, simulate]
+    [gates, qubitCount, addGate, clearCircuit, incrementQubits, decrementQubits, undo, redo, simulate, setGates, setQubitCount]
   );
+
 
   // ── Interrupt speech: cancel synthesis → go to listening ──
   const interruptSpeech = useCallback(() => {
@@ -453,14 +569,37 @@ export const QuantumAssistant = () => {
       setAssistantMode('idle');
       setStatusText('🧠 Thinking...');
 
+      isSpeechInputRef.current = true;
       const response = await sendToBackend(finalText);
 
-      if (isActiveRef.current) {
+      if (isActiveRef.current && isSpeechInputRef.current) {
         speakResponse(response);
       }
     },
     [sendToBackend, speakResponse, speakPhrase]
   );
+
+  // ── Handle text input submission ──
+  const handleTextSubmit = async (text: string) => {
+    if (!text.trim()) return;
+
+    // Stop active speech synthesis
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+
+    isSpeechInputRef.current = false;
+    const response = await sendToBackend(text);
+
+    if (speakResponses) {
+      setAssistantMode('speaking');
+      setSpokenCaption(response);
+      await speakPhrase(response);
+      setAssistantMode('idle');
+      setSpokenCaption('');
+    }
+  };
+
 
   // ── Start speech recognition ──
   const silentRetryCountRef = useRef(0);
@@ -995,196 +1134,369 @@ export const QuantumAssistant = () => {
         </motion.button>
       </div>
 
-      {/* ── Floating Assistant Container ── */}
+      {/* ── AI Assistant Chat & Sandbox Containers ── */}
       <AnimatePresence>
         {isAssistantActive && (
-          <motion.div
-            id="ai-assistant-floating"
-            initial={{ opacity: 0, y: 20, scale: 0.85 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.85 }}
-            transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
-            className="fixed bottom-6 left-[40%] z-40"
-            style={{
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              pointerEvents: 'none',
-            }}
-          >
-            {/* ── Character ── */}
-            <div style={{ position: 'relative', pointerEvents: 'auto' }}>
-              <AICharacter2D state={characterState} size={210} />
-            </div>
-
-            {/* ── Interrupt button (visible only while speaking) ── */}
-            <AnimatePresence>
-              {assistantMode === 'speaking' && (
-                <motion.button
-                  id="ai-assistant-interrupt"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.15 }}
-                  onClick={interruptSpeech}
-                  style={{
-                    pointerEvents: 'auto',
-                    marginTop: 4,
-                    padding: '4px 10px',
-                    fontSize: 9,
-                    fontWeight: 600,
-                    letterSpacing: '0.05em',
-                    textTransform: 'uppercase',
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    background: 'rgba(255, 60, 60, 0.25)',
-                    border: '1px solid rgba(255, 60, 60, 0.4)',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    backdropFilter: 'blur(4px)',
-                    WebkitBackdropFilter: 'blur(4px)',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-                    boxShadow: '0 2px 8px rgba(255, 60, 60, 0.15)',
-                    transition: 'background 0.15s, border-color 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255, 60, 60, 0.45)';
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255, 60, 60, 0.7)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255, 60, 60, 0.25)';
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255, 60, 60, 0.4)';
-                  }}
-                  aria-label="Interrupt assistant speech"
-                >
-                  <Square style={{ width: 7, height: 7, fill: 'currentColor' }} />
-                  Interrupt
-                </motion.button>
-              )}
-            </AnimatePresence>
-
-            {/* ── Status / transcript / caption below character ── */}
-            <div
-              style={{
-                marginTop: 6,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 4,
-                width: 320,
-                textAlign: 'center',
-                pointerEvents: 'none',
-              }}
-            >
-              {/* Live caption (assistant speaking — subtitle style) */}
-              <AnimatePresence mode="wait">
-                {assistantMode === 'speaking' && spokenCaption && (
-                  <motion.div
-                    key={spokenCaption}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.25, ease: 'easeOut' }}
-                    style={{
-                      background: 'rgba(0, 0, 0, 0.6)',
-                      backdropFilter: 'blur(12px)',
-                      WebkitBackdropFilter: 'blur(12px)',
-                      borderRadius: 10,
-                      padding: '8px 16px',
-                      maxWidth: 320,
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: 'rgba(255, 255, 255, 0.92)',
-                        fontSize: 12,
-                        fontWeight: 400,
-                        lineHeight: 1.5,
-                        margin: 0,
-                        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                        wordWrap: 'break-word',
-                      }}
-                    >
-                      {spokenCaption}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Live transcript (user speaking) */}
-              <AnimatePresence mode="wait">
-                {assistantMode !== 'speaking' && transcript && (
-                  <motion.p
-                    key={transcript}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.15 }}
-                    style={{
-                      color: 'rgba(255, 255, 255, 0.85)',
-                      fontSize: 11,
-                      fontWeight: 400,
-                      lineHeight: 1.4,
-                      textShadow: '0 1px 4px rgba(0,0,0,0.6)',
-                      maxWidth: 200,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    "{transcript}"
-                  </motion.p>
-                )}
-              </AnimatePresence>
-
-              {/* Status indicator */}
-              {statusText && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  {assistantMode === 'listening' && (
-                    <motion.div
-                      animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
-                      transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                      }}
-                    >
-                      <Mic
-                        className="w-3 h-3"
-                        style={{ color: '#00e5ff' }}
-                      />
-                    </motion.div>
-                  )}
-                  <span
-                    style={{
-                      color: 'rgba(255, 255, 255, 0.45)',
-                      fontSize: 10,
-                      fontWeight: 500,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                    }}
-                  >
-                    {statusText}
+          <div className="fixed bottom-6 right-6 z-50 flex items-end gap-4 pointer-events-none">
+            
+            {/* ── 1. Live Circuit Sandbox Preview (Only on Landing Page or if enabled) ── */}
+            {showSandbox && (
+              <motion.div
+                initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -20, scale: 0.95 }}
+                transition={{ duration: 0.25 }}
+                className="w-[28rem] h-[26rem] rounded-2xl border border-white/10 bg-slate-950/80 backdrop-blur-xl shadow-2xl flex flex-col pointer-events-auto overflow-hidden text-white"
+              >
+                {/* Header */}
+                <div className="px-4 py-3 bg-white/5 border-b border-white/5 flex items-center justify-between text-xs font-bold tracking-wider text-cyan-400 uppercase">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Live Circuit Sandbox</span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-mono font-medium lowercase">
+                    {qubitCount} qubits, {gates.length} gates
                   </span>
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
+                </div>
+
+                {/* SVG Canvas Renderer */}
+                <div className="flex-1 overflow-auto p-4 bg-black/40 flex items-center justify-center min-h-[140px]">
+                  {gates.length === 0 ? (
+                    <div className="text-center text-gray-500 text-xs py-8">
+                      <p>Workspace is empty</p>
+                      <p className="text-[10px] opacity-70 mt-1">Ask Alpha to "create a Bell state"</p>
+                    </div>
+                  ) : (
+                    <svg
+                      width={Math.max(380, 40 * (gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0) + 80)}
+                      height={35 * qubitCount + 30}
+                      className="max-w-full"
+                    >
+                      {/* Render Qubit Wires */}
+                      {Array.from({ length: qubitCount }).map((_, q) => {
+                        const y = 25 + q * 35;
+                        return (
+                          <g key={q}>
+                            <line
+                              x1={20}
+                              y1={y}
+                              x2={Math.max(360, 40 * (gates.length > 0 ? Math.max(...gates.map(g => g.position)) + 1 : 0) + 60)}
+                              y2={y}
+                              stroke="rgba(255,255,255,0.15)"
+                              strokeWidth={1.5}
+                            />
+                            <text
+                              x={10}
+                              y={y + 4}
+                              fill="rgba(255,255,255,0.4)"
+                              fontSize={9}
+                              fontFamily="monospace"
+                              textAnchor="middle"
+                            >
+                              q{q}
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Render Gates */}
+                      {[...gates].sort((a, b) => a.position - b.position).map((gate) => {
+                        const x = 50 + gate.position * 40;
+                        const y = 25 + gate.qubit * 35;
+
+                        if (gate.type === 'CNOT') {
+                          const targetY = 25 + (gate.targetQubit ?? (gate.qubit + 1) % qubitCount) * 35;
+                          return (
+                            <g key={gate.id}>
+                              <line
+                                x1={x}
+                                y1={y}
+                                x2={x}
+                                y2={targetY}
+                                stroke="#00e5ff"
+                                strokeWidth={1.5}
+                                strokeDasharray="3,3"
+                              />
+                              <circle cx={x} cy={y} r={3.5} fill="#00e5ff" />
+                              <circle cx={x} cy={targetY} r={7} fill="none" stroke="#00e5ff" strokeWidth={1.5} />
+                              <line x1={x - 7} y1={targetY} x2={x + 7} y2={targetY} stroke="#00e5ff" strokeWidth={1.2} />
+                              <line x1={x} y1={targetY - 7} x2={x} y2={targetY + 7} stroke="#00e5ff" strokeWidth={1.2} />
+                            </g>
+                          );
+                        }
+
+                        if (gate.type === 'CZ') {
+                          const targetY = 25 + (gate.targetQubit ?? (gate.qubit + 1) % qubitCount) * 35;
+                          return (
+                            <g key={gate.id}>
+                              <line
+                                x1={x}
+                                y1={y}
+                                x2={x}
+                                y2={targetY}
+                                stroke="#7c3aed"
+                                strokeWidth={1.5}
+                              />
+                              <circle cx={x} cy={y} r={4} fill="#7c3aed" />
+                              <circle cx={x} cy={targetY} r={4} fill="#7c3aed" />
+                            </g>
+                          );
+                        }
+
+                        if (gate.type === 'SWAP') {
+                          const targetY = 25 + (gate.targetQubit ?? (gate.qubit + 1) % qubitCount) * 35;
+                          return (
+                            <g key={gate.id}>
+                              <line
+                                x1={x}
+                                y1={y}
+                                x2={x}
+                                y2={targetY}
+                                stroke="#ec4899"
+                                strokeWidth={1.5}
+                              />
+                              <path d={`M ${x-3} ${y-3} L ${x+3} ${y+3} M ${x+3} ${y-3} L ${x-3} ${y+3}`} stroke="#ec4899" strokeWidth={1.2} />
+                              <path d={`M ${x-3} ${targetY-3} L ${x+3} ${targetY+3} M ${x+3} ${targetY-3} L ${x-3} ${targetY+3}`} stroke="#ec4899" strokeWidth={1.2} />
+                            </g>
+                          );
+                        }
+
+                        // Single qubit gates
+                        return (
+                          <g key={gate.id}>
+                            <rect
+                              x={x - 12}
+                              y={y - 12}
+                              width={24}
+                              height={24}
+                              rx={3}
+                              fill="rgba(15, 23, 42, 0.95)"
+                              stroke={gate.type === 'H' ? '#00e5ff' : gate.type === 'M' ? '#10b981' : '#f59e0b'}
+                              strokeWidth={1.5}
+                            />
+                            <text
+                              x={x}
+                              y={y + 3}
+                              textAnchor="middle"
+                              fill="#fff"
+                              fontSize={8}
+                              fontWeight="bold"
+                              fontFamily="sans-serif"
+                            >
+                              {gate.type}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+                </div>
+
+                {/* Simulation Output Area */}
+                <div className="p-3.5 border-t border-white/5 bg-white/[0.02] space-y-2">
+                  {simulationResult ? (
+                    <>
+                      <div className="flex justify-between items-center text-[10px] text-muted-foreground font-mono">
+                        <span>Simulation Probabilities</span>
+                        <span className="text-cyan-400">fidel={simulationResult.metadata?.isExact ? '100% exact' : 'approx'}</span>
+                      </div>
+                      <div className="space-y-1.5 max-h-[70px] overflow-y-auto pr-1">
+                        {simulationResult.probabilities?.slice(0, 3).map((p, idx) => (
+                          <div key={idx} className="flex items-center text-[10px]">
+                            <span className="font-mono text-cyan-300 w-8">{p.state}</span>
+                            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden mx-2 border border-white/5">
+                              <div
+                                className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full"
+                                style={{ width: `${p.probability * 100}%` }}
+                              />
+                            </div>
+                            <span className="font-mono text-gray-400 w-8 text-right">{(p.probability * 100).toFixed(0)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[10px] text-gray-400">Simulation outdated or unrun.</span>
+                      <button
+                        onClick={() => simulate()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold text-[10px] shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
+                      >
+                        <Play className="w-3 h-3 fill-white" />
+                        Run Simulation
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Redirection link */}
+                  {window.location.pathname === '/' && (
+                    <button
+                      onClick={() => navigate('/builder')}
+                      className="w-full mt-1.5 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/10 text-[10px] text-cyan-300 font-bold transition-all text-center cursor-pointer"
+                    >
+                      Open in Full Visual Builder Workspace
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── 2. AI Chat Panel ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ duration: 0.28, ease: [0.34, 1.56, 0.64, 1] }}
+              className="w-96 h-[26rem] rounded-2xl border border-white/10 bg-slate-950/85 backdrop-blur-xl shadow-2xl flex flex-col pointer-events-auto overflow-hidden text-white"
+            >
+              {/* Header */}
+              <div className="px-4 py-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="text-xs font-bold tracking-wider text-cyan-400 uppercase">Alpha Copilot</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* Speaker Mute/Unmute */}
+                  <button
+                    onClick={() => setSpeakResponses(!speakResponses)}
+                    className="p-1 rounded text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                    title={speakResponses ? 'Mute AI speech responses' : 'Unmute AI speech responses'}
+                  >
+                    {speakResponses ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  </button>
+
+                  {/* Sandbox Toggle */}
+                  <button
+                    onClick={() => setShowSandbox(!showSandbox)}
+                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                      showSandbox
+                        ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-400'
+                        : 'border-white/10 bg-white/5 text-gray-400'
+                    }`}
+                    title="Toggle Circuit Sandbox Panel"
+                  >
+                    Sandbox
+                  </button>
+
+                  {/* Close Assistant */}
+                  <button
+                    onClick={() => deactivateAssistant()}
+                    className="p-1 rounded text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Avatar State Container */}
+              <div className="flex flex-col items-center justify-center p-2.5 bg-black/30 border-b border-white/5 relative">
+                <AICharacter2D state={characterState} size={90} />
+                
+                {/* Voice mode caption subtitles */}
+                {assistantMode === 'speaking' && spokenCaption && (
+                  <p className="text-[10px] text-cyan-300 italic text-center max-w-[90%] truncate mt-1">
+                    "{spokenCaption}"
+                  </p>
+                )}
+                {assistantMode !== 'speaking' && transcript && (
+                  <p className="text-[10px] text-gray-400 italic text-center max-w-[90%] truncate mt-1">
+                    "{transcript}"
+                  </p>
+                )}
+              </div>
+
+              {/* Messages History List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                {messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-xs shadow-md border ${
+                        msg.role === 'user'
+                          ? 'bg-cyan-500/10 text-cyan-200 border-cyan-500/20'
+                          : 'bg-white/5 text-gray-200 border-white/5'
+                      }`}
+                    >
+                      <p className="margin-0 leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+
+                {/* AI Thinking/Typing Indicator */}
+                {isProcessing && (
+                  <div className="flex justify-start">
+                    <div className="bg-white/5 text-gray-400 border border-white/5 rounded-2xl px-3.5 py-2 text-xs flex items-center space-x-1">
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Footer Input Bar */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!inputText.trim()) return;
+                  handleTextSubmit(inputText);
+                  setInputText('');
+                }}
+                className="p-3 border-t border-white/5 bg-white/[0.02] flex items-center gap-2"
+              >
+                {/* Voice Mic Input */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (assistantMode === 'listening') {
+                      deactivateAssistant();
+                    } else {
+                      stopWakeWordListening();
+                      setIsExpanded(false);
+                      setIsAssistantActive(true);
+                      startListening();
+                    }
+                  }}
+                  className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                    assistantMode === 'listening'
+                      ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 animate-pulse'
+                      : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/10'
+                  }`}
+                  title={assistantMode === 'listening' ? 'Stop listening' : 'Start voice request'}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+
+                {/* Input Text Box */}
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Ask Alpha to build a circuit..."
+                  disabled={isProcessing}
+                  className="flex-1 bg-white/5 border border-white/10 focus:border-cyan-500/50 rounded-xl px-3 py-2 text-xs outline-none text-white placeholder-gray-400"
+                />
+
+                {/* Send Button */}
+                <button
+                  type="submit"
+                  disabled={isProcessing || !inputText.trim()}
+                  className="p-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white disabled:bg-white/5 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                </button>
+              </form>
+            </motion.div>
+
+          </div>
         )}
       </AnimatePresence>
     </>
   );
 };
+
