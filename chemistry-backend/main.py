@@ -9,6 +9,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:4173",
+        "http://localhost:8080",
         "https://alphaparadoxqc.com",
     ],
     allow_credentials=True,
