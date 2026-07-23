@@ -524,9 +524,7 @@ export const simulateCircuit = (
   qubitCount: number,
   bitOrder: BitOrder = 'MSB'
 ): SimulationOutput => {
-  // #region agent log
-  fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H4',location:'src/lib/quantum/simulator.ts:425',message:'simulateCircuit entry',data:{qubitCount,gateCount:gates.length,path:qubitCount>15?'mps':'state-vector'},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
+
   // For large circuits (>15 qubits), use MPS simulation
   if (qubitCount > 15) {
     return simulateCircuitWithMPS(gates, qubitCount, bitOrder);
@@ -669,14 +667,10 @@ const simulateCircuitWithMPS = (
   qubitCount: number,
   bitOrder: BitOrder = 'MSB'
 ): SimulationOutput => {
-  // #region agent log
-  fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H5',location:'src/lib/quantum/simulator.ts:509',message:'simulateCircuitWithMPS start',data:{qubitCount,gateCount:gates.length},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
+
   
   const config = getAdaptiveMPSConfig(qubitCount, gates.length);
-  // #region agent log
-  fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H5',location:'src/lib/quantum/simulator.ts:516',message:'simulateCircuitWithMPS config ready',data:{maxBondDimension:config.maxBondDimension,truncationThreshold:config.truncationThreshold},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
+
   const mpsResult = simulateCircuitMPS(gates, qubitCount, config, bitOrder);
   const displays = mpsResult.displays;
   

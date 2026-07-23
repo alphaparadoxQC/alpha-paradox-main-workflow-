@@ -18,7 +18,7 @@ import { MOLECULES, MoleculeData } from '@/lib/chemistry/moleculeData';
 import { buildCustomMolecule } from '@/lib/chemistry/customMolecule';
 import {
   VQEResult, VQEIteration, generateParameterizedAnsatz,
-  getParameterCount, initializeParameters, runVQEOptimization
+  getParameterCount, initializeParameters, runVQEOptimization, getParameterLabels
 } from '@/lib/chemistry/vqeOptimizer';
 import { getHamiltonian } from '@/lib/chemistry/pauliHamiltonian';
 import { parseSmilesClientSide } from '@/lib/chemistry/smilesParser';
@@ -503,103 +503,150 @@ export default function ChemistryCircuitBuilder() {
   }, []);
 
   const handleRunVQE = async () => {
-    if (!circuitData || !circuitData.circuit_id) {
-      toast.error('No Circuit found', { description: 'Generate circuit first.' });
-      return;
-    }
-    if (circuitData.chemistry_metadata?.pauli_term_count === 0) {
-      toast.error('Hamiltonian generation failed or returned empty operator.');
-      return;
-    }
+    if (!circuitData) return;
 
-    setVqeRunning(true);
-    setVqeIterations([]);
-    setVqeResult(null);
-    setBottomTab('VQE Loop');
-    
-    setCircuitData((prev: any) => ({ ...prev, logs: [...(prev?.logs || []), '[VQE] Starting optimizer'] }));
+    if (circuitData.circuit_id) {
+      if (circuitData.chemistry_metadata?.pauli_term_count === 0) {
+        toast.error('Hamiltonian generation failed or returned empty operator.');
+        return;
+      }
 
-    try {
-      // 1. Start VQE job
-      const runRes = await ChemistryAPI.runRealVQE({
-        hamiltonian_id: circuitData.circuit_id,
-        ansatz_type: "uccsd",
-        optimizer: "COBYLA",
-        max_iterations: 100,
-        tolerance: 0.000001,
-        backend: "qiskit_aer"
-      });
-      const jobId = runRes.job_id;
+      setVqeRunning(true);
+      setVqeIterations([]);
+      setVqeResult(null);
+      setBottomTab('VQE Loop');
+      
+      setCircuitData((prev: any) => ({ ...prev, logs: [...(prev?.logs || []), '[VQE] Starting optimizer'] }));
 
-      // 2. Poll for status
-      const pollInterval = setInterval(async () => {
-        try {
-          const status = await ChemistryAPI.getVQEStatus(jobId);
-          if (status.convergence) {
-             setVqeIterations(status.convergence);
-             if (status.convergence.length > 0) {
-                 const lastIter = status.convergence[status.convergence.length - 1];
-                 setVqeCurrentEnergy(lastIter.energy);
-                 setCircuitData((prev: any) => {
-                   const newLogs = [...(prev?.logs || [])];
-                   // Avoid flooding logs with every single iteration if it's very fast, but user asked for real logs:
-                   // '[VQE] Iteration X energy = ...'
-                   // We will just append if it's a new iteration.
-                   const logMsg = `[VQE] Iteration ${lastIter.iteration} energy = ${lastIter.energy}`;
-                   if (newLogs.length === 0 || newLogs[newLogs.length - 1] !== logMsg) {
-                     newLogs.push(logMsg);
-                   }
-                   return { ...prev, logs: newLogs };
-                 });
-             }
-          }
-          
-          if (status.status === 'completed' || status.status === 'failed') {
-            clearInterval(pollInterval);
-            if (status.status === 'failed') {
-               setVqeRunning(false);
-               throw new Error('VQE Job failed on backend.');
+      try {
+        // 1. Start VQE job
+        const runRes = await ChemistryAPI.runRealVQE({
+          hamiltonian_id: circuitData.circuit_id,
+          ansatz_type: "uccsd",
+          optimizer: "COBYLA",
+          max_iterations: 100,
+          tolerance: 0.000001,
+          backend: "qiskit_aer"
+        });
+        const jobId = runRes.job_id;
+
+        // 2. Poll for status
+        const pollInterval = setInterval(async () => {
+          try {
+            const status = await ChemistryAPI.getVQEStatus(jobId);
+            if (status.convergence) {
+               setVqeIterations(status.convergence);
+               if (status.convergence.length > 0) {
+                   const lastIter = status.convergence[status.convergence.length - 1];
+                   setVqeCurrentEnergy(lastIter.energy);
+                   setCircuitData((prev: any) => {
+                     const newLogs = [...(prev?.logs || [])];
+                     const logMsg = `[VQE] Iteration ${lastIter.iteration} energy = ${lastIter.energy}`;
+                     if (newLogs.length === 0 || newLogs[newLogs.length - 1] !== logMsg) {
+                       newLogs.push(logMsg);
+                     }
+                     return { ...prev, logs: newLogs };
+                   });
+               }
             }
             
-            setCircuitData((prev: any) => ({ ...prev, logs: [...(prev?.logs || []), '[VQE] Completed'] }));
-            
-            // 3. Get final result
-            const finalRes = await ChemistryAPI.getVQEResult(jobId);
-            const formattedResult = {
-               bestEnergy: finalRes.total_energy,
-               finalEnergy: finalRes.total_energy,
-               totalIterations: finalRes.num_iterations,
-               converged: finalRes.converged,
-               energyError: Math.abs(finalRes.total_energy - finalRes.hartree_fock_energy),
-               energySource: finalRes.backend,
-               gradientNorm: undefined,
-               hamiltonianInfo: {
-                 numTerms: circuitData.chemistry_metadata.pauli_term_count,
-                 fciEnergy: finalRes.electronic_energy,
-                 hfEnergy: finalRes.hartree_fock_energy
-               }
-            };
-            setVqeResult(formattedResult as any);
-            
-            // Update workflow nodes
-            setNodes((ns: any) => ns.map((n: any) =>
-              n.id === 'result' ? { ...n, data: { ...n.data, status: 'completed', meta: { Energy: `${finalRes.total_energy?.toFixed(6)} Ha`, Source: finalRes.backend, Error: `${formattedResult.energyError?.toFixed(6)} Ha` } } }
-              : n.id === 'vqe' ? { ...n, data: { ...n.data, status: 'completed', meta: { Iterations: finalRes.num_iterations, Converged: finalRes.converged ? 'Yes' : 'No' } } }
-              : n
-            ));
-            toast.success('VQE Converged!', { description: `Ground state: ${finalRes.total_energy?.toFixed(6)} Ha` });
+            if (status.status === 'completed' || status.status === 'failed') {
+              clearInterval(pollInterval);
+              if (status.status === 'failed') {
+                 setVqeRunning(false);
+                 throw new Error('VQE Job failed on backend.');
+              }
+              
+              setCircuitData((prev: any) => ({ ...prev, logs: [...(prev?.logs || []), '[VQE] Completed'] }));
+              
+              // 3. Get final result
+              const finalRes = await ChemistryAPI.getVQEResult(jobId);
+              const formattedResult = {
+                 bestEnergy: finalRes.total_energy,
+                 finalEnergy: finalRes.total_energy,
+                 totalIterations: finalRes.num_iterations,
+                 converged: finalRes.converged,
+                 energyError: Math.abs(finalRes.total_energy - finalRes.hartree_fock_energy),
+                 energySource: finalRes.backend,
+                 gradientNorm: undefined,
+                 hamiltonianInfo: {
+                   numTerms: circuitData.chemistry_metadata.pauli_term_count,
+                   fciEnergy: finalRes.electronic_energy,
+                   hfEnergy: finalRes.hartree_fock_energy
+                 }
+              };
+              setVqeResult(formattedResult as any);
+              
+              // Update workflow nodes
+              setNodes((ns: any) => ns.map((n: any) =>
+                n.id === 'result' ? { ...n, data: { ...n.data, status: 'completed', meta: { Energy: `${finalRes.total_energy?.toFixed(6)} Ha`, Source: finalRes.backend, Error: `${formattedResult.energyError?.toFixed(6)} Ha` } } }
+                : n.id === 'vqe' ? { ...n, data: { ...n.data, status: 'completed', meta: { Iterations: finalRes.num_iterations, Converged: finalRes.converged ? 'Yes' : 'No' } } }
+                : n
+              ));
+              toast.success('VQE Converged!', { description: `Ground state: ${finalRes.total_energy?.toFixed(6)} Ha` });
+              setVqeRunning(false);
+            }
+          } catch (pollErr: any) {
+            clearInterval(pollInterval);
             setVqeRunning(false);
+            toast.error('VQE Polling failed', { description: pollErr.message });
           }
-        } catch (pollErr: any) {
-          clearInterval(pollInterval);
-          setVqeRunning(false);
-          toast.error('VQE Polling failed', { description: pollErr.message });
-        }
-      }, 1000);
+        }, 1000);
 
-    } catch (e: any) {
-      toast.error('VQE failed', { description: e.message });
-      setVqeRunning(false);
+      } catch (e: any) {
+        toast.error('VQE failed', { description: e.message });
+        setVqeRunning(false);
+      }
+    } else if (localMolecule) {
+      if (localMolecule.qubitsRequired > 14) {
+        toast.error('Molecule too large for local simulation', { 
+          description: `CO2 and other large molecules require ${localMolecule.qubitsRequired} qubits. The local browser simulator is limited to 14 qubits. Please ensure your backend is running.` 
+        });
+        return;
+      }
+      setVqeRunning(true);
+      setVqeIterations([]);
+      setVqeResult(null);
+      setBottomTab('VQE Loop');
+      
+      setCircuitData((prev: any) => ({ ...prev, logs: [...(prev?.logs || []), '[VQE] Starting local optimizer'] }));
+      
+      try {
+        const paramCount = getParameterCount(localMolecule);
+        const initialParams = initializeParameters(paramCount);
+        
+        const res = await runVQEOptimization(
+          localMolecule,
+          initialParams,
+          { maxIterations: 100 },
+          (iter) => {
+             setVqeIterations(prev => [...prev, iter]);
+             setVqeCurrentEnergy(iter.energy);
+             setCircuitData((prev: any) => {
+               const newLogs = [...(prev?.logs || [])];
+               const logMsg = `[VQE] Iteration ${iter.iteration} energy = ${iter.energy.toFixed(6)}`;
+               if (newLogs.length === 0 || newLogs[newLogs.length - 1] !== logMsg) {
+                 newLogs.push(logMsg);
+               }
+               return { ...prev, logs: newLogs };
+             });
+          }
+        );
+        
+        setVqeResult(res as any);
+        setNodes((ns: any) => ns.map((n: any) =>
+          n.id === 'result' ? { ...n, data: { ...n.data, status: 'completed', meta: { Energy: `${res.finalEnergy?.toFixed(6)} Ha`, Source: 'Local Simulator', Error: `${res.energyError?.toFixed(6)} Ha` } } }
+          : n.id === 'vqe' ? { ...n, data: { ...n.data, status: 'completed', meta: { Iterations: res.totalIterations, Converged: res.converged ? 'Yes' : 'No' } } }
+          : n
+        ));
+        toast.success('Local VQE Converged!', { description: `Ground state: ${res.finalEnergy?.toFixed(6)} Ha` });
+        setVqeRunning(false);
+      } catch (err: any) {
+        toast.error('Local VQE failed', { description: err.message });
+        setVqeRunning(false);
+      }
+    } else {
+      toast.error('No Circuit found', { description: 'Generate circuit first.' });
     }
   };
 
@@ -911,6 +958,19 @@ function buildLocalCircuitData(mol: MoleculeData, gates: any[], ham: any) {
 
   const depth = circGates.length > 0 ? Math.max(...circGates.map((g: any) => g.layer)) + 1 : 0;
 
+  const paramLabels = getParameterLabels(mol);
+  const excitation_list = paramLabels.map((label, i) => {
+    const type = label.startsWith('θ_S') ? 'Single' : 'Double';
+    const match = label.match(/\((.+)→(.+)\)/);
+    let from_orbitals = [];
+    let to_orbitals = [];
+    if (match) {
+      from_orbitals = match[1].split(',').map(Number);
+      to_orbitals = match[2].split(',').map(Number);
+    }
+    return { type, from_orbitals, to_orbitals, parameter: `theta_${i}` };
+  });
+
   return {
     molecule: { name: mol.name, formula: mol.formula },
     chemistry_metadata: {
@@ -941,7 +1001,7 @@ function buildLocalCircuitData(mol: MoleculeData, gates: any[], ham: any) {
       pauli_terms: ham.terms.map((t: any) => ({ coefficient: t.coefficient, pauli: t.pauliString })),
     } : null,
     orbital_qubit_mapping: qubits.map((q: any) => ({ orbital: Math.floor(q.index / 2), qubit: q.index, occupation: q.occupation })),
-    excitation_list: [],
+    excitation_list,
     measurement_groups: [],
     logs: [`[INFO] Molecule: ${mol.formula}`, `[INFO] Qubits: ${mol.qubitsRequired}`, `[INFO] Gates: ${gates.length}`, `[INFO] Ready for VQE optimization`],
   };

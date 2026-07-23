@@ -329,9 +329,13 @@ export const runVQEOptimization = async (
       : Array.from({ length: parameters.length }, (_, idx) => idx);
 
     // Compute all gradients for this batch
-    const gradients = parameterIndices.map(i => 
-      calculateGradient(molecule, parameters, i, cfg.gradientStep, bitOrder)
-    );
+    // We use a for loop and yield to the event loop between gradients
+    // to prevent the browser UI from freezing during heavy quantum simulations.
+    const gradients = [];
+    for (const i of parameterIndices) {
+      gradients.push(calculateGradient(molecule, parameters, i, cfg.gradientStep, bitOrder));
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
 
     // Track gradient norm for convergence diagnostics
     lastGradientNorm = Math.sqrt(gradients.reduce((s, g) => s + g * g, 0));
@@ -392,8 +396,7 @@ export const runVQEOptimization = async (
 export const getParameterLabels = (molecule: MoleculeData): string[] => {
   const labels: string[] = [];
   const qubits = molecule.qubitsRequired;
-  const electrons = Math.min(molecule.electrons, qubits);
-  
+  const electrons = Math.min(molecule.activeSpace?.activeElectrons ?? molecule.electrons, qubits);
   // Single excitation labels
   for (let occ = 0; occ < electrons; occ++) {
     for (let virt = electrons; virt < qubits; virt++) {

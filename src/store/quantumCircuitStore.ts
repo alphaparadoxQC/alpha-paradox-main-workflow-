@@ -423,9 +423,7 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
     const { gates, qubitCount, bitOrder } = get();
     const startTime = performance.now();
     
-    // #region agent log
-    fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H2',location:'src/store/quantumCircuitStore.ts:360',message:'simulate invoked',data:{gateCount:gates.length,qubitCount},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
+
 
     // Start a new Web Worker
     activeWorker = new QuantumWorker();
@@ -434,9 +432,7 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
       const { success, result, executionTimeMs, error } = event.data;
       
       if (success) {
-        // #region agent log
-        fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H2',location:'src/store/quantumCircuitStore.ts:370',message:'simulate success',data:{executionMs:executionTimeMs,probabilities:result.probabilities.length,amplitudes:result.amplitudes?.length},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+
         set({
           isSimulating: false,
           executionTimeMs,
@@ -444,9 +440,7 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
           gpuAccelerated: result.gpuAccelerated || false,
         });
       } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H2',location:'src/store/quantumCircuitStore.ts:386',message:'simulate failed',data:{error,qubitCount,gateCount:gates.length},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+
         console.error("Simulation Worker Error:", error);
         toast.error("Simulation Failed", {
           description: typeof error === 'string' ? error : "An error occurred during quantum simulation."
@@ -593,9 +587,7 @@ export const useQuantumCircuitStore = create<QuantumCircuitStore>((set, get) => 
       unmatchedLines++;
     });
 
-    // #region agent log
-    fetch('http://127.0.0.1:7589/ingest/7d431922-f103-452a-8045-35deb37a60c8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1666b2'},body:JSON.stringify({sessionId:'1666b2',runId:'initial',hypothesisId:'H3',location:'src/store/quantumCircuitStore.ts:507',message:'setFromQASM parsed',data:{inputLines:lines.length,parsedGates:newGates.length,unmatchedLines},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
+
 
     set((state) => ({
       past: saveToHistory(state.gates, state.past),
