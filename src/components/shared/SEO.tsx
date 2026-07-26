@@ -6,7 +6,7 @@ interface SEOProps {
   canonical?: string;
   ogImage?: string;
   ogType?: "website" | "article" | "profile" | "book" | "music.song" | "music.album" | "music.playlist" | "music.radio_station" | "video.movie" | "video.episode" | "video.tv_show" | "video.other";
-  structuredData?: Record<string, any>;
+  structuredData?: Record<string, any> | Record<string, any>[];
 }
 
 export function SEO({

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, ArrowRight, Building2, Users, MapPin, Mail, Calendar, FileText } from 'lucide-react';
+import { ChevronDown, ArrowRight, Building2, Users, MapPin, Mail, Calendar, FileText, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { SEO } from '@/components/shared/SEO';
@@ -13,46 +13,87 @@ export default function About() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <SEO 
         title="About Us | Alpha ParadoxQC"
-        description="Learn about Alpha ParadoxQC's mission to bridge advanced quantum research with practical innovation. Meet our leadership and explore our company details."
+        description="Learn about Alpha ParadoxQC's mission to bridge advanced quantum research with practical innovation. Meet our leadership, including Founder & CEO Sourojit Mondal and Co-Founder & COO Debanjan Paul."
         canonical="/about"
-        structuredData={{
-          "@context": "https://schema.org",
-          "@type": "AboutPage",
-          "mainEntity": {
-            "@type": "Organization",
-            "name": "ALPHA PARADOXQC PRIVATE LIMITED",
-            "url": "https://alphaparadoxqc.com",
-            "logo": "https://alphaparadoxqc.com/logo.png",
-            "foundingDate": "2026-07-04",
-            "address": {
-              "@type": "PostalAddress",
-              "streetAddress": "3/1, West Kamarthuba Road, Po and Pnr. Anita Anustan Grih, Habra",
-              "addressLocality": "Habra - I",
-              "addressRegion": "West Bengal",
-              "postalCode": "743263",
-              "addressCountry": "IN"
-            },
-            "contactPoint": [
+        structuredData={[
+          {
+            "@context": "https://schema.org",
+            "@type": "AboutPage",
+            "mainEntity": {
+              "@type": "Organization",
+              "name": "ALPHA PARADOXQC PRIVATE LIMITED",
+              "alternateName": "Alpha ParadoxQC",
+              "url": "https://alphaparadoxqc.com",
+              "logo": "https://alphaparadoxqc.com/logo.png",
+              "foundingDate": "2026-07-04",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "3/1, West Kamarthuba Road, Po and Pnr. Anita Anustan Grih, Habra",
+                "addressLocality": "Habra - I",
+                "addressRegion": "West Bengal",
+                "postalCode": "743263",
+                "addressCountry": "IN"
+              },
+              "contactPoint": [
+                {
+                  "@type": "ContactPoint",
+                  "email": "quantum@alphaparadoxqc.com",
+                  "contactType": "customer service"
+                }
+              ],
+              "founder": [
+                {
+                  "@type": "Person",
+                  "name": "Sourojit Mondal",
+                  "jobTitle": "Founder & CEO",
+                  "worksFor": {
+                    "@type": "Organization",
+                    "name": "Alpha ParadoxQC"
+                  }
+                },
+                {
+                  "@type": "Person",
+                  "name": "Debanjan Paul",
+                  "jobTitle": "Co-Founder & COO",
+                  "worksFor": {
+                    "@type": "Organization",
+                    "name": "Alpha ParadoxQC"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
               {
-                "@type": "ContactPoint",
-                "email": "quantum@alphaparadoxqc.com",
-                "contactType": "customer service"
-              }
-            ],
-            "founder": [
-              {
-                "@type": "Person",
-                "name": "Sourojit Mondal",
-                "jobTitle": "Founder & CEO"
+                "@type": "Question",
+                "name": "Who is the founder of Alpha ParadoxQC?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Sourojit Mondal is the Founder and Chief Executive Officer (CEO) of Alpha ParadoxQC."
+                }
               },
               {
-                "@type": "Person",
-                "name": "Debanjan Paul",
-                "jobTitle": "Co-Founder & COO"
+                "@type": "Question",
+                "name": "Who is the co-founder of Alpha ParadoxQC?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Debanjan Paul is the Co-Founder and Chief Operating Officer (COO) of Alpha ParadoxQC."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where is Alpha ParadoxQC headquartered?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Alpha ParadoxQC is headquartered in Habra, West Bengal, India."
+                }
               }
             ]
           }
-        }}
+        ]}
       />
 
       {/* Nav */}
@@ -234,6 +275,34 @@ export default function About() {
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary/50" /> Debanjan Paul</li>
               <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-primary/50" /> Sourojit Mondal</li>
             </ul>
+          </div>
+        </section>
+
+        {/* FAQ Section for SEO */}
+        <section>
+          <div className="flex items-center gap-3 mb-6">
+            <HelpCircle className="w-6 h-6 text-primary" />
+            <h2 className="text-2xl font-bold">Frequently Asked Questions</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="p-6 border border-border/50 rounded-2xl bg-card">
+              <h3 className="text-lg font-bold mb-2">Who is the founder of Alpha ParadoxQC?</h3>
+              <p className="text-foreground/80">
+                Sourojit Mondal is the Founder and Chief Executive Officer (CEO) of Alpha ParadoxQC. He leads the company's strategic vision and innovation roadmap.
+              </p>
+            </div>
+            <div className="p-6 border border-border/50 rounded-2xl bg-card">
+              <h3 className="text-lg font-bold mb-2">Who is the co-founder of Alpha ParadoxQC?</h3>
+              <p className="text-foreground/80">
+                Debanjan Paul is the Co-Founder and Chief Operating Officer (COO) of Alpha ParadoxQC. He oversees the company's day-to-day operations and organizational growth.
+              </p>
+            </div>
+            <div className="p-6 border border-border/50 rounded-2xl bg-card">
+              <h3 className="text-lg font-bold mb-2">Where is Alpha ParadoxQC headquartered?</h3>
+              <p className="text-foreground/80">
+                Alpha ParadoxQC is headquartered in Habra, West Bengal, India.
+              </p>
+            </div>
           </div>
         </section>
 
