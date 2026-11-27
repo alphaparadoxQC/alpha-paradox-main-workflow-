@@ -1,0 +1,22 @@
+================================================================================
+          1100-QUBIT QUANTUM PROCESSOR CELL HIERARCHY TREE
+================================================================================
+Generated: 2026-07-16 21:47:31
+Top Cell:  TOP
+Total Cells in Library: 8
+
+Hierarchy Structure:
+TOP
+  +-- TOP_main (Instances: 1)
+       |-- TOP_main_1 (Instances: 1)
+       |      |-- ground_main_1 (Instances: 1)
+       |      +-- TOP_main_1_one_hole (Instances: 1)
+       |-- TOP_main_10 (Instances: 1)
+       |-- TOP_main_11 (Instances: 1)
+       +-- TOP_main_1_NoCheese_99 (Instances: 1)
+
+Verification Notes:
+* Hierarchy Status: HIERARCHICAL (Subcells preserved for ground slots and air bridge spans)
+* Broken Cell References Check: PASS (0 orphan references detected)
+* Empty Layer Check: PASS (0 empty active layers across the 6 fabrication masks)
+================================================================================

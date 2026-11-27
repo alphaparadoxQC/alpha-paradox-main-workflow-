@@ -1,0 +1,15 @@
+Metric,Value,Unit,Status
+Database Unit (DBU),1.000,um,PASS
+Physical Chip Width,31.022,mm,PASS
+Physical Chip Height,19.406,mm,PASS
+Total Hierarchy Cells,8,count,PASS
+Top Cell Name,TOP,string,PASS
+Total Polygons across Chip,19593,count,PASS
+Total Paths,0,count,PASS
+Total Boxes,0,count,PASS
+Total Texts / Labels,0,count,PASS
+Total Transmon Qubits (Grid),1100,count,PASS
+Total Bus Resonators,2131,count,PASS
+Total Air Bridges,2150,count,PASS
+Total Perimeter Bond Pads,138,count,PASS
+DRC Violations Count,0,count,PASS

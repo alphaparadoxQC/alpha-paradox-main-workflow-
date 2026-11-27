@@ -1,0 +1,10 @@
+Item_ID,Component_Name,Quantity,Layer_Mapping,Material_Specification,Target_Dimensions,Function_Notes
+BOM-001,TransmonPocket Qubits,1100,Layer 1/10 (Signal) & 1/11 (Slots),High-Purity Superconducting Niobium (Nb),Pad Width: 285 um | Gap: 32 um,44 cols x 25 rows crossbar processor core
+BOM-002,CPW Horizontal Coupling Buses,1056,Layer 1/10 (Signal) & 1/11 (Slots),Superconducting Niobium (Nb),Width: 8.0 um | Gap: 6.0 um | Len ~3.8 mm,Direct horizontal nearest-neighbor qubit coupling
+BOM-003,CPW Vertical Coupling Buses,1075,Layer 1/10 (Signal) & 1/11 (Slots),Superconducting Niobium (Nb),Width: 8.0 um | Gap: 6.0 um | Len ~4.1 mm,Direct vertical nearest-neighbor qubit coupling
+BOM-004,Lambda/4 Readout Resonator Stubs,1100,Layer 1/10 (Signal) & 1/11 (Slots),Superconducting Niobium (Nb),Width: 8.0 um | Gap: 6.0 um | Len ~5.8 mm,Dispersive readout stubs coupled to I/O feedlines
+BOM-005,Ground Plane Airbridge Crossover Spans,2150,Layer 10/10 (Spans),Low-Loss Superconducting Aluminum (Al),Span Width: 8.0 um | Length: 45.0 um | Height: 3.0 um,Jumps across CPW signal traces to unify ground return currents
+BOM-006,Airbridge Landing Contact Pads,4300,Layer 11/10 (Landing Pads),Argon Ion Milled Al/Nb Contact,Pad Size: 18.0 um x 18.0 um,Low-resistance ohmic contact bridging spans to Layer 1 ground
+BOM-007,Perimeter Wirebond Launch Pads,138,Layer 1/10 (Signal),Niobium / Gold-Plated Landing Surface,Pad Size: 300.0 um x 300.0 um | Pitch: 650.0 um,I/O launch pads for microwave coax/wirebond packaging
+BOM-008,Vortex Pinning Flux Trapping Holes,89 Arrays,Layer 1/99 (NoCheese),Substrate Perforation,Hole Size: 10.0 um x 10.0 um | Pitch: 30.0 um,Traps stray magnetic flux quanta away from Josephson junctions
+BOM-009,High-Resistivity Substrate Wafer,1 Die,Substrate Core,High-Resistivity Float-Zone Silicon (>10 kOhm-cm),31.022 mm x 19.406 mm x 500.0 um,Low-loss dielectric base supporting superconducting layers

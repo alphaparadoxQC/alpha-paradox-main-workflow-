@@ -1,0 +1,24 @@
+Parameter,Value
+chip_outline,PRESENT
+total_polygons,19593
+total_cells,8
+qubits,1100
+qubit_target,1100
+qubit_match,PASS
+array_topology,44 x 25
+h_bus,1075
+v_bus,0
+ih_bus,0
+total_bus,1075
+readout_resonators,0
+air_bridges,2150
+bond_pads,36
+test_structures,2
+layers_present,6
+metal_polys,13143
+bridge_polys,2150
+landing_polys,4300
+drc_errors,0
+drc_warnings,15254
+fab_score,60/60
+fab_pct,100.0%

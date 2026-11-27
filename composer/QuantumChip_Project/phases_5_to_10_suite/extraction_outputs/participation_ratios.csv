@@ -1,0 +1,5 @@
+Interface_Type,Participation_Ratio_p_i,Assumed_Loss_Tangent_tan_delta,Quality_Factor_Contribution_Q_i
+Bulk Silicon Substrate (e_r=11.45),0.908200,5.0E-07,2.20E+06
+Substrate-Air Interface (SA),0.002450,2.0E-03,2.04E+05
+Metal-Substrate Interface (MS),0.001850,2.5E-03,2.16E+05
+Metal-Air Interface (MA),0.001120,1.5E-03,5.95E+05

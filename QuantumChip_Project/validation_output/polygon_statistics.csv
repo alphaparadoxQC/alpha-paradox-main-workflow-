@@ -1,0 +1,7 @@
+Cell_Name,Layer_Number,Datatype,Layer_Name,Polygon_Count,Percentage_of_Total
+TOP,1,10,Base_Signal,7578,38.68%
+TOP,1,11,Base_Ground_Slots,5475,27.94%
+TOP,1,99,Flux_Trapping_Holes,89,0.45%
+TOP,1,102,Die_Outline,1,0.01%
+TOP,10,10,Airbridge_Spans,2150,10.97%
+TOP,11,10,Airbridge_Landing_Pads,4300,21.95%

@@ -1,0 +1,70 @@
+{
+  "transmon_unit_cell": {
+    "unit_cell": "TransmonPocket_with_Readout",
+    "substrate_er": 11.45,
+    "substrate_thickness_um": 500.0,
+    "metal_material": "Niobium (Lossless superconducting at T=10mK)",
+    "mesh_stats": {
+      "total_tetrahedra": 48520,
+      "max_delta_f_percent": 0.042,
+      "converged_passes": 15
+    },
+    "modes": [
+      {
+        "mode_id": 1,
+        "name": "Qubit Fundamental Mode (f01)",
+        "frequency_ghz": 5.0142,
+        "q_factor_unloaded": 24500000.0,
+        "electric_field_max_V_per_m": 12800.0,
+        "surface_current_max_A_per_m": 82.4
+      },
+      {
+        "mode_id": 2,
+        "name": "Readout Resonator Fundamental (lambda/4)",
+        "frequency_ghz": 7.1208,
+        "q_factor_loaded_QL": 9850.0,
+        "coupling_kappa_mhz": 0.723,
+        "electric_field_max_V_per_m": 34500.0,
+        "surface_current_max_A_per_m": 145.0
+      }
+    ]
+  },
+  "cpw_impedance_and_crosstalk": {
+    "unit_cell": "CPW_Bus_with_Airbridge_Crossovers",
+    "geometry": {
+      "trace_width_um": 8.0,
+      "gap_width_um": 6.0,
+      "ground_plane_thickness_nm": 200.0,
+      "airbridge_height_um": 3.0,
+      "airbridge_span_um": 45.0
+    },
+    "impedance_analysis": {
+      "characteristic_impedance_Z0_ohm": 50.08,
+      "effective_permittivity_eeff": 6.23,
+      "phase_velocity_v_p_m_per_s": 120100000.0,
+      "attenuation_alpha_dB_per_m": 0.0012
+    },
+    "crosstalk_matrix_S_parameters_dB": {
+      "S11_reflection": -34.2,
+      "S21_transmission": -0.015,
+      "S31_crosstalk_adjacent_lane": -58.4,
+      "S41_crosstalk_orthogonal_bus": -64.8
+    }
+  },
+  "crossbar_bus_couplers": {
+    "unit_cell": "Direct_Crossbar_Bus_Couplers",
+    "horizontal_bus": {
+      "length_mm": 3.85,
+      "fundamental_freq_ghz": 6.45,
+      "qubit1_bus_coupling_g_mhz": 48.6,
+      "qubit2_bus_coupling_g_mhz": 49.1
+    },
+    "vertical_bus": {
+      "length_mm": 4.12,
+      "fundamental_freq_ghz": 6.12,
+      "qubit_top_bus_coupling_g_mhz": 47.8,
+      "qubit_bottom_bus_coupling_g_mhz": 48.2
+    }
+  },
+  "status": "COMPLETED_SUCCESSFULLY"
+}

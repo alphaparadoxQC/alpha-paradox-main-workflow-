@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<report-database>
+ <description>Comprehensive DRC for quantum_chip_1100.gds</description>
+ <original-file/>
+ <generator/>
+ <top-cell/>
+ <tags>
+ </tags>
+ <categories>
+  <category>
+   <name>R1_MIN_WIDTH</name>
+   <description>Minimum width &lt; 2.0 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R2_MIN_SPACE</name>
+   <description>Minimum spacing &lt; 2.0 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R4_MIN_AREA</name>
+   <description>Polygon area &lt; 0.001 sq um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R5_ACUTE_ANGLE</name>
+   <description>Interior angle &lt; 45.0 degrees</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R7_OVERLAP</name>
+   <description>Self-overlapping or duplicate polygons</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R11_LAYER_VIOLATION</name>
+   <description>Shapes on conflicting layers</description>
+   <categories>
+   </categories>
+  </category>
+ </categories>
+ <cells>
+  <cell>
+   <name>TOP</name>
+   <variant/>
+   <layout-name/>
+   <references>
+   </references>
+  </cell>
+ </cells>
+ <items>
+ </items>
+</report-database>

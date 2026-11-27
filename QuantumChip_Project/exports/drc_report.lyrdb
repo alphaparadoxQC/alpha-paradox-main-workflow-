@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<report-database>
+ <description>1100-Qubit Superconducting Quantum Processor DRC</description>
+ <original-file/>
+ <generator>drc: script='/Users/sourojitmondal/Desktop/quantum-workload-manager/QuantumChip_Project/drc_comprehensive.drc'</generator>
+ <top-cell>TOP</top-cell>
+ <tags>
+ </tags>
+ <categories>
+  <category>
+   <name>MinWidth:Metal</name>
+   <description>Metal CPW trace or feature width &lt; 5.0 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>MinWidth:AirBridge</name>
+   <description>Air bridge span width &lt; 5.0 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>MinWidth:LandingPad</name>
+   <description>Air bridge landing pad width &lt; 5.0 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>MinSpace:Metal</name>
+   <description>Spacing between metal features &lt; 5.0 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>MinSep:MetalToAirBridge</name>
+   <description>Metal to AirBridge separation &lt; 2.0 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>AcuteAngles:Metal</name>
+   <description>Acute angle (&lt; 45 deg) detected on metal layer</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>ZeroAreaSlivers:Metal</name>
+   <description>Polygon area &lt; 0.1 um^2 (potential sliver or glitch)</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>FloatingMetal:LandingPads</name>
+   <description>AirBridge landing pads not contacting Layer 1 metal</description>
+   <categories>
+   </categories>
+  </category>
+ </categories>
+ <cells>
+  <cell>
+   <name>TOP</name>
+   <variant/>
+   <layout-name/>
+   <references>
+   </references>
+  </cell>
+ </cells>
+ <items>
+ </items>
+</report-database>

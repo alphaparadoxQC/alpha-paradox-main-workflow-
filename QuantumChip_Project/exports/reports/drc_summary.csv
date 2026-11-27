@@ -1,0 +1,8 @@
+Rule,Category,Count,Severity
+R1,Min Width (metal),0,ERROR
+R1b,Min Width (bridge),0,ERROR
+R2,Min Spacing (metal),0,ERROR
+R4,Min Area,0,ERROR
+R5,Acute Angle,0,WARNING
+R7,Polygon Overlap,13104,WARNING
+R11,Layer Violation,2150,WARNING

@@ -1,0 +1,6 @@
+Design_Rule_ID,Parameter,Foundry_Spec_um,Our_Chip_Spec_um,Status
+DRM-101,Minimum Base Metal Linewidth,2.0,5.0,PASS (250% margin)
+DRM-102,Minimum Base Metal Etch Gap,2.0,6.0,PASS (300% margin)
+DRM-201,Global Metal Density Target,30% - 80%,68.4%,PASS (Optimal via NoCheese)
+DRM-301,Airbridge Step Aspect Ratio,<= 0.15:1,0.07:1,PASS (Robust reflow step)
+DRM-401,Wirebond Pad Clearance,>= 100 um,150 um,PASS (Automatic wedge bond)

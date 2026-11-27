@@ -1,0 +1,17 @@
+{
+  "Total_Transmons": 1100,
+  "Transmon_Band_GHz": [
+    4.754,
+    5.102
+  ],
+  "Bus_Resonator_Band_GHz": [
+    6.2,
+    6.48
+  ],
+  "Readout_Band_GHz": [
+    7.1,
+    7.55
+  ],
+  "Nearest_Neighbor_Collisions": 0,
+  "Straddling_Collisions": 0
+}

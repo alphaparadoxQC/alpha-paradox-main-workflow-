@@ -1,0 +1,7 @@
+Layer_Number,Datatype,Layer_Name,Description,Polygon_Count,Status
+1,10,Base_Signal,"CPW inner conductors, transmon capacitor pads, bus resonators",7578,PASS
+1,11,Base_Ground_Slots,"CPW coplanar gaps and ground plane boundary isolation slots",5475,PASS
+1,99,Flux_Trapping_Holes,"Ground plane NoCheese positive fill / vortex pinning holes",89,PASS
+1,102,Die_Outline,"Chip perimeter boundary frame (31.02 mm x 19.41 mm)",1,PASS
+10,10,Airbridge_Spans,"Aluminum upper crossovers jumping CPW gaps and signal lines",2150,PASS
+11,10,Airbridge_Landing_Pads,"Contact pads bonding upper span traces to Layer 1 ground plane",4300,PASS

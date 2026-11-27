@@ -1,0 +1,17 @@
+Measurement,Measured,Unit,Design_Value,Deviation
+Chip Width,31022.0000,um,,N/A
+Chip Height,19406.0000,um,,N/A
+Chip Width (mm),31.0220,mm,,N/A
+Chip Height (mm),19.4060,mm,,N/A
+Qubit Pitch X,650.0000,um,650.0,0.00%
+Qubit Pitch Y,650.0000,um,650.0,0.00%
+CPW Trace Width,10.0000,um,10.0,0.00%
+CPW Gap,6.0000,um,6.0,0.00%
+Resonator Width,10.0000,um,10.0,0.00%
+Resonator Gap,6.0000,um,6.0,0.00%
+Bond Pad Size,100.0000,um,100.0,0.00%
+Air Bridge Width,8.0000,um,8.0,0.00%
+Air Bridge Span,30.0000,um,30.0,0.00%
+Air Bridge Landing,15.0000,um,15.0,0.00%
+Test Resonator Length,2000.0000,um,2000.0,0.00%
+Test Resonator Width,10.0000,um,10.0,0.00%

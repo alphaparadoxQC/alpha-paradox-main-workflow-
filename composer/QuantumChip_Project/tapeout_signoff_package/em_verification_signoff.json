@@ -1,0 +1,13 @@
+{
+  "CPW_Trace_Width_um": 8.0,
+  "CPW_Gap_um": 6.0,
+  "Effective_Permittivity": 6.225,
+  "Characteristic_Impedance_Z0_Ohms": 50.12,
+  "Phase_Velocity_m_per_s": 120160561.92682473,
+  "Transmon_Shunt_Capacitance_fF": 62.4,
+  "Bus_Coupling_Capacitance_fF": 4.1,
+  "Charging_Energy_EC_MHz": 298.0,
+  "Anharmonicity_alpha_MHz": -298.0,
+  "Package_Cavity_Cutoff_GHz": 12.65,
+  "Purcell_Filter_Atten_dB_at_5GHz": 64.2
+}
