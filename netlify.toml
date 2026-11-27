@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "cd composer && npm run build && rm -rf ../dist && cp -r dist ../dist"
   publish = "dist"
 
 [[redirects]]

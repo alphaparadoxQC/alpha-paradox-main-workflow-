@@ -138,7 +138,7 @@ export default function QmlLabPage({ session }) {
   const optimizerStateRef = useRef(null);
 
   // Data & Benchmarks
-  const [dataset, setDataset] = useState(() => generateDataset('moons', 50));
+  const [dataset, setDataset] = useState(() => generateDataset('moons', 50, 0.15, 4));
   const [barrenData, setBarrenData] = useState(() => computeBarrenPlateauVariance(20, 'zz', 'linear'));
   const [classicalResults, setClassicalResults] = useState(null);
   const [pqkResult, setPqkResult] = useState(null);
@@ -174,14 +174,14 @@ export default function QmlLabPage({ session }) {
 
   // Initialize/Regenerate dataset
   useEffect(() => {
-    if (datasetType !== 'custom' || !dataset || !dataset.X) {
-      const data = generateDataset(datasetType === 'custom' ? 'moons' : datasetType, 60, numQubits);
+    if (datasetType !== 'custom' || !dataset?.X || !Array.isArray(dataset.X) || dataset.X.length === 0) {
+      const data = generateDataset(datasetType === 'custom' ? 'moons' : datasetType, 60, 0.15, numQubits);
       setDataset(data);
       if (datasetType === 'custom') setDatasetType('moons');
       setInferenceInput(prev => {
-        if (prev.length === numQubits) return prev;
+        if (Array.isArray(prev) && prev.length === numQubits) return prev;
         const next = Array(numQubits).fill(0.1);
-        for (let i = 0; i < Math.min(prev.length, numQubits); i++) next[i] = prev[i];
+        for (let i = 0; i < Math.min((prev || []).length, numQubits); i++) next[i] = prev[i];
         return next;
       });
     }
@@ -189,7 +189,7 @@ export default function QmlLabPage({ session }) {
 
   // Model & Benchmarks update with Real-Time Initial Evaluation
   useEffect(() => {
-    if (!dataset || !dataset.X || !Array.isArray(dataset.X) || dataset.X.length === 0) {
+    if (!dataset?.X || !Array.isArray(dataset.X) || dataset.X.length === 0) {
       return;
     }
     const numParams = layers * numQubits;
@@ -445,7 +445,7 @@ export default function QmlLabPage({ session }) {
 
   // Run Real Quantum Training Simulation
   const handleTrain = () => {
-    if (!dataset || !dataset.X || dataset.X.length === 0 || isTraining) return;
+    if (!dataset?.X || !Array.isArray(dataset.X) || dataset.X.length === 0 || isTraining) return;
     setIsTraining(true);
 
     const split = Math.floor(dataset.X.length * 0.7);

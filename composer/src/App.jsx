@@ -5,6 +5,7 @@ import ProtectedRoute from './components/shared/ProtectedRoute';
 import ErrorBoundary from './components/shared/ErrorBoundary';
 
 // Pages
+import LandingScrollytellingPage from './pages/LandingScrollytellingPage';
 import AuthPage from './pages/AuthPage';
 import DashboardPage from './pages/DashboardPage';
 import ComposerHomePage from './pages/ComposerHomePage';
@@ -66,8 +67,12 @@ function App() {
   return (
     <ErrorBoundary>
       <Routes>
-        <Route path="/" element={<AuthPage session={session} />} />
+        {/* Visitors landing from Google or direct will see the Golden Dilution Refrigerator Scrollytelling Experience */}
+        <Route path="/" element={<LandingScrollytellingPage />} />
+        <Route path="/auth" element={<AuthPage session={session} />} />
+        <Route path="/login" element={<AuthPage session={session} />} />
         <Route path="/home" element={<DashboardPage session={session} />} />
+        <Route path="/dashboard" element={<DashboardPage session={session} />} />
         <Route path="/composer-home" element={<ComposerHomePage session={session} />} />
         <Route 
           path="/composer" 
