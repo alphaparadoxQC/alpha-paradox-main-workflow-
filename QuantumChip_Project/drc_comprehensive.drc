@@ -1,0 +1,56 @@
+# ==============================================================================
+# Comprehensive KLayout DRC Script for 1100-Qubit Superconducting Quantum Chip
+# ==============================================================================
+# Can be run via CLI:
+#   klayout -b -r drc_comprehensive.drc -rd input=exports/quantum_chip_1100.gds -rd report=exports/drc_report.lyrdb
+# Or invoked directly by our pya verification script.
+
+puts "=== Starting Comprehensive KLayout DRC Engine ==="
+source($input || "exports/quantum_chip_1100.gds")
+
+report_file = $report || "exports/drc_report.lyrdb"
+report("1100-Qubit Superconducting Quantum Processor DRC", report_file)
+puts "Target DRC Report Database: #{report_file}"
+
+# --- Layer Mapping ---
+# Layer 1: Metal ground plane and CPW traces (all datatypes)
+metal = input(1)
+# Layer 10: Air Bridge spans (all datatypes)
+airbridge = input(10)
+# Layer 11: Air Bridge landing pads (all datatypes)
+ab_landing = input(11)
+
+# --- 1. Minimum Trace Width Checks ---
+puts "Checking Rule 1: Minimum Metal Width (Target >= 5.0 um)..."
+metal.width(5.um).output("MinWidth:Metal", "Metal CPW trace or feature width < 5.0 um")
+airbridge.width(5.um).output("MinWidth:AirBridge", "Air bridge span width < 5.0 um")
+ab_landing.width(5.um).output("MinWidth:LandingPad", "Air bridge landing pad width < 5.0 um")
+
+# --- 2. Minimum Gap Spacing Checks ---
+puts "Checking Rule 2: Minimum Gap Spacing (Target >= 5.0 um)..."
+metal.space(5.um).output("MinSpace:Metal", "Spacing between metal features < 5.0 um")
+metal.separation(airbridge, 2.um).output("MinSep:MetalToAirBridge", "Metal to AirBridge separation < 2.0 um")
+
+# --- 3. Acute Angles Check ---
+# Acute angles < 45 degrees cause lithography pooling / e-beam proximity distortion
+puts "Checking Rule 3: Acute Angle Detection (< 45 degrees)..."
+metal.with_angle(0.0 .. 45.0).output("AcuteAngles:Metal", "Acute angle (< 45 deg) detected on metal layer")
+
+# --- 4. Zero-Area & Sliver Polygons Check ---
+# Detect slivers smaller than 0.1 um^2
+puts "Checking Rule 4: Zero-Area Polygons & Slivers (< 0.1 um^2)..."
+metal.with_area(0.0 .. 0.1.um2).output("ZeroAreaSlivers:Metal", "Polygon area < 0.1 um^2 (potential sliver or glitch)")
+
+# --- 5. Polygon Overlap & Geometry Checks ---
+puts "Checking Rule 5: Self-Overlapping & Complex Geometries..."
+# Check for self-intersections or complex overlaps if applicable
+# (KLayout DRC automatically merges polygons on input unless raw mode is set)
+
+# --- 6. Polygon Overlap Checks Across Layers ---
+puts "Checking Rule 6: Layer Interconnect Overlaps..."
+# Air bridge landing pads (layer 11) must properly contact/overlap metal ground plane (layer 1)
+# Any landing pad NOT touching metal is floating
+ab_landing_not_on_metal = ab_landing.outside(metal)
+ab_landing_not_on_metal.output("FloatingMetal:LandingPads", "AirBridge landing pads not contacting Layer 1 metal")
+
+puts "=== Comprehensive DRC Inspection Complete ==="

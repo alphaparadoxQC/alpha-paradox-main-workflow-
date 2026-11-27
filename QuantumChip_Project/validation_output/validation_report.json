@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-07-16 21:47:31",
+  "klayout_version": "KLayout 0.30.9 (macOS)",
+  "target_gds": "exports/verified_chip.gds",
+  "chip_dimensions_mm": {
+    "width": 31.022,
+    "height": 19.406,
+    "area": 602.013
+  },
+  "database_unit_m": 1e-06,
+  "database_unit_um": 1.0,
+  "top_cell": "TOP",
+  "total_hierarchy_cells": 8,
+  "total_polygons": 19593,
+  "total_paths": 0,
+  "total_boxes": 0,
+  "total_texts": 0,
+  "components": {
+    "transmon_qubits": 1100,
+    "bus_resonators": 2131,
+    "air_bridges": 2150,
+    "perimeter_bond_pads": 138
+  },
+  "layers": [
+    {
+      "layer": 1,
+      "datatype": 10,
+      "name": "Base_Signal",
+      "description": "CPW inner conductors, transmon capacitor pads, bus resonators",
+      "polygon_count": 7578,
+      "status": "PASS"
+    },
+    {
+      "layer": 1,
+      "datatype": 11,
+      "name": "Base_Ground_Slots",
+      "description": "CPW coplanar gaps and ground plane boundary isolation slots",
+      "polygon_count": 5475,
+      "status": "PASS"
+    },
+    {
+      "layer": 1,
+      "datatype": 99,
+      "name": "Flux_Trapping_Holes",
+      "description": "Ground plane NoCheese positive fill / vortex pinning holes",
+      "polygon_count": 89,
+      "status": "PASS"
+    },
+    {
+      "layer": 1,
+      "datatype": 102,
+      "name": "Die_Outline",
+      "description": "Chip perimeter boundary frame (31.02 mm x 19.41 mm)",
+      "polygon_count": 1,
+      "status": "PASS"
+    },
+    {
+      "layer": 10,
+      "datatype": 10,
+      "name": "Airbridge_Spans",
+      "description": "Aluminum upper crossovers jumping CPW gaps and signal lines",
+      "polygon_count": 2150,
+      "status": "PASS"
+    },
+    {
+      "layer": 11,
+      "datatype": 10,
+      "name": "Airbridge_Landing_Pads",
+      "description": "Contact pads bonding upper span traces to Layer 1 ground plane",
+      "polygon_count": 4300,
+      "status": "PASS"
+    }
+  ],
+  "drc_summary": {
+    "violations_count": 0,
+    "errors": 0,
+    "warnings": 0,
+    "status": "PASS"
+  },
+  "fabrication_readiness": {
+    "status": "READY FOR FABRICATION",
+    "minimum_feature_um": 6.0,
+    "ground_continuity": "PASS",
+    "empty_layers_detected": 0
+  },
+  "signed_summary_statement": "Geometry verified successfully. No GDS structural errors detected. Basic DRC passed. Ready for electromagnetic simulation and foundry verification."
+}

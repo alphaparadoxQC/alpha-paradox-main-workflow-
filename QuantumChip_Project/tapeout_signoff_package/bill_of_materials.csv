@@ -1,0 +1,6 @@
+Item_No,Component,Specification,Quantity
+1,Substrate Wafer,"High-Resistivity Float-Zone Silicon (> 10 kΩ·cm), (100) orientation, 500 µm thickness, 300 mm diameter",2 Wafers
+2,Base Superconducting Film,"DC Magnetron Sputtered Niobium (Nb), 200 nm thickness, R_sq = 0.8 Ω/sq, T_c = 9.2 K",Full Wafer Deposition
+3,Airbridge Metal Stack,"Electron-Beam Evaporated Aluminum (Al), 350 nm landing pads + 450 nm upper span, T_c = 1.2 K","2,150 bridges per die"
+4,Josephson Junction Film,Double-Angle Shadow Evaporated Al/AlOx/Al Dolan Bridges (R_N = 7.2 kΩ ± 3%),"2,200 JJs per die"
+5,Wirebonds,"25 µm diameter Aluminum-1% Silicon wedge bonds, loop height < 120 µm",138 launch pads per die

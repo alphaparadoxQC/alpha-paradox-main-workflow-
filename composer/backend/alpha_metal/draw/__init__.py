@@ -1,0 +1,39 @@
+# This code is part of Alpha.
+#
+# (C) Copyright Alpha 2017, 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+import shapely
+from shapely import wkt
+
+# Base Geometry Definitions - extend here
+from shapely.geometry.base import BaseGeometry
+from shapely.geometry import Point, LineString, Polygon
+from shapely.geometry import box, shape
+from shapely.ops import unary_union
+
+from alpha_metal.draw import basic
+from alpha_metal.draw import utility
+from alpha_metal.draw.utility import get_poly_pts, Vector
+from alpha_metal.draw import mpl
+from alpha_metal.draw.basic import (
+    rectangle,
+    is_rectangle,
+    flip_merge,
+    rotate,
+    translate,
+    scale,
+    buffer,
+    rotate_position,
+    _iter_func_geom_,
+    union,
+    subtract,
+)
+from alpha_metal.draw.mpl import render, figure_spawn

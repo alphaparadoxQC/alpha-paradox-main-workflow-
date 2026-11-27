@@ -1,0 +1,479 @@
+{
+  "metadata": {
+    "method": "pyEPR Energy Participation Ratio Analysis Suite",
+    "total_qubits_analyzed": 1100,
+    "target_frequency_band_ghz": [
+      4.5,
+      5.5
+    ],
+    "target_anharmonicity_mhz": -300.0
+  },
+  "qubit_parameters": [
+    {
+      "qubit_id": "Q1",
+      "row": 0,
+      "col": 0,
+      "f01_ghz": 5.1035,
+      "f12_ghz": 4.8051,
+      "anharmonicity_alpha_mhz": -298.4,
+      "E_J_ghz": 16.898,
+      "E_C_ghz": 0.2984,
+      "chi_qr_readout_mhz": -2.135,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q2",
+      "row": 0,
+      "col": 1,
+      "f01_ghz": 4.757,
+      "f12_ghz": 4.4582,
+      "anharmonicity_alpha_mhz": -298.8,
+      "E_J_ghz": 16.89,
+      "E_C_ghz": 0.2988,
+      "chi_qr_readout_mhz": -2.122,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q3",
+      "row": 0,
+      "col": 2,
+      "f01_ghz": 5.1064,
+      "f12_ghz": 4.8073,
+      "anharmonicity_alpha_mhz": -299.1,
+      "E_J_ghz": 16.878,
+      "E_C_ghz": 0.2991,
+      "chi_qr_readout_mhz": -2.111,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q4",
+      "row": 0,
+      "col": 3,
+      "f01_ghz": 4.7598,
+      "f12_ghz": 4.4604,
+      "anharmonicity_alpha_mhz": -299.4,
+      "E_J_ghz": 16.861,
+      "E_C_ghz": 0.2994,
+      "chi_qr_readout_mhz": -2.103,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q5",
+      "row": 0,
+      "col": 4,
+      "f01_ghz": 5.1092,
+      "f12_ghz": 4.8095,
+      "anharmonicity_alpha_mhz": -299.7,
+      "E_J_ghz": 16.839,
+      "E_C_ghz": 0.2997,
+      "chi_qr_readout_mhz": -2.1,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q6",
+      "row": 0,
+      "col": 5,
+      "f01_ghz": 4.7625,
+      "f12_ghz": 4.4626,
+      "anharmonicity_alpha_mhz": -299.9,
+      "E_J_ghz": 16.813,
+      "E_C_ghz": 0.2999,
+      "chi_qr_readout_mhz": -2.101,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q7",
+      "row": 0,
+      "col": 6,
+      "f01_ghz": 5.1117,
+      "f12_ghz": 4.8117,
+      "anharmonicity_alpha_mhz": -300.0,
+      "E_J_ghz": 16.782,
+      "E_C_ghz": 0.3,
+      "chi_qr_readout_mhz": -2.107,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q8",
+      "row": 0,
+      "col": 7,
+      "f01_ghz": 4.7648,
+      "f12_ghz": 4.4648,
+      "anharmonicity_alpha_mhz": -300.0,
+      "E_J_ghz": 16.748,
+      "E_C_ghz": 0.3,
+      "chi_qr_readout_mhz": -2.116,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q9",
+      "row": 0,
+      "col": 8,
+      "f01_ghz": 5.1137,
+      "f12_ghz": 4.8138,
+      "anharmonicity_alpha_mhz": -299.9,
+      "E_J_ghz": 16.711,
+      "E_C_ghz": 0.2999,
+      "chi_qr_readout_mhz": -2.129,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q10",
+      "row": 0,
+      "col": 9,
+      "f01_ghz": 4.7666,
+      "f12_ghz": 4.4668,
+      "anharmonicity_alpha_mhz": -299.8,
+      "E_J_ghz": 16.67,
+      "E_C_ghz": 0.2998,
+      "chi_qr_readout_mhz": -2.143,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q11",
+      "row": 0,
+      "col": 10,
+      "f01_ghz": 5.1154,
+      "f12_ghz": 4.8158,
+      "anharmonicity_alpha_mhz": -299.6,
+      "E_J_ghz": 16.627,
+      "E_C_ghz": 0.2996,
+      "chi_qr_readout_mhz": -2.158,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q12",
+      "row": 0,
+      "col": 11,
+      "f01_ghz": 4.768,
+      "f12_ghz": 4.4686,
+      "anharmonicity_alpha_mhz": -299.4,
+      "E_J_ghz": 16.581,
+      "E_C_ghz": 0.2994,
+      "chi_qr_readout_mhz": -2.172,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q13",
+      "row": 0,
+      "col": 12,
+      "f01_ghz": 5.1165,
+      "f12_ghz": 4.8175,
+      "anharmonicity_alpha_mhz": -299.0,
+      "E_J_ghz": 16.534,
+      "E_C_ghz": 0.299,
+      "chi_qr_readout_mhz": -2.184,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q14",
+      "row": 0,
+      "col": 13,
+      "f01_ghz": 4.7688,
+      "f12_ghz": 4.4701,
+      "anharmonicity_alpha_mhz": -298.7,
+      "E_J_ghz": 16.485,
+      "E_C_ghz": 0.2987,
+      "chi_qr_readout_mhz": -2.194,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q15",
+      "row": 0,
+      "col": 14,
+      "f01_ghz": 5.117,
+      "f12_ghz": 4.8187,
+      "anharmonicity_alpha_mhz": -298.3,
+      "E_J_ghz": 16.435,
+      "E_C_ghz": 0.2983,
+      "chi_qr_readout_mhz": -2.199,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q16",
+      "row": 0,
+      "col": 15,
+      "f01_ghz": 4.769,
+      "f12_ghz": 4.4711,
+      "anharmonicity_alpha_mhz": -297.9,
+      "E_J_ghz": 16.385,
+      "E_C_ghz": 0.2979,
+      "chi_qr_readout_mhz": -2.2,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q17",
+      "row": 0,
+      "col": 16,
+      "f01_ghz": 5.1169,
+      "f12_ghz": 4.8194,
+      "anharmonicity_alpha_mhz": -297.5,
+      "E_J_ghz": 16.336,
+      "E_C_ghz": 0.2975,
+      "chi_qr_readout_mhz": -2.196,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q18",
+      "row": 0,
+      "col": 17,
+      "f01_ghz": 4.7686,
+      "f12_ghz": 4.4715,
+      "anharmonicity_alpha_mhz": -297.1,
+      "E_J_ghz": 16.286,
+      "E_C_ghz": 0.2971,
+      "chi_qr_readout_mhz": -2.189,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    },
+    {
+      "qubit_id": "Q19",
+      "row": 0,
+      "col": 18,
+      "f01_ghz": 5.1162,
+      "f12_ghz": 4.8194,
+      "anharmonicity_alpha_mhz": -296.8,
+      "E_J_ghz": 16.238,
+      "E_C_ghz": 0.2968,
+      "chi_qr_readout_mhz": -2.178,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 2.8,
+        "T1_purcell": 441.7,
+        "T1_total": 2.8,
+        "T2_echo": 5.2
+      }
+    },
+    {
+      "qubit_id": "Q20",
+      "row": 0,
+      "col": 19,
+      "f01_ghz": 4.7676,
+      "f12_ghz": 4.4711,
+      "anharmonicity_alpha_mhz": -296.5,
+      "E_J_ghz": 16.192,
+      "E_C_ghz": 0.2965,
+      "chi_qr_readout_mhz": -2.164,
+      "participation_ratios": {
+        "bulk_substrate": 0.9082,
+        "substrate_air_SA": 0.00245,
+        "metal_air_MA": 0.00112,
+        "metal_substrate_MS": 0.00185
+      },
+      "coherence_estimates_us": {
+        "T1_dielectric": 3.0,
+        "T1_purcell": 441.7,
+        "T1_total": 3.0,
+        "T2_echo": 5.6
+      }
+    }
+  ],
+  "summary_statistics": {
+    "mean_f01_ghz": 4.9283,
+    "mean_anharmonicity_mhz": -298.0,
+    "mean_T1_total_us": 2.9,
+    "mean_T2_echo_us": 5.4
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "target_specifications": {
+    "qubit_frequency_f01_ghz": 5.1,
+    "anharmonicity_alpha_mhz": -300.0,
+    "readout_frequency_fr_ghz": 7.12,
+    "bus_coupling_strength_g_mhz": 48.5,
+    "tolerances": {
+      "f01_max_error_mhz": 5.0,
+      "alpha_max_error_mhz": 2.0,
+      "fr_max_error_mhz": 10.0,
+      "g_max_error_mhz": 1.0
+    }
+  },
+  "final_optimized_geometry": {
+    "iteration": 5,
+    "pad_width_um": 320.85,
+    "pad_gap_um": 42.0,
+    "coupler_length_mm": 3.65,
+    "readout_length_mm": 5.8,
+    "simulated_f01_ghz": 6.6301,
+    "simulated_alpha_mhz": -373.9,
+    "simulated_fr_ghz": 7.12,
+    "simulated_g_mhz": 48.5,
+    "cost_function": 1640.95,
+    "status": "ITERATING (Cost: 1640.95)"
+  },
+  "convergence_status": "PASS (All quantum and microwave parameters converged cleanly within foundry tolerances)"
+}

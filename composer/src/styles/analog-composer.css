@@ -1,0 +1,585 @@
+/* ============================================================
+   ANALOG COMPOSER — ScienceAtHome-style node graph UI
+   ============================================================ */
+
+/* ── Page Layout ──────────────────────────────────────────── */
+.analog-composer-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0d1117;
+  color: #e6edf3;
+  overflow: hidden;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.analog-composer-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ── Top Toolbar ──────────────────────────────────────────── */
+.analog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  height: 44px;
+  background: #10141e;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.analog-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.analog-toolbar-center {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.analog-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.analog-toolbar .at-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.analog-toolbar .at-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.analog-toolbar .at-btn.run-btn {
+  background: #10b981;
+  color: #fff;
+  font-size: 0.8rem;
+  padding: 0.35rem 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  gap: 0.3rem;
+}
+
+.analog-toolbar .at-btn.run-btn:hover {
+  background: #059669;
+}
+
+.analog-toolbar .at-btn.run-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.analog-toolbar .at-btn.run-btn.running {
+  background: #f59e0b;
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 12px 4px rgba(245, 158, 11, 0.2); }
+}
+
+.sim-status {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.sim-status.error {
+  color: #ef4444;
+}
+
+.sim-status.success {
+  color: #10b981;
+}
+
+/* ── Node Tray (Left Sidebar) ─────────────────────────────── */
+.node-tray {
+  width: 160px;
+  flex-shrink: 0;
+  background: #161b22;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.node-tray::-webkit-scrollbar {
+  width: 4px;
+}
+
+.node-tray::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.tray-category {
+  margin-bottom: 0.25rem;
+}
+
+.tray-category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #e6edf3;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.tray-category-header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tray-arrow {
+  font-size: 0.55rem;
+  color: rgba(255, 255, 255, 0.4);
+  width: 10px;
+}
+
+.tray-nodes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.3rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.tray-node-tile {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1c2128;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.15s;
+}
+
+.tray-node-tile:hover {
+  background: #252d3a;
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.tray-node-tile:active {
+  cursor: grabbing;
+  transform: translateY(0);
+}
+
+.tray-node-icon {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-style: italic;
+}
+
+/* ── React Flow Canvas Overrides ──────────────────────────── */
+.analog-flow-canvas {
+  flex: 1;
+  background: #1a1f2b;
+}
+
+.analog-flow-canvas .react-flow__background {
+  background: #1a1f2b;
+}
+
+/* ── Base Analog Node Style ───────────────────────────────── */
+.analog-node {
+  background: #252d3a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  min-width: 140px;
+  font-size: 0.75rem;
+  color: #e6edf3;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.analog-node:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.analog-node.selected,
+.analog-node:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.analog-node-header {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.analog-node-body {
+  padding: 0.5rem 0.6rem;
+}
+
+.node-formula {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  padding: 0.3rem 0;
+}
+
+.node-warning {
+  color: #f59e0b;
+  font-size: 0.85rem;
+}
+
+/* ── Node Fields ──────────────────────────────────────────── */
+.node-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.node-field label {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+
+.node-field input[type="number"],
+.node-field input[type="text"],
+.scalar-label-input {
+  background: #1a1f2b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  color: #e6edf3;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.35rem;
+  outline: none;
+  width: 65px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  transition: border-color 0.15s;
+}
+
+.node-field input:focus,
+.scalar-label-input:focus {
+  border-color: #3b82f6;
+}
+
+.expression-input {
+  background: #1a1f2b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  color: #10b981;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  outline: none;
+  width: 100%;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  transition: border-color 0.15s;
+}
+
+.expression-input:focus {
+  border-color: #10b981;
+}
+
+/* ── Specific Node Styles ─────────────────────────────────── */
+.spatial-dimension-node .analog-node-header {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.potential-node .analog-node-header {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.hamiltonian-node .analog-node-header {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.spectrum-node .analog-node-header {
+  background: rgba(236, 72, 153, 0.08);
+}
+
+.linear-combination-node .analog-node-header {
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.energy-plot-node {
+  min-width: 530px;
+}
+
+.energy-plot-node .analog-node-header {
+  background: rgba(16, 185, 129, 0.12);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.ep-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  background: rgba(13, 17, 23, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+
+.ep-control-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+}
+
+.ep-toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ep-toggle-item:hover {
+  color: #fff;
+}
+
+.ep-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+.ep-scale-btn-group {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.ep-scale-btn {
+  flex: 1;
+  padding: 0.2rem 0.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.62rem;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.ep-scale-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.ep-scale-btn.active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.wavefunction-node .analog-node-header {
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.operator-node .analog-node-header {
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.time-evolution-node .analog-node-header {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.time-evolution-node {
+  min-width: 160px;
+}
+
+.for-loop-node .analog-node-header {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.fidelity-node .analog-node-header {
+  background: rgba(236, 72, 153, 0.08);
+}
+
+.expectation-node .analog-node-header {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.scalar-time-plot-node {
+  min-width: 400px;
+}
+
+.scalar-time-plot-node .analog-node-header {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.momentum-node .analog-node-header {
+  background: rgba(168, 85, 247, 0.08);
+}
+.operator-wf-node .analog-node-header {
+  background: rgba(6, 182, 212, 0.08);
+}
+.inner-product-node .analog-node-header,
+.uncertainty-node .analog-node-header,
+.variance-node .analog-node-header,
+.norm-node .analog-node-header {
+  background: rgba(236, 72, 153, 0.08);
+}
+.expectation-sq-node .analog-node-header {
+  background: rgba(245, 158, 11, 0.08);
+}
+.energy-level-node .analog-node-header {
+  background: rgba(6, 182, 212, 0.08);
+}
+.string-node .analog-node-header,
+.array-node .analog-node-header,
+.math-function-node .analog-node-header,
+.real-part-node .analog-node-header,
+.imaginary-part-node .analog-node-header {
+  background: rgba(255, 255, 255, 0.08);
+}
+.multi-line-plot-node .analog-node-header {
+  background: rgba(59, 130, 246, 0.08);
+}
+.placeholder-plot-node .analog-node-header {
+  background: rgba(255, 255, 255, 0.08);
+}
+.wavefunction-plot-node .analog-node-header {
+  background: rgba(6, 182, 212, 0.08);
+}
+.superposition-plot-node .analog-node-header {
+  background: rgba(236, 72, 153, 0.08);
+}
+
+
+/* ── Coefficient Grid (LinearCombination) ─────────────────── */
+.coeff-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.coeff-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.coeff-row input {
+  width: 45px;
+  background: #1a1f2b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: #e6edf3;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.25rem;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  outline: none;
+}
+
+.coeff-row input:focus {
+  border-color: #06b6d4;
+}
+
+.coeff-row span {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.lc-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.62rem;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.lc-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ── React Flow Edge Styles ───────────────────────────────── */
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* ── React Flow Handle Customization ──────────────────────── */
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #0d1117;
+  border-radius: 50%;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+}
+
+/* ── React Flow MiniMap ───────────────────────────────────── */
+.react-flow__minimap {
+  background: #161b22 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 6px !important;
+}
+
+/* ── React Flow Controls ──────────────────────────────────── */
+.react-flow__controls {
+  background: #1c2128 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.react-flow__controls-button {
+  background: #1c2128 !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  fill: rgba(255, 255, 255, 0.6) !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #252d3a !important;
+  color: #fff !important;
+  fill: #fff !important;
+}
+
+/* ── Attribution override ─────────────────────────────────── */
+.react-flow__attribution {
+  display: none !important;
+}

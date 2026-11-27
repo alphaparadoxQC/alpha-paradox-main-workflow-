@@ -1,0 +1,31 @@
+# KLayout DRC Script for 1100-Qubit Quantum Chip
+# Run with: klayout -b -r drc.lydrc -rd input=exports/quantum_chip_1100.gds
+
+source($input)
+
+# === Design Rules for Superconducting Quantum Processor ===
+# Fabrication: Niobium on High-Resistivity Silicon
+# Lithography: e-beam or DUV stepper
+
+# Rule 1: Minimum Metal Width (CPW trace)
+metal = input(1, 0)
+min_width = metal.width(5.um, projection)
+min_width.output("DRC:MinWidth", "Metal width < 5um")
+
+# Rule 2: Minimum Metal Spacing (CPW gap)
+min_space = metal.space(5.um, projection)
+min_space.output("DRC:MinSpace", "Metal spacing < 5um")
+
+# Rule 3: Air Bridge Layer Width Check
+airbridge = input(10, 0)
+ab_width = airbridge.width(3.um, projection)
+ab_width.output("DRC:AirBridgeWidth", "Air bridge width < 3um")
+
+# Rule 4: Air Bridge Landing Pad Check
+ab_landing = input(11, 0)
+ab_land_width = ab_landing.width(10.um, projection)
+ab_land_width.output("DRC:ABLandingWidth", "Air bridge landing < 10um")
+
+# Rule 5: Metal Density Check (for CMP uniformity)
+# Density should be between 30% and 70% in any 100um x 100um window
+# (This is a simplified version)

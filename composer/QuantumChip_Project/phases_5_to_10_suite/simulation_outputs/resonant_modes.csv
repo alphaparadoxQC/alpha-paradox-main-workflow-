@@ -1,0 +1,5 @@
+Mode_ID,Structure_Type,Resonant_Freq_GHz,Loaded_Q,Unloaded_Q,Max_E_Field_V_per_m,Max_J_Surf_A_per_m
+1,Transmon Qubit Fundamental,5.0142,N/A,2.45E+07,1.28E+04,82.4
+2,Readout Resonator Stub,7.1208,9850,3.10E+05,3.45E+04,145.0
+3,Horizontal Coupling Bus,6.4500,45000,1.20E+06,1.85E+04,94.2
+4,Vertical Coupling Bus,6.1200,42000,1.15E+06,1.79E+04,91.8

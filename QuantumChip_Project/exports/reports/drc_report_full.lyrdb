@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<report-database>
+ <description>Full DRC - 1100 Qubit Quantum Chip</description>
+ <original-file/>
+ <generator>drc: script='drc_full.drc'</generator>
+ <top-cell>TOP</top-cell>
+ <tags>
+ </tags>
+ <categories>
+  <category>
+   <name>R1:MinWidth:Metal</name>
+   <description>Metal width &lt; 2 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R1b:MinWidth:AirBridge</name>
+   <description>Air bridge width &lt; 5 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R1c:MinWidth:Landing</name>
+   <description>Landing pad width &lt; 5 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R2:MinSpace:Metal</name>
+   <description>Metal spacing &lt; 2 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R2b:MinSpace:Bridge-Metal</name>
+   <description>Bridge-to-metal spacing &lt; 3 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R3:Enclosure:Bridge-Landing</name>
+   <description>Bridge not enclosed by landing pad</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R4:MinArea:Metal</name>
+   <description>Metal polygon area &lt; 1 sq um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R4b:MinArea:Bridge</name>
+   <description>Bridge polygon area &lt; 1 sq um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R5:AcuteAngle:Metal</name>
+   <description>Metal polygon has acute angle &lt; 45 deg</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R6:Notch:Metal</name>
+   <description>Metal notch &lt; 2 um</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R7:Overlap:Metal</name>
+   <description>Self-overlapping or duplicate metal polygons</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R8:FloatingMetal</name>
+   <description>Isolated small metal polygon</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R9:Disconnect:Metal</name>
+   <description>Possible broken trace (gap &lt; 0.5 um)</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R10:Duplicate:Metal</name>
+   <description>Duplicate metal polygon detected</description>
+   <categories>
+   </categories>
+  </category>
+  <category>
+   <name>R11:LayerViolation:Bridge-Metal</name>
+   <description>Air bridge overlaps base metal layer</description>
+   <categories>
+   </categories>
+  </category>
+ </categories>
+ <cells>
+  <cell>
+   <name>TOP</name>
+   <variant/>
+   <layout-name/>
+   <references>
+   </references>
+  </cell>
+ </cells>
+ <items>
+ </items>
+</report-database>

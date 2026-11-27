@@ -1,0 +1,27 @@
+# Use official python image
+FROM python:3.11-slim
+
+# Install system dependencies if needed (e.g., for some quantum libraries)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Install jupyter kernel and quantum libraries
+RUN pip install --no-cache-dir \
+    jupyter_client \
+    ipykernel \
+    qiskit \
+    qiskit-aer \
+    matplotlib \
+    websockets \
+    numpy \
+    scipy
+
+# Copy quantum runtime injection script
+COPY quantum_runtime.py /app/quantum_runtime.py
+
+# Default command to run the kernel. The orchestrator will override this to pass the connection file.
+CMD ["python", "-m", "ipykernel_launcher", "-f", "/app/connection.json"]

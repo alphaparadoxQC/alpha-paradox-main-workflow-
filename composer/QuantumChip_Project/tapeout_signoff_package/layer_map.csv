@@ -1,0 +1,7 @@
+Mask_ID,GDS_Layer,Datatype,Description,Thickness_nm,Litho_Type
+MASK-01,1,0,Base Superconducting Niobium Signal & Launch Pads,200,DUV Stepper 248nm
+MASK-02,1,11,Coplanar Waveguide Etch Isolation Slots (6 um gap),200,DUV Stepper 248nm
+MASK-03,1,99,NoCheese Flux Trapping Perforations (10x10 um slots),200,DUV Stepper 248nm
+MASK-04,11,10,Airbridge Landing Contact Pads (In-Situ Ion Clean),350,Direct Write Laser / i-line
+MASK-05,10,10,Airbridge Upper Aluminum Crossover Spans (3 um elevation),450,Reflow Resist / i-line
+MASK-06,1,102,Outer Saw Dicing & Scribeline Border (31 mm x 19 mm),200,Standard Contact

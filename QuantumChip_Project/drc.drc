@@ -1,0 +1,25 @@
+# KLayout DRC Script for 1100-Qubit Quantum Chip
+# Run with: /Applications/KLayout/klayout.app/Contents/MacOS/klayout -b -r drc.drc -rd input=exports/quantum_chip_1100.gds
+
+puts "=== KLayout DRC Execution Start ==="
+source($input)
+
+report("DRC Report - 1100 Qubit Quantum Chip", "drc_report.lyrdb")
+puts "Writing DRC report database..."
+
+# Layer definitions
+metal = input(1, 0)
+airbridge = input(10, 0)
+ab_landing = input(11, 0)
+
+# Rule 1: Minimum Metal Width >= 5 um
+metal.width(5.um).output("MinWidth:Metal", "Metal trace width < 5 um")
+
+# Rule 2: Minimum Metal Spacing >= 5 um
+metal.space(5.um).output("MinSpace:Metal", "Metal gap spacing < 5 um")
+
+# Rule 3: Air Bridge Width >= 5 um
+airbridge.width(5.um).output("MinWidth:AirBridge", "Air bridge width < 5 um")
+
+# Rule 4: Air Bridge Landing Pad Width >= 5 um
+ab_landing.width(5.um).output("MinWidth:ABLanding", "Landing pad width < 5 um")

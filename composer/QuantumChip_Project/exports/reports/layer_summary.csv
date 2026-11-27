@@ -1,0 +1,7 @@
+Layer,Datatype,Purpose,Object_Count,Errors,Visible
+1,10,Base Superconductor (Niobium 100nm),7578,0,YES
+1,11,Base Superconductor (Niobium 100nm),5475,0,YES
+10,10,Air Bridge Traces (Suspended Aluminum),2150,0,YES
+11,10,Air Bridge Landing Pads (Substrate Anchor),4300,0,YES
+1,99,Base Superconductor (Niobium 100nm),89,0,YES
+1,102,Base Superconductor (Niobium 100nm),1,0,YES
