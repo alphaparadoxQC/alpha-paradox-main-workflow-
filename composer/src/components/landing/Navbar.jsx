@@ -86,10 +86,10 @@ export const Navbar = ({ onCtaClick }) => {
         {/* Right: Launch Platform Direct CTA */}
         <div className="hidden md:flex items-center space-x-3">
           <Link
-            to="/composer"
+            to="/home"
             className="px-4 py-1.5 rounded-full bg-gradient-to-r from-[#3B0A6B] via-[#7B1FA2] to-[#00E5FF] text-white text-xs font-semibold uppercase tracking-wider shadow-[0_0_15px_rgba(0,229,255,0.25)] hover:shadow-[0_0_25px_rgba(0,229,255,0.45)] transition-all hover:scale-[1.02]"
           >
-            Launch Platform
+            Dashboard
           </Link>
           <Link
             to="/auth"
@@ -156,11 +156,18 @@ export const Navbar = ({ onCtaClick }) => {
             ))}
             <div className="pt-3 border-t border-white/10 flex flex-col space-y-2">
               <Link
-                to="/composer"
+                to="/home"
                 onClick={() => setMobileMenuOpen(false)}
                 className="inline-flex w-full items-center justify-center py-2.5 px-4 rounded-full bg-gradient-to-r from-royal-amethyst via-[#7B1FA2] to-electric-cyan text-white text-xs font-semibold uppercase tracking-wider shadow-[0_0_20px_rgba(0,229,255,0.25)]"
               >
-                LAUNCH QUANTUM COMPOSER
+                OPEN WORKLOAD DASHBOARD
+              </Link>
+              <Link
+                to="/composer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="inline-flex w-full items-center justify-center py-2 px-4 rounded-full bg-white/[0.05] border border-white/15 text-white/80 text-xs tracking-wider"
+              >
+                QUANTUM COMPOSER
               </Link>
               <Link
                 to="/labs"

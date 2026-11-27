@@ -4,7 +4,8 @@ import React from "react";
 import Image from "next/image";
 
 export const ProductsSection: React.FC = () => {
-  const notebookUrl = process.env.NEXT_PUBLIC_NOTEBOOK_URL || "/home";
+  const DOMAIN_URL = process.env.NEXT_PUBLIC_DOMAIN_URL || "https://alphaparadoxqc.com";
+  const notebookUrl = `${DOMAIN_URL}/home`;
 
   return (
     <section
@@ -32,7 +33,7 @@ export const ProductsSection: React.FC = () => {
             priority
           />
 
-          {/* Floating Action Badge to Launch Dashboard in Same Window */}
+          {/* Floating Action Badge to Launch Dashboard */}
           <div className="absolute bottom-8 right-8 sm:bottom-12 sm:right-12 z-30">
             <div className="inline-flex items-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-[#9333ea] via-[#7B1FA2] to-[#3b0a6b] text-white font-semibold text-xs sm:text-sm tracking-wider uppercase border border-white/20 shadow-[0_0_30px_rgba(147,51,234,0.55)] group-hover:shadow-[0_0_45px_rgba(0,229,255,0.7)] group-hover:border-[#00e5ff]/60 transition-all duration-300 group-hover:scale-[1.04]">
               <span>Open The Alpha Book Dashboard</span>

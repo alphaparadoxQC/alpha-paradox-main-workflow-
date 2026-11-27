@@ -26,18 +26,28 @@ export const Navbar: React.FC<NavbarProps> = ({ onCtaClick }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const DOMAIN_URL = process.env.NEXT_PUBLIC_DOMAIN_URL || "https://alphaparadoxqc.com";
+  const NOTEBOOK_DASHBOARD_URL = `${DOMAIN_URL}/home`;
+
   const navLinks = [
     { label: "Get to Know Us", href: "#about" },
     { label: "Technology", href: "#technology" },
-    { label: "Software solutions/Products", href: "#products" },
+    { label: "Software solutions/Products", href: NOTEBOOK_DASHBOARD_URL, isExternalPage: true },
     { label: "Problems & Solutions", href: "#solutions" },
     { label: "Contact Us", href: "#faqs" },
   ];
 
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    href: string
+    href: string,
+    isExternalPage?: boolean
   ) => {
+    if (isExternalPage) {
+      e.preventDefault();
+      setMobileMenuOpen(false);
+      window.location.href = href;
+      return;
+    }
     if (href.startsWith("#")) {
       e.preventDefault();
       setMobileMenuOpen(false);
@@ -60,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onCtaClick }) => {
         {/* Left: Brand Logo */}
         <div className="flex items-center space-x-3">
           <Link
-            href="/"
+            href={DOMAIN_URL}
             className="group flex items-center text-white/90 hover:text-white transition-colors"
           >
             {/* Logo Image */}
@@ -82,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onCtaClick }) => {
             <Link
               key={link.label}
               href={link.href}
-              onClick={(e) => handleNavClick(e, link.href)}
+              onClick={(e) => handleNavClick(e, link.href, link.isExternalPage)}
               className="text-xs lg:text-[13px] tracking-wider text-white/70 hover:text-white transition-all duration-200 relative group py-1"
             >
               <span>{link.label}</span>
@@ -90,6 +100,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onCtaClick }) => {
             </Link>
           ))}
         </nav>
+
+        {/* Right CTA / Dashboard */}
+        <div className="hidden md:flex items-center space-x-4">
+          <a
+            href={NOTEBOOK_DASHBOARD_URL}
+            className="inline-flex items-center px-4 py-1.5 rounded-full bg-gradient-to-r from-royal-amethyst via-[#7B1FA2] to-electric-cyan text-white text-xs font-semibold tracking-wider uppercase border border-white/20 shadow-[0_0_20px_rgba(0,229,255,0.25)] hover:shadow-[0_0_25px_rgba(0,229,255,0.45)] hover:scale-105 transition-all duration-200"
+          >
+            DASHBOARD →
+          </a>
+        </div>
 
 
 
@@ -136,22 +156,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onCtaClick }) => {
               <Link
                 key={link.label}
                 href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
+                onClick={(e) => handleNavClick(e, link.href, link.isExternalPage)}
                 className="text-sm font-normal text-white/75 hover:text-white tracking-wide py-1"
               >
                 {link.label}
               </Link>
             ))}
-            <div className="pt-2 border-t border-white/10">
+            <div className="pt-2 border-t border-white/10 flex flex-col space-y-2">
               <a
-                href="#quantum-hardware"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  if (onCtaClick) onCtaClick();
-                }}
+                href={NOTEBOOK_DASHBOARD_URL}
                 className="inline-flex w-full items-center justify-center py-2.5 px-4 rounded-full bg-gradient-to-r from-royal-amethyst via-[#7B1FA2] to-electric-cyan text-white text-xs font-semibold uppercase tracking-wider shadow-[0_0_20px_rgba(0,229,255,0.25)]"
               >
-                QUANTUM HARDWARE
+                OPEN DASHBOARD →
               </a>
             </div>
           </div>
