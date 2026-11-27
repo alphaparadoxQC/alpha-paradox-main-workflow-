@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
+import { executeInBrowser } from '../quantum-engine/browser-kernel';
 
 // ─── Cell Factory ────────────────────────────────────────────────────────────
 const createCell = (type = 'code', content = '') => ({
@@ -77,14 +78,30 @@ const useNotebookStore = create((set, get) => ({
       return;
     }
 
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    const configuredWs = typeof import.meta !== 'undefined' && import.meta.env?.VITE_WS_URL;
+
+    // If on HTTPS production domain and no explicit secure WSS backend is provided,
+    // seamlessly activate the In-Browser Virtual Quantum Engine so users are never blocked.
+    if (isHttps && !configuredWs) {
+      console.log('[Notebook] Production HTTPS detected. Active: In-Browser Virtual Quantum Engine.');
+      set({
+        kernelStatus: 'idle',
+        sessionId,
+        _ws: null,
+        _isVirtualKernel: true
+      });
+      return;
+    }
+
     set({ kernelStatus: 'connecting', sessionId });
-    const wsUrl = `ws://${window.location.hostname || 'localhost'}:8000/ws/kernel/${sessionId}`;
+    const wsUrl = configuredWs || `ws://${window.location.hostname || 'localhost'}:8000/ws/kernel/${sessionId}`;
     
     try {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        set({ _ws: ws, kernelStatus: 'idle' });
+        set({ _ws: ws, kernelStatus: 'idle', _isVirtualKernel: false });
       };
 
       ws.onmessage = (event) => {
@@ -166,22 +183,24 @@ const useNotebookStore = create((set, get) => ({
       };
 
       ws.onclose = () => {
-        set({ _ws: null, kernelStatus: 'disconnected' });
-        // Auto-reconnect after 3 seconds
-        clearTimeout(get()._reconnectTimer);
-        const timer = setTimeout(() => {
-          get().connectKernel(sessionId);
-        }, 3000);
-        set({ _reconnectTimer: timer });
+        // Fallback to in-browser virtual kernel so execution is never disrupted
+        set({ _ws: null, kernelStatus: 'idle', _isVirtualKernel: true });
+        if (!isHttps) {
+          clearTimeout(get()._reconnectTimer);
+          const timer = setTimeout(() => {
+            get().connectKernel(sessionId);
+          }, 4000);
+          set({ _reconnectTimer: timer });
+        }
       };
 
       ws.onerror = () => {
-        set({ kernelStatus: 'error' });
+        set({ _ws: null, kernelStatus: 'idle', _isVirtualKernel: true });
       };
 
       set({ _ws: ws });
     } catch (e) {
-      set({ kernelStatus: 'disconnected' });
+      set({ _ws: null, kernelStatus: 'idle', _isVirtualKernel: true });
     }
   },
 
@@ -316,32 +335,44 @@ const useNotebookStore = create((set, get) => ({
 
     // Re-fetch ws from current state (not stale closure)
     const ws = get()._ws;
-    console.log('[runCell] id=', id, 'ws=', ws, 'readyState=', ws?.readyState, 'OPEN=', WebSocket.OPEN);
     if (ws && ws.readyState === WebSocket.OPEN) {
       const payload = JSON.stringify({
         action: 'execute',
         code: cell.content,
         cell_id: cell.id,
       });
-      console.log('[runCell] sending:', payload.substring(0, 100));
       ws.send(payload);
     } else {
-      // Fallback message if disconnected
-      setTimeout(() => {
+      // Execute via In-Browser Virtual Quantum Engine!
+      try {
+        const result = await executeInBrowser(cell.content, cell.id);
+        set((s) => ({
+          cells: s.cells.map(c => c.id === id ? {
+            ...c,
+            status: result.status,
+            outputs: result.outputs,
+            completedAt: Date.now()
+          } : c),
+          variables: result.variables && result.variables.length > 0
+            ? [...s.variables.filter(v => !result.variables.some(nv => nv.name === v.name)), ...result.variables]
+            : s.variables,
+          kernelStatus: 'idle',
+        }));
+      } catch (err) {
         set((s) => ({
           cells: s.cells.map(c => c.id === id ? {
             ...c,
             status: 'error',
             outputs: [{
               output_type: 'error',
-              ename: 'ConnectionError',
-              evalue: 'Kernel Gateway not connected at ws://localhost:8000',
-              traceback: ['Ensure the backend server is running with: uvicorn main:app --port 8000']
+              ename: 'ExecutionError',
+              evalue: err.message,
+              traceback: [err.stack || err.message]
             }],
             completedAt: Date.now()
           } : c)
         }));
-      }, 300);
+      }
     }
 
     // Auto-focus next cell
