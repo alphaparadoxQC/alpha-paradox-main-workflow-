@@ -1,0 +1,49 @@
+:root {
+  --bg-dark: #0a0e17;
+  --bg-darker: #05070a;
+  --bg-main: #0a0e17; /* Extended token */
+  --bg-secondary: #111827; /* Extended token */
+  --border-color: rgba(255, 255, 255, 0.1); /* Extended token */
+  --primary: #00d2ff;
+  --primary-glow: rgba(0, 210, 255, 0.5);
+  --secondary: #3a7bd5;
+  --text-main: #f0f4f8;
+  --text-muted: #8a9bb2;
+  --glass-bg: rgba(10, 14, 23, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.12);
+  --input-bg: rgba(0, 0, 0, 0.3);
+  
+  font-family: 'Inter', 'Outfit', sans-serif;
+  color-scheme: dark;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  place-items: center;
+  background: var(--bg-darker);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Base Form Elements */
+input {
+  font-family: 'Outfit', sans-serif;
+}

@@ -1,0 +1,14 @@
+import { QuantumCircuit } from './src/quantum-engine/circuit.js';
+const qc = new QuantumCircuit(6, 6);
+qc.h(2);
+qc.h(3);
+qc.cx(2, 4);
+qc.cx(3, 5);
+qc.cx(0, 2);
+qc.cx(1, 3);
+qc._recalculateTimeSlices();
+console.log("sorted ops timeslices:");
+qc.operations.forEach(op => console.log(op.gate, op.qubits, op.timeSlice));
+console.log("grid 0:", qc.toGrid()[0].map(o => o ? o.gate : null));
+console.log("grid 1:", qc.toGrid()[1].map(o => o ? o.gate : null));
+console.log("grid 2:", qc.toGrid()[2].map(o => o ? o.gate : null));

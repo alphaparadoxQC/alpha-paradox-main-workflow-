@@ -1,0 +1,315 @@
+/* ── Unified Down Bar (Bottom Navigation & Status Bar) ── */
+.unified-navbar,
+.unified-downbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 1rem;
+  background: rgba(10, 14, 23, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom: none;
+  color: #f0f4f8;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  position: relative;
+  z-index: 1000;
+  flex-shrink: 0;
+  user-select: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Left Section: Logo & Products */
+.unav-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.unav-brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  cursor: pointer;
+  padding-right: 0.2rem;
+}
+
+.unav-logo-img {
+  height: 22px;
+  width: auto;
+  border-radius: 4px;
+  transition: transform 0.2s ease;
+}
+
+.unav-logo-img:hover {
+  transform: scale(1.08);
+}
+
+/* Product Switcher Menu */
+.unav-products {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.unav-product-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #94a3b8;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+.unav-product-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.unav-product-tab.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(0, 210, 255, 0.4);
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+}
+
+.unav-tab-icon {
+  font-size: 0.78rem;
+}
+
+/* Under Tab: Sub-modules for Composer (Circuit Studio vs Silicon EDA) */
+.unav-under-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: rgba(30, 41, 59, 0.45);
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-left: 0.25rem;
+}
+
+.unav-under-tab-label {
+  font-size: 0.62rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  padding: 0 3px;
+}
+
+.unav-under-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.unav-under-tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.unav-under-tab.active {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
+}
+
+.unav-under-tab-icon {
+  font-size: 0.7rem;
+}
+
+/* Center Section */
+.unav-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Right Section: Status, Sync, Profile */
+.unav-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.unav-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  font-size: 0.66rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #34d399;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.unav-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+  animation: unav-pulse 2s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes unav-pulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.unav-sync-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.66rem;
+  color: #94a3b8;
+  padding: 0.2rem 0.45rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* User Profile */
+.unav-profile {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.unav-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.unav-user-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.unav-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.unav-username {
+  font-size: 0.68rem;
+  color: #e2e8f0;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dropdown Menu - Opens UPWARDS from down bar */
+.unav-dropdown {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  top: auto;
+  right: 0;
+  min-width: 220px;
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+}
+
+.unav-dropdown-header {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.35rem;
+}
+
+.unav-dropdown-name {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: #ffffff;
+}
+
+.unav-dropdown-email {
+  font-size: 0.66rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+.unav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.unav-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.unav-dropdown-item.danger {
+  color: #f87171;
+}
+
+.unav-dropdown-item.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}

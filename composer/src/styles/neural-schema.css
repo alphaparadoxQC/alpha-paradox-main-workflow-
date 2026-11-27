@@ -1,0 +1,260 @@
+/**
+ * Alpha Full-Stack Neural Schema Stylesheet
+ * Strict Scientific Dark Mode: Absolute Black (#000000), Charcoal (#0a0c10, #0d1117),
+ * Brushed Slate (#2A2E35), Electric Cyan (#00E5FF), Emerald (#10b981).
+ * Interactive Product Interconnect, Nodes, Synapses, and Formulas.
+ */
+
+.neural-schema-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  color: #f0f6fc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  user-select: none;
+}
+
+.neural-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.75rem;
+}
+
+.neural-title-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #00E5FF;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.neural-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00E5FF;
+  box-shadow: 0 0 10px #00E5FF;
+  animation: neuralPulse 2s infinite ease-in-out;
+}
+
+@keyframes neuralPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+.neural-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.neural-filter-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #8b949e;
+  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.neural-filter-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.neural-filter-btn.active {
+  background: rgba(0, 229, 255, 0.12);
+  color: #00E5FF;
+  border-color: rgba(0, 229, 255, 0.35);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+  font-weight: 600;
+}
+
+.neural-canvas-card {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  background: #06090e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.neural-grid-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image: radial-gradient(#00E5FF 0.75px, transparent 0.75px), radial-gradient(#94a3b8 0.75px, #06090e 0.75px);
+  background-size: 26px 26px;
+  background-position: 0 0, 13px 13px;
+}
+
+.neural-svg-scroll {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+}
+
+.neural-svg-graph {
+  width: 100%;
+  height: auto;
+  min-width: 820px;
+  display: block;
+}
+
+.neural-inspector-card {
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: #0a0d14;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.neural-inspector-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.6rem;
+}
+
+.neural-inspector-layer {
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #00E5FF;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.neural-inspector-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.neural-inspector-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.neural-inspector-subtitle {
+  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.neural-inspector-desc {
+  font-size: 0.82rem;
+  color: #c9d1d9;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.neural-specs-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.neural-section-label {
+  font-size: 0.64rem;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8b949e;
+}
+
+.neural-math-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.neural-math-tag {
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #111622;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  font-size: 0.72rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #00E5FF;
+}
+
+.neural-synapse-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.4rem;
+}
+
+.neural-synapse-cell {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.neural-synapse-cell:hover,
+.neural-synapse-cell.active {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: #00E5FF;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+.neural-synapse-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #00E5FF;
+}
+
+.neural-synapse-tensor {
+  font-size: 0.68rem;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}

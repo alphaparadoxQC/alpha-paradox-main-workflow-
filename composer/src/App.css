@@ -1,0 +1,460 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background-color: transparent; /* Made fully transparent as requested */
+  position: relative;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* Background image overlay so we can filter it independently of the app content */
+.app-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* background-image: url('/quantum-hardware.png'); replaced by video */
+  background-size: contain; 
+  background-position: calc(50% + 1.5rem) center; 
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  filter: brightness(1.4) contrast(1.15);
+  z-index: -2;
+  pointer-events: none;
+}
+
+.auth-bg-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  object-fit: cover;
+  z-index: -1; /* Higher than the -2 static background so it covers it */
+  pointer-events: none;
+}
+
+.dashboard-bg-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  object-fit: cover;
+  z-index: 1; /* Below the nav but above the document background */
+  pointer-events: none;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  width: 100%;
+}
+
+/* Top Navigation Bar */
+.top-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  height: 56px;
+  background: rgba(8, 10, 18, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  z-index: 100;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.nav-logo-img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.nav-link.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-link.has-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.dropdown-arrow {
+  font-size: 0.65rem;
+  opacity: 0.6;
+}
+
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 1.4rem;
+  background: linear-gradient(135deg, #4361ee, #3a56d4);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 50px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+}
+
+.nav-cta:hover {
+  background: linear-gradient(135deg, #5472ff, #4361ee);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(67, 97, 238, 0.45);
+}
+
+/* Overlay removed because it made the background dull black */
+
+/* Split Screen Layout */
+.split-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+}
+
+.split-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+  overflow: hidden;
+  background: transparent;
+}
+
+
+
+/* Logo Styling */
+.logo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin-top: 5.75rem; /* Moved logo up by 0.5cm */
+  margin-left: -1.5rem; /* Moved logo left by 1cm */
+}
+
+.logo-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.1)) contrast(1.8) brightness(1.1); /* High contrast crushes any dark greys into pure black, making it fully transparent */
+  transform: scale(1.4);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at center, black 50%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 80% at center, black 50%, transparent 100%);
+  mix-blend-mode: screen; /* Makes the black background of the JPG transparent */
+}
+
+
+
+.logo-image-blur {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1.5);
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: blur(25px);
+  opacity: 0.6;
+  z-index: 1;
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at center, black 50%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 80% at center, black 50%, transparent 100%);
+}
+
+/* Glassmorphism Auth Card */
+.auth-card {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(10, 10, 10, 0.05); /* Made almost completely transparent to show hardware */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly boosted border visibility to compensate for transparency */
+  border-radius: 20px;
+  padding: 3rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  margin-left: 6rem; /* Shifting the login section to the right as requested */
+  margin-top: -3rem; /* Nudged 0.5cm down from the previous -4rem */
+}
+
+/* Removed subtle glow behind card as it is now transparent against a complex image */
+
+.auth-header {
+  margin-bottom: 2.5rem;
+}
+
+.auth-header h2 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(to right, #fff, var(--text-muted));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-header p {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.form-input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  color: var(--text-main);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+select.form-input option {
+  background-color: #111; /* Ensure dark background for options to maintain readability */
+  color: #fff;
+}
+
+.form-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(0, 210, 255, 0.1);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.form-input::placeholder {
+  color: rgba(138, 155, 178, 0.4);
+}
+
+/* Primary Button */
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 20px -5px rgba(0, 210, 255, 0.3);
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: all 0.5s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 25px -5px rgba(0, 210, 255, 0.4);
+}
+
+.btn-primary:hover::after {
+  left: 100%;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Toggle Link */
+.auth-toggle {
+  text-align: center;
+  margin-top: 2rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.auth-toggle span {
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  margin-left: 0.5rem;
+}
+
+.auth-toggle span:hover {
+  color: #fff;
+  text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+}
+
+/* Scrollbar for sign up if it gets too tall */
+.form-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.form-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.form-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.form-container::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 4px;
+}
+
+.form-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Animations */
+.fade-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.fade-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+@media (max-width: 968px) {
+  .app-container {
+    flex-direction: column;
+  }
+  .split-left {
+    flex: 0.4;
+    padding: 3rem 2rem;
+  }
+  .split-right {
+    flex: 0.6;
+    border-left: none;
+    border-top: 1px solid var(--glass-border);
+  }
+  .logo-main {
+    font-size: 3.5rem;
+  }
+}
+
+/* Timeline Animation */
+.timeline-container {
+  margin-top: -14rem; /* Moved even more upper */
+  width: 95%;
+  max-width: 750px; /* Made a little wider */
+  position: relative;
+  padding: 1rem 0;
+  height: 120px;
+}
+
+.timeline-curve {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  z-index: 1;
+}
+
+.curve-animated {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000; /* Start empty */
+  animation: drawCurve 4s linear forwards;
+  filter: drop-shadow(0 0 8px #00d2ff);
+}
+
+@keyframes drawCurve {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+

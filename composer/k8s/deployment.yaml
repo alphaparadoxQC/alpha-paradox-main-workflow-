@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpha-api
+  labels:
+    app: alpha-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: alpha-api
+  template:
+    metadata:
+      labels:
+        app: alpha-api
+    spec:
+      containers:
+      - name: api
+        image: ghcr.io/alphaparadox/api:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: SUPABASE_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: alpha-secrets
+              key: jwt-secret
+        - name: CELERY_BROKER_URL
+          value: "redis://alpha-redis:6379/0"
+        - name: CELERY_RESULT_BACKEND
+          value: "redis://alpha-redis:6379/0"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpha-worker
+  labels:
+    app: alpha-worker
+spec:
+  replicas: 5 # Scale out workers for heavy simulation loads
+  selector:
+    matchLabels:
+      app: alpha-worker
+  template:
+    metadata:
+      labels:
+        app: alpha-worker
+    spec:
+      containers:
+      - name: worker
+        image: ghcr.io/alphaparadox/worker:latest
+        command: ["celery", "-A", "worker.celery_app", "worker", "--loglevel=info", "-c", "4"]
+        env:
+        - name: CELERY_BROKER_URL
+          value: "redis://alpha-redis:6379/0"
+        - name: CELERY_RESULT_BACKEND
+          value: "redis://alpha-redis:6379/0"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpha-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alpha-redis
+  template:
+    metadata:
+      labels:
+        app: alpha-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:alpine
+        ports:
+        - containerPort: 6379

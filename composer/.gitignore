@@ -1,0 +1,68 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies and Build Outputs
+node_modules/
+dist/
+dist-ssr/
+*.local
+.next/
+out/
+
+# Environment and Secret Files
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# Python Artifacts & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+var/
+sdist/
+
+# OS and Editor Directories
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# GDSII Foundry Mask Binaries & Logs
+*.gds
+*.oasis
+*.drc
+*.lydrc
+klayout_*.log
+capture_gui.log
