@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "dev:frontend": "vite",
     "dev:backend": "docker-compose up --build",
-    "build": "cd composer && npm install --legacy-peer-deps && npm run build && rm -rf ../dist && cp -r dist ../dist",
+    "build": "[ -d \"composer\" ] && (cd composer && npm install --legacy-peer-deps && npm run build && rm -rf ../dist && cp -r dist ../dist) || (npm install --legacy-peer-deps && npm run build)",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",

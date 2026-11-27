@@ -1,9 +1,9 @@
 [build]
-  command = "cd composer && npm install --legacy-peer-deps && npm run build && rm -rf ../dist && cp -r dist ../dist"
+  command = "[ -d \"composer\" ] && (cd composer && npm install --legacy-peer-deps && npm run build && rm -rf ../dist && cp -r dist ../dist) || (npm install --legacy-peer-deps && npm run build)"
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "22"
+  NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   PUPPETEER_SKIP_DOWNLOAD = "true"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
