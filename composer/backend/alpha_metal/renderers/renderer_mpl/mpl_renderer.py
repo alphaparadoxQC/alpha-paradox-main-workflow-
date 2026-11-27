@@ -1,0 +1,686 @@
+# This code is part of Alpha.
+#
+# (C) Copyright Alpha 2017, 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""MPL Renderer."""
+
+import logging
+from typing import TYPE_CHECKING, Optional
+
+import numpy as np
+import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection, PatchCollection
+from matplotlib.patches import Rectangle
+from shapely.geometry import CAP_STYLE, JOIN_STYLE, LineString
+
+from alpha_metal import Dict, config
+from alpha_metal.designs import QDesign
+from alpha_metal.renderers.renderer_mpl.patch import PolygonPatch
+
+if not config.is_building_docs():
+    from alpha_metal.toolbox_python.utility_functions import bad_fillet_idxs
+
+if TYPE_CHECKING:
+    from alpha_metal.elements.elements_handler import QGeometryTables
+
+    from .mpl_canvas import PlotCanvas
+
+__all__ = ["QMplRenderer"]
+
+to_poly_patch = np.vectorize(PolygonPatch)
+
+
+class QMplRenderer:
+    """Matplotlib renderer for Alpha designs.
+
+    Can be used in two ways:
+
+    1. **Standalone (no Qt):** ``QMplRenderer(design)`` — produces a
+       renderer that plots into any matplotlib ``Axes`` passed to
+       :meth:`render`. This is the path used by
+       :func:`alpha_metal.view` and by tutorials that want to display
+       a design inline in a Jupyter notebook with no GUI.
+
+    2. **Inside the Qt MetalGUI:** ``QMplRenderer(design, canvas=plot_canvas)``
+       — the desktop GUI's :class:`PlotCanvas` instantiates this way to
+       wire the renderer to its embedded matplotlib figure. The
+       ``canvas`` argument is stored on ``self.canvas`` for callers
+       that need it, but no method in this class uses it directly.
+
+    The ``ax`` to render into is still passed explicitly to
+    :meth:`render` — neither construction path implies a fixed axes.
+    """
+
+    def __init__(
+        self,
+        design: QDesign,
+        *,
+        canvas: Optional["PlotCanvas"] = None,
+        logger: logging.Logger | None = None,
+    ):
+        """
+        Args:
+            design: The design to render. Required.
+            canvas: Optional Qt ``PlotCanvas`` (legacy path used by
+                :class:`MetalGUI`). Pass ``None`` for a standalone /
+                headless renderer.
+            logger: Optional logger. Falls back to a module-level
+                logger if ``None``.
+        """
+        super().__init__()
+        self.logger = (
+            logger
+            if logger is not None
+            else logging.getLogger("alpha_metal.renderer_mpl")
+        )
+        self.canvas = canvas
+        self.ax = None
+        self.design = design
+        self.options = Dict(
+            resolution="16",
+            # Draw the die outline behind the geometry. Without it there is
+            # nothing on screen that says where the chip ends, so geometry
+            # placed past the edge -- which every renderer downstream
+            # silently clips -- looks fine.
+            chip_outline=True,
+        )
+
+        # Filter view options
+        self.hidden_layers = set()
+
+        # Set of component ids which are integers.
+        self._hidden_components = set()
+
+        self.colors = [
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
+        ]
+
+        self.set_design(design)
+
+    def get_color_num(self, num: int) -> str:
+        """Get the color from the given number.
+        Args:
+            num (int): number
+        Return:
+            str: color
+        """
+        return self.colors[num % len(self.colors)]
+
+    def hide_component(self, name):
+        """Hide the component with the given name.
+        Args:
+            name (str): Component name
+        """
+        comp_id = self.design.components[name].id
+        self._hidden_components.add(comp_id)
+
+    def show_component(self, name):
+        """Show the component with the given name.
+        Args:
+            name (str): Component name
+        """
+        # ``hide_component`` stores the component id, so discard the id too --
+        # discarding the name never matched, leaving the component hidden.
+        comp_id = self.design.components[name].id
+        self._hidden_components.discard(comp_id)
+
+    def hide_layer(self, name):
+        """Hide the layer with the given name.
+        Args:
+            name (str): Layer name
+        """
+        self.hidden_layers.add(name)
+
+    def show_layer(self, name):
+        """Show the layer with the given name.
+        Args:
+            name (str): Layer name
+        """
+        self.hidden_layers.discard(name)
+
+    def set_design(self, design: QDesign):
+        """Set the design.
+        Args:
+            design (QDesign): The design
+        """
+        self.design = design
+        self.clear_options()
+        # TODO
+
+    def clear_options(self):
+        """Clear all options."""
+        self._hidden_components.clear()
+        self.hidden_layers.clear()
+
+    def render(self, ax: Axes):
+        """Assumes that the axis has been cleared already and so on.
+        Args:
+            ax (matplotlib.axes.Axes): mpl axis to draw on
+        """
+
+        self.logger.debug("Rendering element tables to plot window.")
+        if self.options.get("chip_outline", True):
+            self.render_chip_outlines(ax)
+        self.render_tables(ax)
+
+    #: Style of the die outline drawn by :meth:`render_chip_outlines`.
+    chip_outline_style = dict(
+        fill=False,
+        edgecolor="#8c8c8c",
+        linewidth=1.0,
+        linestyle=(0, (6, 4)),
+        zorder=-10,
+    )
+
+    def chip_bounds(self, chip_name: str) -> tuple[float, float, float, float] | None:
+        """Outline of one chip as ``(minx, miny, maxx, maxy)`` in millimetres.
+
+        Args:
+            chip_name (str): key into ``design.chips``.
+
+        Returns:
+            tuple or None: the extent, or ``None`` if this chip carries no
+            usable ``size`` block. Renderers are best-effort about chip
+            metadata -- a design that has not defined a die is still a
+            design worth plotting.
+        """
+        size = self.design.chips.get(chip_name, {}).get("size", None)
+        if not size:
+            return None
+        try:
+            center_x = self.design.parse_value(size["center_x"])
+            center_y = self.design.parse_value(size["center_y"])
+            size_x = self.design.parse_value(size["size_x"])
+            size_y = self.design.parse_value(size["size_y"])
+        except (KeyError, TypeError, ValueError):
+            self.logger.debug(
+                "Chip %r has no parseable size; skipping outline.", chip_name
+            )
+            return None
+        if not (size_x and size_y):
+            return None
+        return (
+            center_x - abs(size_x) / 2.0,
+            center_y - abs(size_y) / 2.0,
+            center_x + abs(size_x) / 2.0,
+            center_y + abs(size_y) / 2.0,
+        )
+
+    def render_chip_outlines(self, ax: Axes):
+        """Draw the die outline for every chip in the design.
+
+        Drawn as a patch rather than a plain line so it participates in
+        autoscaling: a design whose components all sit inside the die still
+        shows the full die, and one with geometry hanging off the edge shows
+        that at a glance.
+
+        Args:
+            ax (Axes): The axes
+        """
+        chips = list(self.design.chips.keys())
+        # A flip-chip stack has two dies at the same x/y and different z, so
+        # their outlines land on top of each other. Count how many labels
+        # already sit at a corner and step the next one down, or they render
+        # as one smudge.
+        labels_at_corner: dict[tuple[float, float], int] = {}
+
+        for chip_name in chips:
+            bounds = self.chip_bounds(chip_name)
+            if bounds is None:
+                continue
+            minx, miny, maxx, maxy = bounds
+            ax.add_patch(
+                Rectangle(
+                    (minx, miny),
+                    maxx - minx,
+                    maxy - miny,
+                    **self.chip_outline_style,
+                )
+            )
+            # One unlabelled rectangle reads as "the chip". Several
+            # unlabelled ones do not, so name them only when it is ambiguous.
+            if len(chips) > 1:
+                stacked = labels_at_corner.get((minx, maxy), 0)
+                labels_at_corner[(minx, maxy)] = stacked + 1
+                ax.annotate(
+                    chip_name,
+                    (minx, maxy),
+                    xytext=(3, -3 - 9 * stacked),
+                    textcoords="offset points",
+                    va="top",
+                    ha="left",
+                    fontsize=7,
+                    color=self.chip_outline_style["edgecolor"],
+                    zorder=self.chip_outline_style["zorder"],
+                )
+
+    def get_mask(self, table: pd.DataFrame) -> pd.Series:
+        """Gets the mask.
+        Args:
+            table (pd.DataFrame): dataframe
+        Returns:
+            pd.Series: return pandas index series with boolen mask
+            - i.e., which are not hidden or otherwise
+        """
+
+        # TODO: Ideally these should be replaced with interface functions,
+        # not direct access to underlying internal representation
+
+        # A row is hidden if its layer is in ``hidden_layers`` OR its
+        # component is in ``_hidden_components``. The previous form
+        # rebuilt ``mask`` from scratch on the second line, silently
+        # discarding the ``hidden_layers`` filter — visible from the
+        # Qt GUI only when a user hid both at once.
+        mask = table.layer.isin(self.hidden_layers) | table.component.isin(
+            self._hidden_components
+        )
+
+        return ~mask  # not
+
+    def _render_poly_array(self, ax: Axes, poly_array: np.ndarray, mpl_kw: dict):
+        """Render the poly array.
+        Args:
+            ax (Axes): The axis
+            poly_array (np.array): The poly
+            mpl_kw (dict): The parameters dictionary
+        """
+        if len(poly_array) > 0:
+            poly_array = to_poly_patch(poly_array)
+            ax.add_collection(PatchCollection(poly_array, **mpl_kw))
+
+    @property
+    def qgeometry(self) -> "QGeometryTables":
+        """Return the qgeometry of the design."""
+        return self.design.qgeometry
+
+    # TODO: move to some config and user input also make widget
+    styles = {
+        "path": {
+            "base": dict(linewidth=2, alpha=0.5),
+            "subtracted": dict(),  # linestyle='--', edgecolors='k', color='gray'),
+            "non-subtracted": dict(),
+        },
+        "poly": {
+            "base": dict(linewidth=1, alpha=0.5, edgecolors="k"),
+            "subtracted": dict(linestyle="--", color="gray"),
+            "non-subtracted": dict(),
+        },
+        "JJ": {
+            "base": dict(linewidth=1, alpha=0.2, edgecolors="k"),
+            "subtracted": dict(linestyle="--", color="gray"),
+            "non-subtracted": dict(),
+        },
+    }
+    """Styles"""
+
+    def get_style(self, element_type: str, subtracted=False, layer=None, extra=None):
+        """Get the style.
+        Args:
+            element_type (str): The type of element.
+            subtracted (bool): True to subtract the key.  Defaults to False.
+            layer (layer): The layer.  Defaults to None.
+            extra (dict): Extra stuff to add.  Defaults to None.
+        Return:
+            dict: Style dictionary
+        """
+        # element_type - poly path
+        extra = extra or {}
+
+        key = "subtracted" if subtracted else "non-subtracted"
+
+        kw = {
+            **self.styles[element_type].get("base", {}),
+            **self.styles[element_type].get(key, {}),
+            **extra,
+        }
+
+        # TODO: maybe pop keys that are invalid for line etc.
+        # we could have a validation flag to validate for specific poly / path
+
+        return kw
+
+    def render_tables(self, ax: Axes):
+        """Render the tables.
+        Args:
+            ax (Axes): The axes
+        """
+        for element_type, table in self.qgeometry.tables.items():
+            # Mask the table
+            table = table[self.get_mask(table)]
+
+            # subtracted
+            mask = table["subtract"]
+            render_func = getattr(self, f"render_{element_type}")
+            render_func(table[mask], ax, subtracted=True)
+
+            # non-subtracted
+            table1 = table[~mask]
+            # TODO: do by layer and color
+            # self.get_color_num()
+
+            # TODO: Check that the function exists
+            render_func = getattr(self, f"render_{element_type}")
+            render_func(table1, ax, subtracted=False)
+
+    def render_junction(
+        self,
+        table: pd.DataFrame,
+        ax: Axes,
+        subtracted: bool = False,
+        extra_kw: dict | None = None,
+    ):
+        """Render a table of junction geometry.
+        A junction is basically drawn like a path with finite width and no fillet.
+        Args:
+            table (DataFrame): Element table
+            ax (matplotlib.axes.Axes): Axis to render on
+            extra_kw (dict): Style params
+        """
+        if len(table) > 0:
+            mask = (table.width == 0) | table.width.isna()
+            table1 = table[~mask]
+            if len(table1) > 0:
+                table1["geometry"] = table1[["geometry", "width"]].apply(
+                    lambda x: x.iloc[0].buffer(
+                        # ``x.iloc[1]`` (was ``x[1]``) — in pandas
+                        # 2.2+, integer indexing on a Series with
+                        # string labels raises KeyError rather than
+                        # falling back to positional lookup. The row
+                        # here has labels ``['geometry', 'width']``
+                        # so positional access must be explicit.
+                        distance=float(x.iloc[1]) / 2.0,
+                        cap_style=CAP_STYLE.flat,
+                        join_style=JOIN_STYLE.mitre,
+                        quad_segs=int(self.options["resolution"]),
+                    ),
+                    axis=1,
+                )
+                kw = self.get_style("JJ", subtracted=subtracted, extra=extra_kw)
+                self.render_poly(table1, ax, subtracted=subtracted, extra_kw=kw)
+            table1 = table[mask]
+            if len(table1) > 0:
+                self.logger.warning(
+                    "One or more junctions have zero width. Consider changing this."
+                )
+
+    def render_poly(
+        self,
+        table: pd.DataFrame,
+        ax: Axes,
+        subtracted: bool = False,
+        extra_kw: dict | None = None,
+    ):
+        """Render a table of poly geometry.
+        Args:
+            table (DataFrame): Element table
+            ax (matplotlib.axes.Axes): Axis to render on
+            kw (dict): Style params
+        """
+        if len(table) < 1:
+            return
+
+        kw = self.get_style("poly", subtracted=subtracted, extra=extra_kw)
+        # Draw non-subtract polys ordered by layer so higher layers sit on top
+        # (e.g. airbridge crossovers on layers 30/31 render above the base
+        # alpha and CPW). Subtract polys ("holes") keep the default order.
+        if not subtracted and "layer" in table.columns and table["layer"].nunique() > 1:
+            for layer, group in table.groupby("layer"):
+                layer_kw = {**kw, "zorder": 1.0 + float(layer) * 1e-3}
+                self._render_poly_array(ax, group.geometry, layer_kw)
+        else:
+            self._render_poly_array(ax, table.geometry, kw)
+
+    def render_fillet(self, table):
+        """Renders fillet path.
+        Args:
+            table (DataFrame): Table of elements with fillets
+        Returns:
+            DataFrame table with geometry field updated with a polygon filleted path.
+        """
+        table["geometry"] = table.apply(self.fillet_path, axis=1)
+        return table
+
+    def fillet_path(self, row):
+        """Output the filleted path.
+        Args:
+            row (DataFrame): Row to fillet.
+        Returns:
+            Polygon of the new filleted path.
+        """
+        path = row["geometry"].coords
+        if len(path) <= 2:  # only start and end points, no need to fillet
+            return row["geometry"]
+        newpath = np.array([path[0]])
+
+        # Get list of vertices that can't be filleted
+        no_fillet = bad_fillet_idxs(
+            path, row["fillet"], self.design.template_options.PRECISION
+        )
+
+        # Iterate through every three-vertex corner
+        for i, (start, corner, end) in enumerate(zip(path, path[1:], path[2:])):
+            if i + 1 in no_fillet:  # don't fillet this corner
+                newpath = np.concatenate((newpath, np.array([corner])))
+            else:
+                fillet = self._calc_fillet(
+                    np.array(start),
+                    np.array(corner),
+                    np.array(end),
+                    row["fillet"],
+                    int(self.options["resolution"]),
+                )
+                if fillet is not False:
+                    newpath = np.concatenate((newpath, fillet))
+                else:
+                    newpath = np.concatenate((newpath, np.array([corner])))
+        newpath = np.concatenate((newpath, np.array([end])))
+        return LineString(newpath)
+
+    def _calc_fillet(self, vertex_start, vertex_corner, vertex_end, radius, points=16):
+        """Returns the filleted path based on the start, corner, and end
+        vertices and the fillet radius.
+        Args:
+            vertex_start (np.ndarray): x-y coordinates of starting vertex.
+            vertex_corner (np.ndarray): x-y coordinates of corner vertex.
+            vertex_end (np.ndarray): x-y coordinates of end vertex.
+            radius (float): Fillet radius.
+            points (int): Number of points to draw in the fillet corner.
+        """
+        # Start, corner, and end vertices must be distinct
+        if np.array_equal(vertex_start, vertex_corner) or np.array_equal(
+            vertex_end, vertex_corner
+        ):
+            return False
+
+        # Vectors pointing from corner to start and end vertices, respectively
+        # Also calculate their lengths and unit vectors
+        sc_vec = vertex_start - vertex_corner
+        ec_vec = vertex_end - vertex_corner
+        sc_norm = np.linalg.norm(sc_vec)
+        ec_norm = np.linalg.norm(ec_vec)
+        sc_uvec = sc_vec / sc_norm
+        ec_uvec = ec_vec / ec_norm
+
+        # Angle between previous unit vectors. Clip: on a straight run the dot
+        # product can round just past -1; arccos then returned NaN, NaN passed
+        # every check below, and the fillet points came out NaN (drawn as a
+        # sawtooth of spikes along the line).
+        end_angle = np.arccos(np.clip(np.dot(sc_uvec, ec_uvec), -1.0, 1.0))
+
+        # Start, corner, and end vertices can't be collinear (to within
+        # rounding: the bisector below would have no direction).
+        if end_angle < 1e-6 or np.pi - end_angle < 1e-6:
+            return False
+
+        # Fillet circle must be small enough to fit inside corner
+        if radius / np.tan(end_angle / 2) > min(sc_norm, ec_norm):
+            return False
+
+        # Unit vector pointing from corner vertex to center of fillet circle
+        net_uvec = (sc_uvec + ec_uvec) / np.linalg.norm(sc_uvec + ec_uvec)
+
+        # Coordinates of center of fillet circle
+        circle_center = vertex_corner + net_uvec * radius / np.sin(end_angle / 2)
+
+        # Deltas represent displacement from corner vertex to circle center
+        # Midpoint angle from circle center to corner, wrt to horizontal extending from former
+        # Note: arctan is fine for angles in range (-pi / 2, pi / 2] but needs extra pi factor otherwise
+        delta_x = vertex_corner[0] - circle_center[0]
+        delta_y = vertex_corner[1] - circle_center[1]
+        if delta_x:
+            theta_mid = np.arctan(delta_y / delta_x) + np.pi * int(delta_x < 0)
+        else:
+            theta_mid = np.pi * ((1 - 2 * int(delta_y < 0)) + int(delta_y < 0))
+
+        # Start and end sweep angles determined relative to midpoint angle
+        # Swap them as needed to resolve ambiguity in arctan
+        theta_start = theta_mid - (np.pi - end_angle) / 2
+        theta_end = theta_mid + (np.pi - end_angle) / 2
+        p1 = circle_center + radius * np.array(
+            [np.cos(theta_start), np.sin(theta_start)]
+        )
+        p2 = circle_center + radius * np.array([np.cos(theta_end), np.sin(theta_end)])
+        if np.linalg.norm(vertex_start - p2) < np.linalg.norm(vertex_start - p1):
+            theta_start, theta_end = theta_end, theta_start
+
+        # Populate the fillet corner, skipping the start point since it's already added
+        path = np.array(
+            [
+                circle_center
+                + radius * np.array([np.cos(theta_start), np.sin(theta_start)])
+            ]
+        )
+        for theta in np.linspace(theta_start, theta_end, points)[1:]:
+            path = np.concatenate(
+                (
+                    path,
+                    np.array(
+                        [
+                            circle_center
+                            + radius * np.array([np.cos(theta), np.sin(theta)])
+                        ]
+                    ),
+                )
+            )
+        return path
+
+    def render_path(
+        self,
+        table: pd.DataFrame,
+        ax: Axes,
+        subtracted: bool = False,
+        extra_kw: dict | None = None,
+    ):
+        """Render a table of path geometry.
+        Args:
+            table (DataFrame): Element table
+            ax (matplotlib.axes.Axes): Axis to render on
+            kw (dict): Style params
+        """
+        if len(table) < 1:
+            return
+
+        # mask for all non zero width paths
+        # TODO: could there be a problem with float vs int here?
+        mask = (table.width == 0) | table.width.isna()
+        # print(f'subtracted={subtracted}\n\n')
+        # display(table)
+        # display(imask)
+
+        # convert to polys - handle non zero width
+        table1 = table[~mask]
+
+        mask2 = table1.fillet == 0
+
+        table2 = table1[~mask2]
+
+        for index, row in table2[table2.fillet.notnull()].iterrows():
+            table1.loc[index, "geometry"] = self.fillet_path(row)
+
+        if len(table1) > 0:
+            table1["geometry"] = table1[["geometry", "width"]].apply(
+                lambda x: x.iloc[0].buffer(
+                    distance=float(x.iloc[1]) / 2.0,
+                    cap_style=CAP_STYLE.flat,
+                    join_style=JOIN_STYLE.mitre,
+                    quad_segs=int(self.options["resolution"]),
+                ),
+                axis=1,
+            )
+
+            kw = self.get_style("poly", subtracted=subtracted, extra=extra_kw)
+
+            # render components
+            self.render_poly(table1, ax, subtracted=subtracted, extra_kw=kw)
+
+        # handle zero width
+        table1 = table[mask]
+        # best way to plot?
+        # TODO: speed and vectorize?
+        if len(table1) > 0:
+            kw = self.get_style("path", subtracted=subtracted, extra=extra_kw)
+            line_segments = LineCollection(table1.geometry)
+            ax.add_collection(line_segments)
+
+
+# DEFAULT['renderer_mpl'] = Dict(
+#     annot_conectors=Dict(
+#         ofst=[0.025, 0.025],
+#         annotate_kw=dict(  # called by ax.annotate
+#             color='r',
+#             arrowprops=dict(color='r', shrink=0.1, width=0.05, headwidth=0.1)
+#         ),
+#         line_kw=dict(lw=2, c='r')
+#     ),
+# )
+
+# class QRendererMPL(QRendererGui):
+#     """
+#     Renderer for matplotlib in a GUI environment.
+
+#     TODO: How do we handle component selection, etc.
+#     """
+#     name = 'mpl'
+#     element_extensions = dict()
+
+#     def render_shapely(self, obj, kw=None):
+#         # TODO: simplify, specialize, and update this function
+#         # right now, this is just calling the V0.1 old style
+#         render(obj, ax=self.ax, kw= {} or kw)
+
+#     def render_connectors(self):
+#         '''
+#         Plots all connectors on the active axes. Draws the 1D line that
+#         represents the "port" of a connector point. These are referenced for smart placement
+#             of Alpha components, such as when using functions like Metal_CPW_Connect.
+
+#         TODO: add some filter for sense of what components are visible?
+#               or on what chip the connectors are
+#         '''
+
+#         for name, conn in self.design.connectors.items():
+
+#             line = LineString(conn.points)
+
+#             self.render_shapely(line, kw=DEFAULT.annot_conectors.line_kw)
+
+#             self.ax.annotate(name, xy=conn.middle[:2], xytext=conn.middle +
+#                              np.array(DEFAULT.annot_conectors.ofst),
+#                              **DEFAULT.annot_conectors.annotate_kw)

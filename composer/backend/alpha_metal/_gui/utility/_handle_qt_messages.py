@@ -1,0 +1,180 @@
+# This code is part of Alpha.
+#
+# (C) Copyright Alpha 2017, 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+"""This is a utility module used to handle qt error messages on slots and
+etc."""
+
+import inspect
+import logging
+import traceback
+import types
+from functools import wraps
+
+from PySide6 import QtCore
+from PySide6.QtCore import Slot
+
+from alpha_metal import logger
+
+__all__ = ["do_debug", "slot_catch_error"]
+
+#######################################################################################
+# Core handler
+
+
+def _qt_message_handler(mode, context, message):
+    """The message handler is a function that prints out debug messages,
+    warnings, critical and fatal error messages. The Qt library (debug mode)
+    contains hundreds of warning messages that are printed when internal errors
+    (usually invalid function arguments) occur. Qt built in release mode also
+    contains such warnings unless QT_NO_WARNING_OUTPUT and/or
+    QT_NO_DEBUG_OUTPUT have been set during compilation. If you implement your
+    own message handler, you get total control of these messages.
+
+    The default message handler prints the message to the standard output under X11
+    or to the debugger under Windows. If it is a fatal message, the application
+    aborts immediately.
+
+    For more info, see https://doc.qt.io/qt-5/qtglobal.html#qInstallMessageHandler
+
+    Args:
+        mode (QtCore mode): the mode
+        context (context): the context
+        message (str): the message
+    """
+
+    if message.startswith("QSocketNotifier: Multiple socket notifiers for same socket"):
+        pass  # Caused by running %gui qt multiple times
+    else:
+        if mode == QtCore.QtMsgType.QtInfoMsg:
+            mode = "INFO"
+        elif mode == QtCore.QtMsgType.QtWarningMsg:
+            mode = "WARNING"
+        elif mode == QtCore.QtMsgType.QtCriticalMsg:
+            mode = "CRITICAL"
+        elif mode == QtCore.QtMsgType.QtFatalMsg:
+            mode = "FATAL"
+        else:
+            mode = "DEBUG"
+        # logger.log(
+        #     getattr(logging, 'CRITICAL'), 'line: %d, func: %s(), file: %s' %
+        #     (context.line, context.function, context.file) + '  %s: %s\n' %
+        #     (mode, message))
+
+        # Log basic message details
+        base_message = f"{mode}: {message}"
+
+        # Include context if available
+        if context.file and context.function:
+            base_message += f" (File: {context.file}, Line: {context.line}, Function: {context.function})"
+        else:
+            base_message += " (No context available from Qt)"
+
+        # A traceback is only worth attaching for CRITICAL/FATAL -- the
+        # messages that can actually indicate the kind of internal-state
+        # corruption this handler was written to help diagnose. Attaching
+        # one to every INFO/WARNING as well (Qt's routine performance and
+        # plugin-capability notices, e.g. "Populating font family aliases
+        # took ...ms") made completely benign log lines read as crash
+        # reports, which is worse for spotting a real one, not better.
+        if mode in ("CRITICAL", "FATAL"):
+            python_traceback = "".join(traceback.format_stack(limit=10))
+            base_message += (
+                f"\nPython Traceback (most recent call last):\n{python_traceback}"
+            )
+
+        try:
+            logger.log(getattr(logging, mode, logging.DEBUG), base_message)
+        except (ValueError, OSError):
+            # Interpreter shutdown: logging's streams are already closed,
+            # but Qt keeps emitting messages while its C++ objects wind
+            # down (e.g. QSettings destructors syncing on Windows). A
+            # message handler must never raise -- and each failed emit
+            # would otherwise print its own "--- Logging error ---" block
+            # to a closed-stream handler, spamming the tail of every CI
+            # log (seen on PR #1180's windows jobs).
+            pass
+
+
+#######################################################################################
+# Auxilary handlers - mostly for debug purposes
+
+
+def do_debug(msg, name="info"):
+    """Utility function used to print debug statements from PySide6 Socket
+    calls A bit of a cludge.
+
+    Args:
+        msg (str): Message to print or log to user
+        name (str): info wran, debug, etc.  Defaults to 'info'.
+    """
+
+    # if 0:
+    #     # This just gives the qt main loop traceback. Not useful.
+    #     callers = []
+    #     for i in range(1, 20):
+    #         try:
+    #             stack = inspect.stack()[i]
+    #             callers += [f'{stack.function}[{stack.lineno}]']
+    #         except Exception as e:
+    #             print("Exception during do_debug exception handling: " +
+    #                   e.__repr__())
+    #     callers = reversed(callers)
+    #     callers = '\n'.join(callers)
+    #     msg = callers + "\n" + str(msg) + '\n'
+
+    getattr(logger, name)(msg)
+
+
+def slot_catch_error(*args, catch=Exception, on_exception_emit=None):
+    """This is a decorator for Slots where an exception in user code is caught,
+    printed and a optional qtSignal with signature qtSignal(Exception, str) is
+    emitted when that happens.
+
+    Based on:
+        https://stackoverflow.com/questions/18740884/preventing-pyqt-to-silence-exceptions-occurring-in-slots
+
+    Args:
+        args (arguments):  any valid types for the Slot.
+        catch (Exception):  Type of the exception to catch.  Defaults to Exception.
+        on_exception_emit (str):  name of a qtSignal to be emitted.
+    """
+
+    if len(args) == 0 or isinstance(args[0], types.FunctionType):
+        args = []
+
+    @Slot(*args)
+    def slot_decorator(func):
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+
+            try:
+                func(*args)
+
+            except catch as e:
+                message = traceback.format_exc()
+                message += (
+                    "\n\nERROR in call by Alpha GUI (see traceback above)\n"
+                    + f"\n{' module   :':12s} {wrapper.__module__}"
+                    + f"\n{' function :':12s} {wrapper.__qualname__}"
+                    + f"\n{' err msg  :':12s} {e.__repr__()}"
+                    + f"\n{' args; kws:':12s} {args}; {kwargs}"
+                )
+                do_debug(message, name="error")
+
+                if on_exception_emit is not None:
+                    # args[0] is instance of bound signal
+                    qt_signal = getattr(args[0], on_exception_emit)
+                    qt_signal.emit(e, wrapper.__name__)
+
+        return wrapper
+
+    return slot_decorator
