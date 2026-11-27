@@ -36,6 +36,11 @@
   object-fit: cover;
   z-index: -1; /* Higher than the -2 static background so it covers it */
   pointer-events: none;
+  /* Prevent Chromium from bypassing Skia pipeline to direct hardware video overlay */
+  transform: translate3d(0, 0, 0);
+  opacity: 0.999;
+  filter: contrast(100.01%);
+  will-change: transform;
 }
 
 .dashboard-bg-video {
@@ -169,11 +174,9 @@
   position: relative;
   z-index: 1;
   padding: 2rem;
-  overflow: hidden;
+  overflow: visible; /* Prevents Chromium clipping on backdrop-filter */
   background: transparent;
 }
-
-
 
 /* Logo Styling */
 .logo-container {
@@ -194,14 +197,12 @@
   object-fit: contain;
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.1)) contrast(1.8) brightness(1.1); /* High contrast crushes any dark greys into pure black, making it fully transparent */
+  filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.1)) contrast(1.8) brightness(1.1);
   transform: scale(1.4);
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at center, black 50%, transparent 100%);
   mask-image: radial-gradient(ellipse 80% 80% at center, black 50%, transparent 100%);
-  mix-blend-mode: screen; /* Makes the black background of the JPG transparent */
+  mix-blend-mode: screen;
 }
-
-
 
 .logo-image-blur {
   position: absolute;
@@ -223,15 +224,20 @@
 .auth-card {
   width: 100%;
   max-width: 480px;
-  background: rgba(10, 10, 10, 0.05); /* Made almost completely transparent to show hardware */
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15); /* Slightly boosted border visibility to compensate for transparency */
-  border-radius: 20px;
+  /* Frosted luxury glass background with dual-tone gradient and specular highlights */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(12, 16, 28, 0.65) 100%);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 24px;
   padding: 3rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 
+              inset 0 1px 1px rgba(255, 255, 255, 0.25),
+              0 0 30px rgba(0, 229, 255, 0.08);
   position: relative;
-  overflow: hidden;
+  /* Force GPU compositing layer in Chrome */
+  transform: translateZ(0);
+  will-change: transform, backdrop-filter;
   margin-left: 6rem; /* Shifting the login section to the right as requested */
   margin-top: -3rem; /* Nudged 0.5cm down from the previous -4rem */
 }
@@ -283,8 +289,10 @@
 
 .form-input {
   width: 100%;
-  background: var(--input-bg);
-  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   padding: 1rem 1.25rem;
   color: var(--text-main);
