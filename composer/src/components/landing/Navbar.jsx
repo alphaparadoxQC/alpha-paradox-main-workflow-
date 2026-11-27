@@ -177,3 +177,4 @@ export const Navbar = ({ onCtaClick }) => {
   );
 };
 export default Navbar;
+
