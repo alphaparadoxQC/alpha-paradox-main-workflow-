@@ -26,7 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onCtaClick }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const NOTEBOOK_DASHBOARD_URL = process.env.NEXT_PUBLIC_NOTEBOOK_URL || "http://localhost:5173/home";
+  const NOTEBOOK_DASHBOARD_URL = process.env.NEXT_PUBLIC_NOTEBOOK_URL || "/home";
 
   const navLinks = [
     { label: "Get to Know Us", href: "#about" },

@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 
 export const ProductsSection: React.FC = () => {
-  const notebookUrl = process.env.NEXT_PUBLIC_NOTEBOOK_URL || "http://localhost:5173/home";
+  const notebookUrl = process.env.NEXT_PUBLIC_NOTEBOOK_URL || "/home";
 
   return (
     <section

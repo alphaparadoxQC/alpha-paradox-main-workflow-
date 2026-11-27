@@ -37,3 +37,4 @@ async function captureLandingScreenshot() {
 }
 
 captureLandingScreenshot().catch(console.error);
+

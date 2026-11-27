@@ -23,13 +23,13 @@ export default function Navbar({ session, user: directUser }) {
 
   return (
     <nav className="top-navbar" style={{ position: 'relative', zIndex: 100 }}>
-      <div className="nav-logo" onClick={() => navigate('/home')} style={{ cursor: 'pointer' }} title="Alpha Paradox Dashboard Home">
+      <div className="nav-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }} title="Alpha Paradox Main Portal">
         <img src="/logo-1.jpg" alt="Alpha Paradox QC" className="nav-logo-img" />
       </div>
       <div className="nav-links">
-        <a href="http://localhost:3000" className="nav-link" style={{ color: '#00E5FF', fontWeight: '600' }} title="Alpha Paradox Main Portal (localhost:3000)">
+        <Link to="/" className="nav-link" style={{ color: '#00E5FF', fontWeight: '600' }} title="Alpha Paradox Main Portal">
           ← HOME
-        </a>
+        </Link>
         <Link to="/home" className={`nav-link ${isActive('/home') ? 'active' : ''}`}>
           DASHBOARD HOME
         </Link>
