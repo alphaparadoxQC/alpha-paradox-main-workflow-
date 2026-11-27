@@ -1,6 +1,10 @@
 [build]
-  command = "cd composer && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 PUPPETEER_SKIP_DOWNLOAD=true npm install && npm run build && rm -rf ../dist && cp -r dist ../dist"
+  command = "cd composer && npm install --legacy-peer-deps && npm run build && rm -rf ../dist && cp -r dist ../dist"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
   from = "/*"
